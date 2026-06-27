@@ -1,0 +1,97 @@
+"""Pure scoring logic for move quality — no engine, no I/O, easy to unit-test.
+
+Everything here works in **centipawns from White's point of view** (the convention
+``python-chess`` uses via ``score.white()``): positive = good for White, negative =
+good for Black. ``+100`` is roughly "up one pawn".
+
+Two ideas live here:
+
+1. *Centipawn loss* — how much a played move worsened the position, measured from the
+   mover's own perspective. Always >= 0 (a move can't do better than the engine's best,
+   and small negatives from search noise are clamped to 0).
+2. *Classification* — bucketing that loss into the familiar inaccuracy / mistake /
+   blunder labels, using the same conventional thresholds as Lichess/chess.com.
+"""
+
+from __future__ import annotations
+
+from enum import Enum
+
+# A forced mate is worth more than any material count. We map "mate in N" onto a large
+# centipawn value (closer mates score slightly higher) so all the arithmetic below works
+# on plain integers. 10000cp = 100 pawns, unreachable by normal material.
+MATE_CP = 10_000
+
+
+class MoveQuality(str, Enum):
+    """Move quality labels, ordered from best to worst."""
+
+    BEST = "best"
+    GOOD = "good"
+    INACCURACY = "inaccuracy"  # ?!
+    MISTAKE = "mistake"        # ?
+    BLUNDER = "blunder"        # ??
+
+    @property
+    def symbol(self) -> str:
+        return {
+            MoveQuality.BEST: "",
+            MoveQuality.GOOD: "",
+            MoveQuality.INACCURACY: "?!",
+            MoveQuality.MISTAKE: "?",
+            MoveQuality.BLUNDER: "??",
+        }[self]
+
+
+# Lower bound (inclusive) of centipawn loss for each label. Tunable.
+INACCURACY_THRESHOLD = 50
+MISTAKE_THRESHOLD = 100
+BLUNDER_THRESHOLD = 300
+
+
+def mate_to_cp(mate_in: int) -> int:
+    """Convert a 'mate in N' count into a capped centipawn value (White POV sign).
+
+    ``mate_in`` follows python-chess semantics: positive = side-to-evaluate mates,
+    negative = gets mated. We shrink the magnitude slightly as N grows so a mate-in-1
+    scores above a mate-in-5, while staying far beyond any material eval.
+    """
+    if mate_in == 0:  # already checkmate on the board
+        return MATE_CP if mate_in >= 0 else -MATE_CP
+    magnitude = MATE_CP - min(abs(mate_in), 99)
+    return magnitude if mate_in > 0 else -magnitude
+
+
+def centipawn_loss(
+    eval_before_best: int,
+    eval_after: int,
+    mover_is_white: bool,
+) -> int:
+    """How many centipawns the played move gave up, from the mover's perspective.
+
+    Both inputs are White-POV centipawns:
+    - ``eval_before_best``: the engine's best achievable eval *before* the move.
+    - ``eval_after``: the eval of the position that actually resulted from the move.
+
+    For White, value drops when the White-POV eval falls; for Black it's the mirror.
+    Negative results (the move looked better than "best" due to search depth differences)
+    are clamped to 0.
+    """
+    if mover_is_white:
+        loss = eval_before_best - eval_after
+    else:
+        loss = eval_after - eval_before_best
+    return max(0, loss)
+
+
+def classify(cp_loss: int) -> MoveQuality:
+    """Bucket a (non-negative) centipawn loss into a MoveQuality label."""
+    if cp_loss >= BLUNDER_THRESHOLD:
+        return MoveQuality.BLUNDER
+    if cp_loss >= MISTAKE_THRESHOLD:
+        return MoveQuality.MISTAKE
+    if cp_loss >= INACCURACY_THRESHOLD:
+        return MoveQuality.INACCURACY
+    if cp_loss == 0:
+        return MoveQuality.BEST
+    return MoveQuality.GOOD
