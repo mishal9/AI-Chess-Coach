@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Data (large public dumps + generated artifacts)
+data/raw/
+data/processed/
+*.pgn
+*.pgn.zst
+*.bin
+
+# Models / training artifacts
+models/
+*.gguf
+*.safetensors
+
+# Env / secrets
+.env
+
+# OS
+.DS_Store
