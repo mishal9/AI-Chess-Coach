@@ -48,6 +48,22 @@ class MoveAnalysis:
     quality: MoveQuality
     fen_before: str          # position the move was played from
 
+    def to_dict(self) -> dict:
+        """JSON-serialisable view (enum → its string value)."""
+        return {
+            "ply": self.ply,
+            "move_number": self.move_number,
+            "side": self.side,
+            "san": self.san,
+            "best_san": self.best_san,
+            "eval_before": self.eval_before,
+            "eval_after": self.eval_after,
+            "cp_loss": self.cp_loss,
+            "win_prob_loss": round(self.win_prob_loss, 4),
+            "quality": self.quality.value,
+            "fen_before": self.fen_before,
+        }
+
 
 @dataclass
 class GameReport:
@@ -59,6 +75,18 @@ class GameReport:
     eco: str
     opening: str
     moves: list[MoveAnalysis] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        """Full JSON-serialisable report: headers, summary, and per-move analysis."""
+        return {
+            "white": self.white,
+            "black": self.black,
+            "result": self.result,
+            "eco": self.eco,
+            "opening": self.opening,
+            "summary": self.summary,
+            "moves": [m.to_dict() for m in self.moves],
+        }
 
     @property
     def summary(self) -> dict:
@@ -161,12 +189,21 @@ def analyze_game(
             best_san = board.san(best_move) if best_move else None
             fen_before = board.fen()
 
+            played_best = best_move is not None and move == best_move
+
             board.push(move)
             ply += 1
             cur_eval, cur_best = evaluate_position(engine, board, limit)
 
-            loss = centipawn_loss(eval_before, cur_eval, mover_is_white)
-            wp_loss = win_prob_loss(eval_before, cur_eval, mover_is_white)
+            if played_best:
+                # You can't be blamed for playing the engine's own top choice. This also
+                # sidesteps search-horizon artifacts where a forced/only move looks like a
+                # huge swing simply because a mate becomes visible one ply deeper.
+                loss = 0
+                wp_loss = 0.0
+            else:
+                loss = centipawn_loss(eval_before, cur_eval, mover_is_white)
+                wp_loss = win_prob_loss(eval_before, cur_eval, mover_is_white)
             report.moves.append(
                 MoveAnalysis(
                     ply=ply,

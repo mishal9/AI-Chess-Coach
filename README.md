@@ -41,3 +41,20 @@ python -m engine.fetch_data --sample
 # Print a parsed game to confirm the loader works
 python -m engine.loader data/raw/sample.pgn
 ```
+
+## Quickstart (Phase 1 — analysis report)
+
+```bash
+# Analyze a game → readable mistake summary (ACPL, blunders, worst move, top mistakes)
+python -m engine.report data/raw/sample.pgn --depth 16
+
+# Also write the full structured JSON report (per-move eval, cp-loss, win-prob, quality)
+python -m engine.report data/raw/sample.pgn --json report.json
+
+# Pick a specific game in a multi-game file; send JSON to stdout for piping
+python -m engine.report games.pgn --game-index 2 --json - | jq .summary
+```
+
+Move quality is judged by the drop in the mover's **win probability** (a sigmoid over the
+centipawn eval), so already-decided positions and forced mates don't produce false blunders,
+and a move matching the engine's own top choice always scores as best.

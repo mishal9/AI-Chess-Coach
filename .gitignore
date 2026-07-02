@@ -12,6 +12,8 @@ data/processed/
 *.pgn
 *.pgn.zst
 *.bin
+# …but keep small checked-in test fixtures
+!tests/data/*.pgn
 
 # Models / training artifacts
 models/
