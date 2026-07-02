@@ -18,7 +18,15 @@ import chess
 import chess.engine
 import chess.pgn
 
-from engine.scoring import MATE_CP, MoveQuality, centipawn_loss, classify, mate_to_cp
+from engine.scoring import (
+    MATE_CP,
+    MoveQuality,
+    capped_centipawn_loss,
+    centipawn_loss,
+    classify,
+    mate_to_cp,
+    win_prob_loss,
+)
 from engine.stockfish import find_stockfish
 
 DEFAULT_DEPTH = 15
@@ -35,7 +43,8 @@ class MoveAnalysis:
     best_san: str | None     # Stockfish's preferred move in that position
     eval_before: int         # White-POV cp, best play, before the move
     eval_after: int          # White-POV cp after the move was played
-    cp_loss: int             # centipawns given up, mover's perspective
+    cp_loss: int             # centipawns given up, mover's perspective (for display)
+    win_prob_loss: float     # drop in mover's win probability; drives `quality`
     quality: MoveQuality
     fen_before: str          # position the move was played from
 
@@ -58,8 +67,12 @@ class GameReport:
         worst: MoveAnalysis | None = None
         for m in self.moves:
             counts[m.quality] += 1
-            loss_by_side[m.side].append(m.cp_loss)
-            if worst is None or m.cp_loss > worst.cp_loss:
+            # ACPL uses capped-eval cp-loss so decided positions don't skew the average.
+            loss_by_side[m.side].append(
+                capped_centipawn_loss(m.eval_before, m.eval_after, m.side == "white")
+            )
+            # "Worst" ranks by win-probability loss — the honest measure of damage done.
+            if worst is None or m.win_prob_loss > worst.win_prob_loss:
                 worst = m
 
         def avg(xs: list[int]) -> float:
@@ -80,6 +93,7 @@ class GameReport:
                     "played": worst.san,
                     "best": worst.best_san,
                     "cp_loss": worst.cp_loss,
+                    "win_prob_loss": round(worst.win_prob_loss, 3),
                 }
             ),
         }
@@ -152,6 +166,7 @@ def analyze_game(
             cur_eval, cur_best = evaluate_position(engine, board, limit)
 
             loss = centipawn_loss(eval_before, cur_eval, mover_is_white)
+            wp_loss = win_prob_loss(eval_before, cur_eval, mover_is_white)
             report.moves.append(
                 MoveAnalysis(
                     ply=ply,
@@ -162,7 +177,8 @@ def analyze_game(
                     eval_before=eval_before,
                     eval_after=cur_eval,
                     cp_loss=loss,
-                    quality=classify(loss),
+                    win_prob_loss=wp_loss,
+                    quality=classify(wp_loss),
                     fen_before=fen_before,
                 )
             )
