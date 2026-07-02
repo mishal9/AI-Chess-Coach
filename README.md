@@ -35,8 +35,11 @@ data/      downloaded PGNs + generated datasets (gitignored)
 ## Quickstart (Phase 0)
 
 ```bash
-# Download a tiny public PGN sample
+# Download a tiny public PGN sample (Lichess)
 python -m engine.fetch_data --sample
+
+# ...or pull your most recent games from chess.com (standard games only)
+python -m engine.fetch_data --source chesscom --user hikaru --max 20
 
 # Print a parsed game to confirm the loader works
 python -m engine.loader data/raw/sample.pgn
