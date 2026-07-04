@@ -28,9 +28,23 @@ Coaching quality along two kinds of axis:
   **provider-pluggable** via `eval/backends.py`: local Ollama by default (offline, the CI
   default), or a frontier judge (`anthropic_backend` / `gemini_backend`, behind the `eval`
   extra) with a one-argument swap — `judge_coaching(..., backend=...)`. **(this PR)**
-- **PR3 — held-out set + runner.** A small, fixed set of held-out games (varied mistake
-  profiles), an end-to-end runner that coaches each and aggregates grounding + rubric into
-  a single baseline report (JSON + readable summary), and a CLI (`python -m eval.run`).
+- **PR3 — held-out set + runner.** `eval/heldout/` (6 fixed Lichess games with varied
+  mistake profiles + `manifest.json`) and `eval/run.py` (`python -m eval.run`): coaches
+  each game, scores grounding + rubric, aggregates into a baseline report (JSON under
+  `eval/reports/` + readable summary). Coach and judge models are both selectable
+  (`--coach-model`, `--judge {ollama,anthropic,gemini}`); `--max-judge-calls` is a spend
+  guard; `--no-judge` runs grounding only (free/offline). **(this PR)**
+
+## Baseline (as of 2026-07-04)
+
+Phase-2 prompted coach (`qwen2.5:3b-instruct`) judged by `claude-opus-4-8` over the 6
+held-out games — the number Phase 3/4 must beat (`eval/reports/baseline_2026-07-04.json`):
+
+- Grounding mean **0.76**, fully grounded **50%**, worst move identified **67%**
+- Rubric (1-5): factual **2.33**, clarity **3.50**, actionability **2.50**,
+  identifies-key-mistake **3.83**, **overall 3.04**
+
+Low factual-correctness is the hallucination problem quantified — the primary target.
 
 ## Design notes
 

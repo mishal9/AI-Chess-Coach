@@ -1,0 +1,50 @@
+[
+  {
+    "pgn": "clean_draw.pgn",
+    "game_index": 0,
+    "coached_side": "white",
+    "white": "DrNykterstein",
+    "black": "PseudoBenko",
+    "note": "near-clean game (both sides low ACPL, nothing flagged) \u2014 the coach must recognize a clean game, not invent errors"
+  },
+  {
+    "pgn": "slow_loss.pgn",
+    "game_index": 0,
+    "coached_side": "black",
+    "white": "DrNykterstein",
+    "black": "PseudoBenko",
+    "note": "gradual loss: high ACPL but no discrete blunder (Opera-like) \u2014 the case where a small model tends to hallucinate"
+  },
+  {
+    "pgn": "one_blunder.pgn",
+    "game_index": 0,
+    "coached_side": "white",
+    "white": "PseudoBenko",
+    "black": "DrNykterstein",
+    "note": "a single clear blunder plus high ACPL"
+  },
+  {
+    "pgn": "multi_blunder.pgn",
+    "game_index": 0,
+    "coached_side": "black",
+    "white": "DrNykterstein",
+    "black": "PseudoBenko",
+    "note": "multiple blunders in one game (2 blunders + a mistake)"
+  },
+  {
+    "pgn": "inaccuracies.pgn",
+    "game_index": 0,
+    "coached_side": "black",
+    "white": "DrNykterstein",
+    "black": "Sharkfang",
+    "note": "death by many small inaccuracies; no blunder or mistake"
+  },
+  {
+    "pgn": "two_mistakes.pgn",
+    "game_index": 0,
+    "coached_side": "white",
+    "white": "PseudoBenko",
+    "black": "DrNykterstein",
+    "note": "a couple of mistakes, no blunder"
+  }
+]

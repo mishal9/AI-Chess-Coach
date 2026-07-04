@@ -1,0 +1,27 @@
+[Event "rated bullet game"]
+[Site "https://lichess.org/VOqkxbKK"]
+[Date "2026.03.17"]
+[Round "-"]
+[White "PseudoBenko"]
+[Black "DrNykterstein"]
+[Result "0-1"]
+[GameId "VOqkxbKK"]
+[UTCDate "2026.03.17"]
+[UTCTime "23:20:34"]
+[WhiteElo "3035"]
+[BlackElo "3226"]
+[WhiteRatingDiff "-3"]
+[BlackRatingDiff "+6"]
+[WhiteTitle "IM"]
+[BlackTitle "GM"]
+[Variant "Standard"]
+[TimeControl "60+0"]
+[ECO "C15"]
+[Opening "French Defense: Winawer Variation, Alekhine-Maróczy Gambit"]
+[Termination "Normal"]
+
+1. e4 e6 2. d4 d5 3. Nc3 Bb4 4. Ne2 dxe4 5. a3 Be7 6. Nxe4 Nf6 7. Nxf6+ Bxf6 8.
+Be3 b6 9. Qd2 Bb7 10. O-O-O Nc6 11. Nc3 Qe7 12. d5 O-O-O 13. Bc4 Ne5 14. Ba2
+Ng4 15. Rhe1 Nxe3 16. Rxe3 Bg5 17. Rde1 Kb8 18. Kb1 Bxe3 19. Qxe3 Rhe8 20. dxe6
+fxe6 21. Bxe6 Qf6 22. f4 Bxg2 23. f5 g6 24. Qg3 gxf5 25. Nb5 f4 26. Qxg2 Rxe6
+27. Rxe6 Qxe6 28. Qg7 Rd1# 0-1

@@ -1,0 +1,26 @@
+[Event "rated bullet game"]
+[Site "https://lichess.org/K30CV7h1"]
+[Date "2026.03.17"]
+[Round "-"]
+[White "PseudoBenko"]
+[Black "DrNykterstein"]
+[Result "0-1"]
+[GameId "K30CV7h1"]
+[UTCDate "2026.03.17"]
+[UTCTime "23:02:27"]
+[WhiteElo "3014"]
+[BlackElo "3282"]
+[WhiteRatingDiff "-2"]
+[BlackRatingDiff "+7"]
+[WhiteTitle "IM"]
+[BlackTitle "GM"]
+[Variant "Standard"]
+[TimeControl "60+0"]
+[ECO "B76"]
+[Opening "Sicilian Defense: Dragon Variation, Yugoslav Attack, Modern Line"]
+[Termination "Normal"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 g6 6. Be3 Bg7 7. f3 Nc6 8. Qd2
+O-O 9. O-O-O d5 10. exd5 Nxd5 11. Nxc6 bxc6 12. Bd4 Bxd4 13. Qxd4 Qb6 14. Na4
+Qc7 15. Bc4 Bf5 16. Qc5 Rfd8 17. Bxd5 Qf4+ 18. Kb1 Rxd5 19. Rxd5 cxd5 20. Nc3
+e6 21. Rd1 Qxh2 22. g4 Bxc2+ 0-1
