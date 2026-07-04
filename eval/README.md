@@ -24,7 +24,10 @@ Coaching quality along two kinds of axis:
   a grounding score. Deterministic; unit-tested; no model required. **(merged)**
 - **PR2 — rubric + LLM-as-judge.** `eval/rubric.py` (axes, 1-5 scale, validated
   `RubricScore`) + `eval/judge.py` (judge prompt, defensive JSON parsing, `judge_coaching`).
-  Scores the subjective axes with a structured, parseable verdict. **(this PR)**
+  Scores the subjective axes with a structured, parseable verdict. Judging is
+  **provider-pluggable** via `eval/backends.py`: local Ollama by default (offline, the CI
+  default), or a frontier judge (`anthropic_backend` / `gemini_backend`, behind the `eval`
+  extra) with a one-argument swap — `judge_coaching(..., backend=...)`. **(this PR)**
 - **PR3 — held-out set + runner.** A small, fixed set of held-out games (varied mistake
   profiles), an end-to-end runner that coaches each and aggregates grounding + rubric into
   a single baseline report (JSON + readable summary), and a CLI (`python -m eval.run`).

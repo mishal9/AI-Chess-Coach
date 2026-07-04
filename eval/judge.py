@@ -6,20 +6,22 @@ rationale). We parse that defensively — models like to wrap JSON in prose or c
 — and validate it through :class:`eval.rubric.RubricScore`.
 
 Note: the default judge is the same small local model as the coach, which makes it a
-*weak* judge (fine for a $0 local baseline harness). Swapping in a stronger model via
-``model=`` is the obvious upgrade once one is available.
+*weak* judge (fine for a $0 local baseline harness). Grading is provider-pluggable — pass
+``backend=backends.anthropic_backend`` (or ``gemini_backend``) to judge with a frontier
+model instead; see :mod:`eval.backends`.
 """
 
 from __future__ import annotations
 
 import json
 import re
+from typing import Callable
 
-from coach import client, prompts
-from eval import rubric
+from coach import prompts
+from eval import backends, rubric
 
-# Judge at temperature 0: we want the most consistent, repeatable verdict possible.
-DEFAULT_JUDGE_TEMPERATURE = 0.0
+# A backend is any callable that takes chat messages (+ optional model) and returns text.
+Backend = Callable[..., str]
 
 
 class JudgeError(RuntimeError):
@@ -85,14 +87,21 @@ def judge_coaching(
     coaching_text: str,
     report: dict,
     coached_side: str | None = None,
-    model: str = client.DEFAULT_MODEL,
-    temperature: float = DEFAULT_JUDGE_TEMPERATURE,
+    backend: Backend | None = None,
+    model: str | None = None,
     max_mistakes: int = 6,
 ) -> rubric.RubricScore:
-    """Score a coaching text by judging it against the facts rebuilt from ``report``."""
+    """Score a coaching text by judging it against the facts rebuilt from ``report``.
+
+    ``backend`` selects the provider (defaults to the local Ollama judge); ``model``
+    overrides that backend's default model. The backend owns provider-specific concerns
+    like temperature, so callers don't have to.
+    """
     if coached_side is None:
         coached_side = prompts.choose_coached_side(report)
+    if backend is None:
+        backend = backends.DEFAULT_BACKEND
     facts = prompts.format_report_facts(report, coached_side, max_mistakes)
     messages = build_judge_messages(coaching_text, facts)
-    raw = client.chat(messages, model=model, temperature=temperature)
+    raw = backend(messages, model=model)
     return parse_verdict(raw)

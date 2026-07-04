@@ -102,17 +102,24 @@ def test_build_judge_messages_includes_facts_and_coaching():
     assert "17...Nxd4" in user and "Coaching text here." in user
 
 
-def test_judge_coaching_uses_client(monkeypatch):
+def test_judge_coaching_uses_injected_backend():
+    # The backend seam: judging routes through whatever callable we pass, so a frontier
+    # provider (Claude, Gemini) drops in without touching the rubric or parsing.
     captured = {}
 
-    def fake_chat(messages, model, temperature):
-        captured["temperature"] = temperature
+    def fake_backend(messages, model=None):
+        captured["messages"] = messages
+        captured["model"] = model
         return VALID_VERDICT
 
-    monkeypatch.setattr(judge.client, "chat", fake_chat)
-    score = judge.judge_coaching("great coaching", SAMPLE_REPORT, coached_side="black")
+    score = judge.judge_coaching(
+        "great coaching", SAMPLE_REPORT, coached_side="black",
+        backend=fake_backend, model="test-model",
+    )
     assert score.overall == 4.0
-    assert captured["temperature"] == judge.DEFAULT_JUDGE_TEMPERATURE  # 0.0
+    assert captured["model"] == "test-model"
+    # The facts and coaching are what the backend was asked to grade.
+    assert any("Nxd4" in m["content"] for m in captured["messages"])
 
 
 # --- live smoke test ---------------------------------------------------------------
