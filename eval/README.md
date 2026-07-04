@@ -21,9 +21,10 @@ Coaching quality along two kinds of axis:
 
 - **PR1 — grounding metric.** `eval/grounding.py`: extract the SAN moves a coaching text
   cites, diff against the moves present in the facts block, report hallucinated moves and
-  a grounding score. Deterministic; unit-tested; no model required. **(this PR)**
-- **PR2 — rubric + LLM-as-judge.** A rubric schema and a judge that scores the subjective
-  axes on a fixed scale, with a structured, parseable verdict.
+  a grounding score. Deterministic; unit-tested; no model required. **(merged)**
+- **PR2 — rubric + LLM-as-judge.** `eval/rubric.py` (axes, 1-5 scale, validated
+  `RubricScore`) + `eval/judge.py` (judge prompt, defensive JSON parsing, `judge_coaching`).
+  Scores the subjective axes with a structured, parseable verdict. **(this PR)**
 - **PR3 — held-out set + runner.** A small, fixed set of held-out games (varied mistake
   profiles), an end-to-end runner that coaches each and aggregates grounding + rubric into
   a single baseline report (JSON + readable summary), and a CLI (`python -m eval.run`).
