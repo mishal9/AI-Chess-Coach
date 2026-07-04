@@ -1,0 +1,26 @@
+[Event "rated bullet game"]
+[Site "https://lichess.org/nrmBGiQF"]
+[Date "2026.03.17"]
+[Round "-"]
+[White "DrNykterstein"]
+[Black "PseudoBenko"]
+[Result "1-0"]
+[GameId "nrmBGiQF"]
+[UTCDate "2026.03.17"]
+[UTCTime "23:21:55"]
+[WhiteElo "3232"]
+[BlackElo "3032"]
+[WhiteRatingDiff "+6"]
+[BlackRatingDiff "-3"]
+[WhiteTitle "GM"]
+[BlackTitle "IM"]
+[Variant "Standard"]
+[TimeControl "60+0"]
+[ECO "A14"]
+[Opening "English Opening: Agincourt Defense, Neo-Catalan Declined"]
+[Termination "Normal"]
+
+1. c4 Nf6 2. g3 e6 3. Bg2 d5 4. Nf3 Be7 5. O-O O-O 6. cxd5 exd5 7. d3 c5 8. d4
+Nc6 9. Nc3 Bg4 10. Be3 Re8 11. dxc5 Bxf3 12. Bxf3 d4 13. Bxc6 dxe3 14. Bxe8
+exf2+ 15. Rxf2 Qxe8 16. Rf3 Bxc5+ 17. Kh1 Rd8 18. Qb3 Bb6 19. Raf1 h6 20. e4
+Qe5 21. Nd5 Nxd5 22. exd5 Rxd5 23. Rxf7 Kh7 24. Qc2+ Kg8 25. Rf8# 1-0

@@ -12,8 +12,9 @@ data/processed/
 *.pgn
 *.pgn.zst
 *.bin
-# …but keep small checked-in test fixtures
+# …but keep small checked-in test fixtures + the eval held-out set
 !tests/data/*.pgn
+!eval/heldout/*.pgn
 
 # Models / training artifacts
 models/

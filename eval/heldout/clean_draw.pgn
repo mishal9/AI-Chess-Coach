@@ -1,0 +1,33 @@
+[Event "rated bullet game"]
+[Site "https://lichess.org/1fLwz7QO"]
+[Date "2026.03.17"]
+[Round "-"]
+[White "DrNykterstein"]
+[Black "PseudoBenko"]
+[Result "1/2-1/2"]
+[GameId "1fLwz7QO"]
+[UTCDate "2026.03.17"]
+[UTCTime "23:03:14"]
+[WhiteElo "3289"]
+[BlackElo "3012"]
+[WhiteRatingDiff "-12"]
+[BlackRatingDiff "+3"]
+[WhiteTitle "GM"]
+[BlackTitle "IM"]
+[Variant "Standard"]
+[TimeControl "60+0"]
+[ECO "C50"]
+[Opening "Italian Game: Paris Defense"]
+[Termination "Normal"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 d6 4. d3 Na5 5. O-O Nxc4 6. dxc4 Nf6 7. Nc3 Be7 8.
+Bg5 O-O 9. Qd3 Be6 10. Rad1 Nd7 11. Be3 a6 12. Qe2 Qe8 13. Nd5 Bxd5 14. cxd5 f5
+15. exf5 Rxf5 16. Qc4 Rc8 17. Nd2 Rf8 18. Ne4 h6 19. f3 Kh7 20. Qd3 Qg6 21. c4
+Nf6 22. Nc3 Qxd3 23. Rxd3 g5 24. b4 c6 25. Rc1 Kg6 26. a4 Rc7 27. Bb6 Rcc8 28.
+a5 cxd5 29. Nxd5 Nxd5 30. Rxd5 Kf7 31. c5 Ke6 32. Rcd1 dxc5 33. bxc5 Rc6 34.
+Rd7 Bxc5+ 35. Bxc5 Rxc5 36. g4 Rc6 37. Kg2 e4 38. fxe4 Rc2+ 39. R1d2 Rxd2+ 40.
+Rxd2 Ke5 41. Rb2 Rf7 42. Rb6 Kxe4 43. Rxh6 Kf4 44. h3 Rc7 45. Rf6+ Ke4 46. Rf5
+Rc2+ 47. Kf1 Rc3 48. Ke2 Rxh3 49. Rxg5 Rh2+ 50. Kd1 Ra2 51. Rf5 Rb2 52. Ke1 Rg2
+53. Rf7 Rxg4 54. Rxb7 Rg5 55. Kd2 Rxa5 56. Kc3 Kd5 57. Rh7 Rc5+ 58. Kb4 Rc6 59.
+Ka4 Kd6 60. Rh6+ Kc7 61. Rh5 Rd6 62. Rh7+ Rd7 63. Rh6 Kd8 64. Rxa6 Kc7 65. Kb5
+Kd8 66. Rc6 Rc7 67. Rc5 Rxc5+ 68. Kxc5 1/2-1/2

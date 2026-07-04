@@ -1,0 +1,30 @@
+[Event "Take Take Take Arena"]
+[Site "https://lichess.org/xKWdG1d1"]
+[Date "2026.04.08"]
+[Round "-"]
+[White "DrNykterstein"]
+[Black "Sharkfang"]
+[Result "1-0"]
+[GameId "xKWdG1d1"]
+[UTCDate "2026.04.08"]
+[UTCTime "19:36:17"]
+[WhiteElo "3131"]
+[BlackElo "2752"]
+[WhiteRatingDiff "+14"]
+[BlackRatingDiff "-2"]
+[WhiteTitle "GM"]
+[WhiteBerserk "true"]
+[BlackBerserk "true"]
+[Variant "Standard"]
+[TimeControl "180+0"]
+[ECO "E61"]
+[Opening "King's Indian Defense"]
+[Termination "Normal"]
+
+1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e3 d6 5. e4 O-O 6. Nf3 e5 7. d5 Nbd7 8. Bd3
+Nc5 9. Bc2 a5 10. h3 Nh5 11. g3 Bd7 12. Be3 b6 13. Nd2 Qe8 14. Qe2 f5 15. a4 f4
+16. Bxc5 bxc5 17. g4 Nf6 18. f3 Rb8 19. Nb5 Qc8 20. Nb3 Ra8 21. Qd2 Bxb5 22.
+cxb5 Nd7 23. Nxa5 Nb6 24. Nc6 Kh8 25. a5 Nc4 26. Qc3 Ne3 27. Ke2 Bf6 28. h4 Qd7
+29. Rag1 Bg7 30. Bd3 h6 31. b4 cxb4 32. Qxb4 Rfe8 33. Qc3 Rec8 34. Rc1 Qf7 35.
+Nb4 Rxa5 36. Nc2 Ra2 37. Ra1 Rxa1 38. Rxa1 Ng2 39. b6 Nxh4 40. b7 Rb8 41. Ra8
+Qe8 42. Qc6 Qd8 43. Qa6 Kh7 44. Rxb8 Qxb8 45. Qa8 1-0

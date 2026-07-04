@@ -1,0 +1,32 @@
+[Event "rated bullet game"]
+[Site "https://lichess.org/ItgC9JQz"]
+[Date "2026.03.17"]
+[Round "-"]
+[White "DrNykterstein"]
+[Black "PseudoBenko"]
+[Result "0-1"]
+[GameId "ItgC9JQz"]
+[UTCDate "2026.03.17"]
+[UTCTime "23:16:30"]
+[WhiteElo "3232"]
+[BlackElo "3032"]
+[WhiteRatingDiff "-20"]
+[BlackRatingDiff "+9"]
+[WhiteTitle "GM"]
+[BlackTitle "IM"]
+[Variant "Standard"]
+[TimeControl "60+0"]
+[ECO "A50"]
+[Opening "Queen's Indian Accelerated"]
+[Termination "Time forfeit"]
+
+1. d4 Nf6 2. c4 b6 3. Nf3 Bb7 4. g3 g6 5. Bg2 Bg7 6. O-O O-O 7. h3 d6 8. d5 b5
+9. Nc3 bxc4 10. Nd2 c6 11. Nxc4 cxd5 12. Nxd5 Nxd5 13. Bxd5 Bxd5 14. Qxd5 Nd7
+15. Be3 Nf6 16. Qd3 Rc8 17. Rac1 d5 18. Na5 Qxa5 19. a3 e6 20. b4 Qd8 21. Bxa7
+Ne4 22. Kg2 Nc3 23. Bc5 d4 24. Bxf8 Qxf8 25. e3 e5 26. exd4 exd4 27. Rfe1 Qd6
+28. Rc2 h5 29. h4 Qd5+ 30. Qf3 Qb3 31. Rd2 Qxa3 32. Re7 Rf8 33. Rb7 Qb3 34. b5
+Qc4 35. b6 Qd5 36. Qxd5 Nxd5 37. Rd3 Rc8 38. Rb3 Rd8 39. Rc7 Nxb6 40. Rxb6 d3
+41. Rb1 d2 42. Rd1 Bf6 43. Rc2 Re8 44. Rcxd2 Kg7 45. Rd7 Re6 46. R1d3 Be7 47.
+Rf3 f6 48. Re3 Kf7 49. Rxe6 Kxe6 50. Rd3 Kf7 51. Re3 Bd6 52. Re2 Be7 53. f4 Bd6
+54. Kf3 Be7 55. Rd2 f5 56. Rc2 Bf6 57. Ra2 Be7 58. Ra7 Ke6 59. Ke3 Kf7 60. Kd4
+Ke6 61. Ra6+ Kf7 62. Ke5 Bf6+ 63. Rxf6+ Kg7 64. Ke6 g5 0-1
