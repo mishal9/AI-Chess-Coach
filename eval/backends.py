@@ -20,6 +20,30 @@ from __future__ import annotations
 DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-8"
 DEFAULT_GEMINI_MODEL = "gemini-2.5-pro"
 
+_dotenv_loaded = False
+
+
+def _load_dotenv(path: str | None = None) -> None:
+    """Load API keys from a ``.env`` file into the environment, so a key doesn't have to
+    be exported in every shell. The provider SDKs then read it the usual way.
+
+    ``.env`` is gitignored — real keys never get committed. A shell-exported variable
+    always wins (``override=False``), so ``.env`` is a convenience, not an override. Safe
+    no-op if ``python-dotenv`` isn't installed (install it via the ``eval`` extra) — env
+    vars still work. The default (auto) load is cached; pass ``path`` to force a reload.
+    """
+    global _dotenv_loaded
+    if _dotenv_loaded and path is None:
+        return
+    try:
+        from dotenv import find_dotenv, load_dotenv
+    except ModuleNotFoundError:
+        _dotenv_loaded = True  # nothing to do; rely on real env vars
+        return
+    load_dotenv(path or find_dotenv(usecwd=True), override=False)
+    if path is None:
+        _dotenv_loaded = True
+
 
 def _split_system(messages: list[dict]) -> tuple[str | None, list[dict]]:
     """Separate the single ``system`` message from the conversational turns.
@@ -43,13 +67,15 @@ def ollama_backend(messages: list[dict], model: str | None = None) -> str:
 def anthropic_backend(messages: list[dict], model: str | None = None) -> str:
     """Judge with Claude via the Anthropic SDK.
 
-    Needs credentials (``ANTHROPIC_API_KEY`` or an ``ant auth login`` profile). Note the
-    Opus/Sonnet models reject a ``temperature`` parameter, so we omit it and rely on the
-    model default — fine for a small structured verdict. (Adaptive thinking would improve
-    grading quality at extra token cost; left off here to keep judge cost predictable.)
+    Needs credentials: ``ANTHROPIC_API_KEY`` (from the environment or a ``.env`` file) or
+    an ``ant auth login`` profile. Note the Opus/Sonnet models reject a ``temperature``
+    parameter, so we omit it and rely on the model default — fine for a small structured
+    verdict. (Adaptive thinking would improve grading quality at extra token cost; left
+    off here to keep judge cost predictable.)
     """
     import anthropic
 
+    _load_dotenv()
     system, turns = _split_system(messages)
     client = anthropic.Anthropic()
     response = client.messages.create(
@@ -64,12 +90,13 @@ def anthropic_backend(messages: list[dict], model: str | None = None) -> str:
 def gemini_backend(messages: list[dict], model: str | None = None) -> str:
     """Judge with Gemini via the google-genai SDK.
 
-    Needs ``GEMINI_API_KEY`` / ``GOOGLE_API_KEY``. Gemini accepts ``temperature`` (so we
-    pin it to 0) and can enforce a JSON response server-side, which makes the verdict
-    reliably parseable.
+    Needs ``GEMINI_API_KEY`` / ``GOOGLE_API_KEY`` (from the environment or a ``.env``
+    file). Gemini accepts ``temperature`` (so we pin it to 0) and can enforce a JSON
+    response server-side, which makes the verdict reliably parseable.
     """
     from google import genai
 
+    _load_dotenv()
     system, turns = _split_system(messages)
     client = genai.Client()
     response = client.models.generate_content(
