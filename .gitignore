@@ -20,6 +20,7 @@ data/processed/
 models/
 *.gguf
 *.safetensors
+training/datasets/       # Phase 3: built train/val/test splits (reproducible)
 
 # Env / secrets
 .env
