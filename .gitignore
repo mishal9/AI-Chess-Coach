@@ -21,6 +21,8 @@ models/
 *.gguf
 *.safetensors
 training/datasets/       # Phase 3: built train/val/test splits (reproducible)
+data/distill/            # Phase 3: raw teacher generations
+data/games/              # Phase 3: distillation source corpus
 
 # Env / secrets
 .env
