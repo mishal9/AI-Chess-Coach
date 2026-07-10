@@ -17,12 +17,22 @@ the student to hallucinate.
 ## Pipeline
 
 ```
-games (a training corpus, NOT eval/heldout)
-  └─ training.distill   Stockfish → facts → Claude teacher → grounding check → raw JSONL
+training.corpus              fetch CC0 games → drop any that collide with eval/heldout → data/games/
+  └─ training.distill        Stockfish → facts → Claude teacher → grounding check → raw JSONL
        └─ training.dataset   filter (grounding gate) → deterministic train/val/test split
             └─ training/datasets/<version>/{train,val,test}.jsonl  +  manifest.json
                  └─ Phase 4: QLoRA on Colab → GGUF → re-run `python -m eval.run`
 ```
+
+### 0. Assemble a corpus
+```bash
+python -m training.corpus \
+  --user DrNykterstein --user Sharkfang \        # fetch CC0 game exports from Lichess
+  --max 40                                        # (or --input some.pgn to reuse local PGNs)
+```
+Fetches public games, then **drops every game that collides with `eval/heldout/`** — matched
+by Lichess `GameId` *and* a normalized-movetext hash, so nothing leaks the scoreboard. Writes
+`data/games/corpus.pgn` + a distill-ready `manifest.json`.
 
 ### 1. Distill
 ```bash
@@ -55,9 +65,25 @@ straddles train/test and re-runs reproduce the identical split (see `assign_spli
 - Teacher backends are the same pluggable `eval.backends` (Claude default). Keys load from the
   gitignored `.env`. Teacher/analysis are injectable, so the logic is fully unit-tested offline.
 
+## Dataset versions
+
+Staged on purpose so we can **measure** what richer data buys us (see `PLAN.md` Phase 3):
+
+- **v1 — one row per game (current target).** One coaching paragraph per whole game; simplest
+  path to a working fine-tune + eval loop. `distill.build_record` already emits exactly one
+  record per game.
+- **v2 — one row per critical position (revisit for a second fine-tune).** A separate example
+  per flagged moment, multiplying the corpus into hundreds of rows. Only *then* does the
+  leakage-safe per-game split (`assign_split`) become load-bearing. Compare `eval.run` on the
+  same held-out set to quantify the v1→v2 gain.
+
 ## Status
 
 - [x] Scaffold: schema, teacher, distill pipeline, dataset splitter, tests.
-- [ ] Assemble a training corpus (Lichess CC0 games, disjoint from the held-out set).
+- [x] Corpus assembler (`training.corpus`): fetch CC0 games, guaranteed disjoint from held-out.
+- [x] Assemble the corpus: 93 games, 843–3284 Elo, disjoint from held-out.
+- [ ] **v1**: first distillation run (teacher = `claude-opus-4-8`) → filter/split → `v1` dataset.
+- [ ] Phase 4: QLoRA fine-tune on v1, `eval.run` vs baseline (beat 3.04 / factual 2.33).
+- [ ] **v2**: per-position distillation → second fine-tune → report the v1→v2 eval delta.
 - [ ] First distillation run + `v1` dataset; eyeball teacher quality and grounding pass-rate.
 - [ ] Phase 4: QLoRA fine-tune on Colab, re-run `eval.run`, beat **3.04 / factual 2.33**.
