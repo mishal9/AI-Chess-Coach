@@ -226,5 +226,32 @@
     "black": "ZValeryi",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: white)"
+  },
+  {
+    "pgn": "clean_draw.pgn",
+    "game_index": 1,
+    "coached_side": "white",
+    "white": "perman59",
+    "black": "penguingm1",
+    "bucket": "clean_draw",
+    "note": "auto-curated into 'clean_draw' (coached side: white)"
+  },
+  {
+    "pgn": "clean_draw.pgn",
+    "game_index": 2,
+    "coached_side": "black",
+    "white": "BabyfaceAssassin",
+    "black": "penguingm1",
+    "bucket": "clean_draw",
+    "note": "auto-curated into 'clean_draw' (coached side: black)"
+  },
+  {
+    "pgn": "clean_draw.pgn",
+    "game_index": 3,
+    "coached_side": "white",
+    "white": "BabyfaceAssassin",
+    "black": "penguingm1",
+    "bucket": "clean_draw",
+    "note": "auto-curated into 'clean_draw' (coached side: white)"
   }
 ]

@@ -31,3 +31,66 @@ Rc2+ 47. Kf1 Rc3 48. Ke2 Rxh3 49. Rxg5 Rh2+ 50. Kd1 Ra2 51. Rf5 Rb2 52. Ke1 Rg2
 53. Rf7 Rxg4 54. Rxb7 Rg5 55. Kd2 Rxa5 56. Kc3 Kd5 57. Rh7 Rc5+ 58. Kb4 Rc6 59.
 Ka4 Kd6 60. Rh6+ Kc7 61. Rh5 Rd6 62. Rh7+ Rd7 63. Rh6 Kd8 64. Rxa6 Kc7 65. Kb5
 Kd8 66. Rc6 Rc7 67. Rc5 Rxc5+ 68. Kxc5 1/2-1/2
+
+[Event "casual classical game"]
+[Site "https://lichess.org/soRO5K0C"]
+[Date "2019.04.22"]
+[Round "-"]
+[White "perman59"]
+[Black "penguingm1"]
+[Result "1-0"]
+[GameId "soRO5K0C"]
+[UTCDate "2019.04.22"]
+[UTCTime "19:06:37"]
+[WhiteElo "1718"]
+[BlackElo "1500"]
+[BlackTitle "GM"]
+[Variant "Standard"]
+[TimeControl "3600+0"]
+[ECO "C69"]
+[Opening "Ruy Lopez: Exchange Variation, King's Bishop Variation"]
+[Termination "Normal"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Bxc6 dxc6 5. O-O Bd6 6. h3 1-0
+
+[Event "Zuckerman Arena"]
+[Site "https://lichess.org/P9QwP9jt"]
+[Date "2016.12.23"]
+[Round "-"]
+[White "BabyfaceAssassin"]
+[Black "penguingm1"]
+[Result "1/2-1/2"]
+[GameId "P9QwP9jt"]
+[UTCDate "2016.12.23"]
+[UTCTime "02:46:34"]
+[WhiteElo "1500"]
+[BlackElo "1720"]
+[BlackTitle "GM"]
+[Variant "Standard"]
+[TimeControl "900+2"]
+[ECO "A14"]
+[Opening "English Opening: Agincourt Defense, Neo-Catalan Declined"]
+[Termination "Normal"]
+
+1. Nf3 d5 2. c4 e6 3. g3 Nf6 4. Bg2 Be7 5. O-O O-O 6. b3 c5 7. Bb2 Nc6 8. e3 b6 9. Qe2 d4 10. exd4 Bb7 11. dxc5 bxc5 12. Ne5 1/2-1/2
+
+[Event "Zuckerman Arena"]
+[Site "https://lichess.org/o5PHKnrr"]
+[Date "2016.12.23"]
+[Round "-"]
+[White "BabyfaceAssassin"]
+[Black "penguingm1"]
+[Result "1-0"]
+[GameId "o5PHKnrr"]
+[UTCDate "2016.12.23"]
+[UTCTime "02:09:17"]
+[WhiteElo "1500"]
+[BlackElo "1720"]
+[BlackTitle "GM"]
+[Variant "Standard"]
+[TimeControl "900+2"]
+[ECO "A04"]
+[Opening "Zukertort Opening"]
+[Termination "Abandoned"]
+
+1. Nf3 1-0
