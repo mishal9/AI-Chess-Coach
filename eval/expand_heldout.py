@@ -175,6 +175,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Lichess user to draw candidates from (default: corpus roster)")
     parser.add_argument("--max", type=int, default=60,
                         help="candidate games to fetch per user (default: 60)")
+    parser.add_argument("--perf-type", default=None,
+                        help="restrict fetch to Lichess speeds, e.g. 'rapid,classical' "
+                             "(slow games are where clean, low-ACPL play is found)")
     parser.add_argument("--depth", type=int, default=16,
                         help="Stockfish depth for bucketing (default: 16)")
     parser.add_argument("--dry-run", action="store_true",
@@ -198,13 +201,29 @@ def _default_analyze(depth: int) -> AnalyzeFn:
     return analyze
 
 
+def _lichess_fetch_perf(perf_type: str) -> FetchFn:
+    """A fetcher that restricts to given Lichess speeds (e.g. ``rapid,classical``)."""
+    import tempfile
+
+    from engine.fetch_data import fetch_lichess_games
+
+    def fetch(user: str, max_games: int) -> str:
+        with tempfile.NamedTemporaryFile("r", suffix=".pgn", delete=True) as tmp:
+            fetch_lichess_games(user, max_games, Path(tmp.name), perf_type=perf_type)
+            return Path(tmp.name).read_text(encoding="utf-8")
+
+    return fetch
+
+
 def main(
     argv: list[str] | None = None,
-    fetch_fn: FetchFn = corpus._lichess_fetch,
+    fetch_fn: FetchFn | None = None,
     analyze_fn: AnalyzeFn | None = None,
 ) -> int:
     args = build_parser().parse_args(argv)
     analyze_fn = analyze_fn or _default_analyze(args.depth)
+    if fetch_fn is None:
+        fetch_fn = _lichess_fetch_perf(args.perf_type) if args.perf_type else corpus._lichess_fetch
     users = list(args.user) or list(corpus.DEFAULT_USERS)
 
     raw: list[str] = []

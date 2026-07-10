@@ -144,6 +144,20 @@ def test_main_writes_games_and_extends_manifest(tmp_path, monkeypatch):
         assert e["white"] and "note" in e
 
 
+def test_lichess_fetch_perf_passes_perf_type(monkeypatch):
+    captured = {}
+
+    def fake_fetch(user, max_games, out, perf_type=None):
+        captured["perf_type"] = perf_type
+        out.write_text('[Event "x"]\n\n1. e4 e5 1-0\n')
+        return 1
+
+    monkeypatch.setattr("engine.fetch_data.fetch_lichess_games", fake_fetch)
+    text = ex._lichess_fetch_perf("rapid,classical")("someone", 5)
+    assert captured["perf_type"] == "rapid,classical"
+    assert "[Event" in text
+
+
 def test_main_dry_run_writes_nothing(tmp_path, monkeypatch):
     monkeypatch.setattr(ex, "HELDOUT_DIR", tmp_path)
     (tmp_path / "manifest.json").write_text("[]")
