@@ -91,8 +91,20 @@ Whole stack can run at **$0** to start.
 - Generate `(position + engine analysis) → (coaching explanation)` pairs.
 - Sourcing: **distillation** from a strong model (have a large model write high-quality
   coaching for many analyzed positions) + curated human annotations where available.
+  Teacher = `claude-opus-4-8` (via `training.distill`); grounding-self-checked so no teacher
+  hallucination reaches the student.
 - Define a consistent coaching style/schema. This dataset *is* the project's moat.
 - **Deliverable:** a versioned train/val/test dataset (JSONL).
+- **Dataset versions — deliberately staged so we can *measure* the gain from richer data:**
+  - **v1 — one row per game (current).** One coaching paragraph per whole game. Simplest;
+    gets a first fine-tune + eval loop working end-to-end. ~93-game corpus → ~93 rows.
+  - **v2 — one row per critical position (revisit for a second fine-tune).** Emit a separate
+    coaching example for each flagged mistake/moment in a game, multiplying the same corpus
+    into hundreds of rows. This is where the leakage-safe *per-game* split (`assign_split`,
+    already built) becomes load-bearing — all positions from one game must stay in one split.
+  - **Comparison is the point:** fine-tune on v1, then on v2, and report the `eval.run` delta
+    on the *same* held-out set (overall / factual / grounding). Quantifies how much per-position
+    data volume buys us — a concrete result to show, not just "we made it bigger."
 
 ### Phase 4 — Fine-tune the small model (Colab)
 - **QLoRA** fine-tune Qwen2.5-3B on Colab (start even smaller, Llama-3.2-1B, as a cheap
