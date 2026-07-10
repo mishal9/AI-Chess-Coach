@@ -47,8 +47,14 @@ OPERA_GAME = """[Event "Paris Opera"]
 """
 
 
-def fetch_lichess_games(user: str, max_games: int, out: Path) -> int:
-    """Fetch ``max_games`` of ``user`` as PGN (with evals + openings). Returns count."""
+def fetch_lichess_games(
+    user: str, max_games: int, out: Path, perf_type: str | None = None
+) -> int:
+    """Fetch ``max_games`` of ``user`` as PGN (with evals + openings). Returns count.
+
+    ``perf_type`` optionally restricts to Lichess speed categories (comma-separated, e.g.
+    ``"rapid,classical"``) — slower time controls where clean, low-ACPL play is common.
+    """
     params = {
         "max": max_games,
         "evals": "true",
@@ -56,6 +62,8 @@ def fetch_lichess_games(user: str, max_games: int, out: Path) -> int:
         "clocks": "false",
         "moves": "true",
     }
+    if perf_type:
+        params["perfType"] = perf_type
     headers = {"Accept": "application/x-chess-pgn"}
     url = LICHESS_API.format(user=user)
     print(f"Fetching up to {max_games} games for '{user}' from Lichess...")
