@@ -32,6 +32,17 @@ from typing import Callable
 HELDOUT_DIR = Path(__file__).resolve().parent.parent / "eval" / "heldout"
 DEFAULT_OUT_DIR = Path(__file__).resolve().parent.parent / "data" / "games"
 
+# A roster spanning the rating ladder, so the coach distills from mistakes at every level
+# rather than near-clean GM play. The Maia bots play calibrated *human-like* moves at a fixed
+# Elo, so their games carry the instructive errors a coaching model most needs to explain.
+DEFAULT_USERS = [
+    "maia1",          # ~1100 Elo bot (Maia) — beginner blunders, the richest coaching signal
+    "maia5",          # ~1500 Elo bot — club level
+    "maia9",          # ~1900 Elo bot — strong club
+    "EricRosen",      # IM — instructive, human, well-annotated attacking games
+    "DrNykterstein",  # Magnus Carlsen (super-GM) — near-clean reference games
+]
+
 # A game record in a PGN begins with its [Event ...] tag.
 _EVENT_RE = re.compile(r"(?=^\[Event )", re.MULTILINE)
 _GAMEID_RE = re.compile(r'^\[GameId\s+"([^"]+)"\]', re.MULTILINE)
@@ -167,7 +178,8 @@ def build_parser() -> argparse.ArgumentParser:
         description="Assemble a distillation corpus disjoint from the held-out set."
     )
     parser.add_argument("--user", action="append", default=[],
-                        help="Lichess username to fetch (repeatable)")
+                        help="Lichess username to fetch (repeatable); "
+                             "defaults to a rating-spanning roster if omitted")
     parser.add_argument("--input", type=Path, action="append", default=[],
                         help="use an existing .pgn file instead of fetching (repeatable)")
     parser.add_argument("--max", type=int, default=20,
@@ -181,14 +193,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None, fetch_fn: FetchFn = _lichess_fetch) -> int:
     args = build_parser().parse_args(argv)
-    if not args.user and not args.input:
-        print("Nothing to do: pass at least one --user or --input.", file=sys.stderr)
-        return 1
+    users = list(args.user)
+    if not users and not args.input:
+        users = list(DEFAULT_USERS)
+        print(f"No --user/--input given; using the default rating-spanning roster: "
+              f"{', '.join(users)}.", file=sys.stderr)
 
     raw: list[str] = []
     for path in args.input:
         raw.extend(split_pgn(path.read_text(encoding="utf-8")))
-    for user in args.user:
+    for user in users:
         print(f"Fetching up to {args.max} games for '{user}'...", file=sys.stderr)
         raw.extend(split_pgn(fetch_fn(user, args.max)))
 

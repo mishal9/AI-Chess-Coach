@@ -136,5 +136,20 @@ def test_main_fetches_dedups_and_writes(tmp_path):
     assert corpus.game_key(games[0]) == "id:AbCdEfGh"
 
 
-def test_main_needs_a_source(tmp_path):
-    assert corpus.main(["--out-dir", str(tmp_path)], fetch_fn=lambda u, m: "") == 1
+def test_main_falls_back_to_default_roster(tmp_path):
+    fetched = []
+
+    def fake_fetch(user, max_games):
+        fetched.append(user)
+        return FRESH_GAME if user == "maia1" else ""
+
+    rc = corpus.main(["--out-dir", str(tmp_path)], fetch_fn=fake_fetch)
+    assert rc == 0
+    assert fetched == corpus.DEFAULT_USERS  # every roster account was fetched
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert len(manifest) == 1
+
+
+def test_main_returns_1_when_no_games(tmp_path):
+    assert corpus.main(["--user", "nobody", "--out-dir", str(tmp_path)],
+                       fetch_fn=lambda u, m: "") == 1
