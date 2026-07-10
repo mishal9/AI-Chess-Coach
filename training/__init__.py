@@ -6,6 +6,7 @@ exact same facts block the small student model will see at inference. Those pair
 a versioned train/val/test JSONL that Phase 4 QLoRA-fine-tunes Qwen on.
 
 Modules:
+    corpus   — assemble source games (CC0), guaranteed disjoint from ``eval/heldout/``.
     schema   — the on-disk record shape (:class:`~training.schema.DistillRecord`) + version.
     teacher  — Claude-as-teacher coaching generation (reuses ``eval.backends``).
     distill  — the pipeline: sources → Stockfish → teacher → grounding-checked JSONL.

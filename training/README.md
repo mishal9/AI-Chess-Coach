@@ -17,12 +17,22 @@ the student to hallucinate.
 ## Pipeline
 
 ```
-games (a training corpus, NOT eval/heldout)
-  └─ training.distill   Stockfish → facts → Claude teacher → grounding check → raw JSONL
+training.corpus              fetch CC0 games → drop any that collide with eval/heldout → data/games/
+  └─ training.distill        Stockfish → facts → Claude teacher → grounding check → raw JSONL
        └─ training.dataset   filter (grounding gate) → deterministic train/val/test split
             └─ training/datasets/<version>/{train,val,test}.jsonl  +  manifest.json
                  └─ Phase 4: QLoRA on Colab → GGUF → re-run `python -m eval.run`
 ```
+
+### 0. Assemble a corpus
+```bash
+python -m training.corpus \
+  --user DrNykterstein --user Sharkfang \        # fetch CC0 game exports from Lichess
+  --max 40                                        # (or --input some.pgn to reuse local PGNs)
+```
+Fetches public games, then **drops every game that collides with `eval/heldout/`** — matched
+by Lichess `GameId` *and* a normalized-movetext hash, so nothing leaks the scoreboard. Writes
+`data/games/corpus.pgn` + a distill-ready `manifest.json`.
 
 ### 1. Distill
 ```bash
@@ -58,6 +68,7 @@ straddles train/test and re-runs reproduce the identical split (see `assign_spli
 ## Status
 
 - [x] Scaffold: schema, teacher, distill pipeline, dataset splitter, tests.
-- [ ] Assemble a training corpus (Lichess CC0 games, disjoint from the held-out set).
+- [x] Corpus assembler (`training.corpus`): fetch CC0 games, guaranteed disjoint from held-out.
+- [ ] Run it to assemble the corpus, then the first distillation run.
 - [ ] First distillation run + `v1` dataset; eyeball teacher quality and grounding pass-rate.
 - [ ] Phase 4: QLoRA fine-tune on Colab, re-run `eval.run`, beat **3.04 / factual 2.33**.
