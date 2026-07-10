@@ -46,5 +46,185 @@
     "white": "PseudoBenko",
     "black": "DrNykterstein",
     "note": "a couple of mistakes, no blunder"
+  },
+  {
+    "pgn": "slow_loss.pgn",
+    "game_index": 1,
+    "coached_side": "white",
+    "white": "maia5",
+    "black": "BWVolker",
+    "bucket": "slow_loss",
+    "note": "auto-curated into 'slow_loss' (coached side: white)"
+  },
+  {
+    "pgn": "slow_loss.pgn",
+    "game_index": 2,
+    "coached_side": "black",
+    "white": "BWVolker",
+    "black": "maia5",
+    "bucket": "slow_loss",
+    "note": "auto-curated into 'slow_loss' (coached side: black)"
+  },
+  {
+    "pgn": "slow_loss.pgn",
+    "game_index": 3,
+    "coached_side": "black",
+    "white": "maia9",
+    "black": "Kirill_Zh",
+    "bucket": "slow_loss",
+    "note": "auto-curated into 'slow_loss' (coached side: black)"
+  },
+  {
+    "pgn": "slow_loss.pgn",
+    "game_index": 4,
+    "coached_side": "black",
+    "white": "EricRosen",
+    "black": "otuto1",
+    "bucket": "slow_loss",
+    "note": "auto-curated into 'slow_loss' (coached side: black)"
+  },
+  {
+    "pgn": "inaccuracies.pgn",
+    "game_index": 1,
+    "coached_side": "black",
+    "white": "maia1",
+    "black": "skyhound",
+    "bucket": "inaccuracies",
+    "note": "auto-curated into 'inaccuracies' (coached side: black)"
+  },
+  {
+    "pgn": "inaccuracies.pgn",
+    "game_index": 2,
+    "coached_side": "white",
+    "white": "vyachesiav-9",
+    "black": "maia5",
+    "bucket": "inaccuracies",
+    "note": "auto-curated into 'inaccuracies' (coached side: white)"
+  },
+  {
+    "pgn": "inaccuracies.pgn",
+    "game_index": 3,
+    "coached_side": "white",
+    "white": "lettucesuki",
+    "black": "maia5",
+    "bucket": "inaccuracies",
+    "note": "auto-curated into 'inaccuracies' (coached side: white)"
+  },
+  {
+    "pgn": "inaccuracies.pgn",
+    "game_index": 4,
+    "coached_side": "black",
+    "white": "doris_spassky",
+    "black": "maia5",
+    "bucket": "inaccuracies",
+    "note": "auto-curated into 'inaccuracies' (coached side: black)"
+  },
+  {
+    "pgn": "two_mistakes.pgn",
+    "game_index": 1,
+    "coached_side": "black",
+    "white": "maia1",
+    "black": "Insane_Cookie",
+    "bucket": "two_mistakes",
+    "note": "auto-curated into 'two_mistakes' (coached side: black)"
+  },
+  {
+    "pgn": "two_mistakes.pgn",
+    "game_index": 2,
+    "coached_side": "black",
+    "white": "maia1",
+    "black": "rchamizo",
+    "bucket": "two_mistakes",
+    "note": "auto-curated into 'two_mistakes' (coached side: black)"
+  },
+  {
+    "pgn": "two_mistakes.pgn",
+    "game_index": 3,
+    "coached_side": "white",
+    "white": "yaboicnr",
+    "black": "maia1",
+    "bucket": "two_mistakes",
+    "note": "auto-curated into 'two_mistakes' (coached side: white)"
+  },
+  {
+    "pgn": "two_mistakes.pgn",
+    "game_index": 4,
+    "coached_side": "white",
+    "white": "likhitpalanisamy",
+    "black": "maia1",
+    "bucket": "two_mistakes",
+    "note": "auto-curated into 'two_mistakes' (coached side: white)"
+  },
+  {
+    "pgn": "one_blunder.pgn",
+    "game_index": 1,
+    "coached_side": "black",
+    "white": "maia1",
+    "black": "Advitj",
+    "bucket": "one_blunder",
+    "note": "auto-curated into 'one_blunder' (coached side: black)"
+  },
+  {
+    "pgn": "one_blunder.pgn",
+    "game_index": 2,
+    "coached_side": "white",
+    "white": "Insane_Cookie",
+    "black": "maia1",
+    "bucket": "one_blunder",
+    "note": "auto-curated into 'one_blunder' (coached side: white)"
+  },
+  {
+    "pgn": "one_blunder.pgn",
+    "game_index": 3,
+    "coached_side": "white",
+    "white": "maia1",
+    "black": "Sinrakin",
+    "bucket": "one_blunder",
+    "note": "auto-curated into 'one_blunder' (coached side: white)"
+  },
+  {
+    "pgn": "one_blunder.pgn",
+    "game_index": 4,
+    "coached_side": "white",
+    "white": "ZValeryi",
+    "black": "maia1",
+    "bucket": "one_blunder",
+    "note": "auto-curated into 'one_blunder' (coached side: white)"
+  },
+  {
+    "pgn": "multi_blunder.pgn",
+    "game_index": 1,
+    "coached_side": "white",
+    "white": "Advitj",
+    "black": "maia1",
+    "bucket": "multi_blunder",
+    "note": "auto-curated into 'multi_blunder' (coached side: white)"
+  },
+  {
+    "pgn": "multi_blunder.pgn",
+    "game_index": 2,
+    "coached_side": "white",
+    "white": "Shan-RT",
+    "black": "maia1",
+    "bucket": "multi_blunder",
+    "note": "auto-curated into 'multi_blunder' (coached side: white)"
+  },
+  {
+    "pgn": "multi_blunder.pgn",
+    "game_index": 3,
+    "coached_side": "black",
+    "white": "mikesmcc",
+    "black": "maia1",
+    "bucket": "multi_blunder",
+    "note": "auto-curated into 'multi_blunder' (coached side: black)"
+  },
+  {
+    "pgn": "multi_blunder.pgn",
+    "game_index": 4,
+    "coached_side": "white",
+    "white": "maia1",
+    "black": "ZValeryi",
+    "bucket": "multi_blunder",
+    "note": "auto-curated into 'multi_blunder' (coached side: white)"
   }
 ]
