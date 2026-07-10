@@ -10,7 +10,7 @@ new held-out games by re-running ``training.corpus`` afterwards (it reads ``eval
 
 The buckets mirror the original hand-curated six:
 
-    clean_draw     no flagged error, low ACPL, not lost  — coach must not invent mistakes
+    clean_draw     no coachable error (<=1 inaccuracy), low ACPL, not lost — coach must not invent mistakes
     slow_loss      no discrete error but high ACPL and lost — the confabulation trap
     inaccuracies   only inaccuracies (>=2), no mistake/blunder
     two_mistakes   >=1 mistake, no blunder
@@ -106,10 +106,10 @@ def classify(report: dict) -> tuple[str, str] | None:
         return "two_mistakes", side
     if p["inaccuracies"] >= 2:
         return "inaccuracies", side
-    # No discrete error flagged (no blunder/mistake, <=1 inaccuracy).
+    # No coachable error (no blunder/mistake, <=1 inaccuracy).
     if p["lost"] and acpl >= SLOW_LOSS_ACPL:
         return "slow_loss", side
-    if not p["lost"] and p["inaccuracies"] == 0 and acpl < CLEAN_ACPL:
+    if not p["lost"] and p["inaccuracies"] <= 1 and acpl < CLEAN_ACPL:
         return "clean_draw", side
     return None
 

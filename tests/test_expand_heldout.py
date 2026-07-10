@@ -31,6 +31,8 @@ def test_classify_each_bucket():
     assert ex.classify(make_report(40, 20, white_q=("inaccuracy", "inaccuracy", "inaccuracy"))) == ("inaccuracies", "white")
     assert ex.classify(make_report(50, 20, result="0-1")) == ("slow_loss", "white")   # lost, high ACPL, no flags
     assert ex.classify(make_report(15, 10, result="1/2-1/2")) == ("clean_draw", "white")
+    # clean_draw tolerates a single trivial inaccuracy (no blunder/mistake, low ACPL, not lost)
+    assert ex.classify(make_report(18, 10, white_q=("inaccuracy",), result="1/2-1/2")) == ("clean_draw", "white")
 
 
 def test_classify_severity_precedence():
