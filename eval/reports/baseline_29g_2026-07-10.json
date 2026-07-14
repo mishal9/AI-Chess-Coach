@@ -1,0 +1,706 @@
+{
+  "coach_model": "qwen2.5:3b-instruct",
+  "coach_temperature": 0.0,
+  "judge": "anthropic",
+  "judge_model": "claude-opus-4-8",
+  "depth": 15,
+  "date": "2026-07-10",
+  "aggregate": {
+    "games": 29,
+    "grounding_mean": 0.812,
+    "grounded_rate": 0.552,
+    "worst_move_identified_rate": 0.724,
+    "rubric_axis_means": {
+      "factual_correctness": 2.9,
+      "clarity": 3.72,
+      "actionability": 2.72,
+      "identifies_key_mistake": 4.17
+    },
+    "rubric_overall_mean": 3.38
+  },
+  "games": [
+    {
+      "pgn": "clean_draw.pgn",
+      "coached_side": "white",
+      "note": "near-clean game (both sides low ACPL, nothing flagged) \u2014 the coach must recognize a clean game, not invent errors",
+      "coaching": "Great job on playing a truly solid and error-free game! Your opponent did not make any significant errors either, which resulted in a draw. Here\u2019s how you can continue to improve:\n\n1. **Key Mistake**: The most important mistake you made was at move 20: `e5`. This move allowed your opponent to recapture with the pawn on e6 (`exd4`), gaining control of the center and creating threats against your king. Instead, consider moving a piece like `Bf1`, which would have better defended your position and kept more options open.\n\n2. **Other Mistakes**: Throughout the game, you occasionally allowed your opponent to gain some space in the center with moves like `d5` and `c6`. These moves are generally fine but can be costly if not managed carefully. Additionally, there were moments where you could have improved your king\u2019s safety by moving a piece closer to it.\n\n3. **Recurring Patterns**: You tended to allow your opponent to gain some space in the center and sometimes missed tactical opportunities like forks or pins. These patterns suggest that you need to be more vigilant about controlling key squares and looking for tactical threats.\n\n4. **Next Steps**:\n   - Continue to focus on maintaining a solid pawn structure and controlling the center.\n   - Be more proactive with your pieces, especially in the opening phase, to prevent your opponent from gaining too much space or creating weaknesses.\n   - Practice identifying and exploiting tactical opportunities like forks and pins early in the game.\n\nBy focusing on these areas, you can continue to improve your play and reduce any potential errors. Keep up the good work!",
+      "grounding": {
+        "score": 0.0,
+        "grounded": false,
+        "hallucinated": [
+          "Bf1",
+          "c6",
+          "d5",
+          "e5",
+          "e6",
+          "exd4"
+        ]
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 1,
+          "clarity": 3,
+          "actionability": 2,
+          "identifies_key_mistake": 1
+        },
+        "overall": 1.75,
+        "rationale": "The facts state zero blunders, mistakes, or inaccuracies and a clean game, yet the coaching fabricates a 'key mistake' at move 20 (e5), invented recaptures, threats, and recurring tactical weaknesses. This directly contradicts the engine facts and invents moves/evaluations. It fails to recognize there was no key mistake."
+      }
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "coached_side": "black",
+      "note": "gradual loss: high ACPL but no discrete blunder (Opera-like) \u2014 the case where a small model tends to hallucinate",
+      "coaching": "You, as Black (PseudoBenko), made two costly moves in this game that significantly impacted your position. The first and most critical mistake was on move 23 with ...Kh7?. Instead of defending the king more actively, you allowed White to threaten a checkmate with Bc5. This move cost you about 21% win probability, which is quite significant.\n\nThe second inaccuracy occurred on move 21 with ...Nxd5?. The engine preferred Qxe4 instead, as it would have been better for controlling the center and maintaining pressure on White's position. Your move allowed White to gain a small advantage without any immediate compensation.\n\nIn general, your play was solid but lacked some sharpness in critical moments. You did not make any blunders, which is commendable. However, you missed opportunities that could have led to better results.\n\nTo improve, focus on:\n1. Being more proactive and aggressive with your pieces, especially the queen.\n2. Strengthening your king's position by avoiding moves like ...Kh7? in critical positions.\n\nRemember, chess is about making calculated risks and seizing opportunities when they arise. Keep practicing these areas to become a stronger player.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "Correctly identifies and leads with 23...Kh7 as the key mistake and 21...Nxd5 as the inaccuracy, matching the facts. However, it fabricates specifics: 'allowed White to threaten a checkmate with Bc5' \u2014 Bc5 was Black's better move per the facts, not a White threat, which is a clear misreading/invention. The engine's reasoning about center control is speculative but plausible. Clear and organized with generic but reasonable advice."
+      }
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "coached_side": "white",
+      "note": "a single clear blunder plus high ACPL",
+      "coaching": "You made a costly mistake with your move 13.Bc4?. The engine recommended dxc6, which cost you approximately 30% of your winning chances. This move allowed Black to gain significant control over the center and created threats that nearly doubled your loss in centipawns (cp loss 342). It's important to focus on controlling key squares and maintaining a solid pawn structure.\n\nYour second most costly move was 16.Rxe3?. The engine preferred Qxe3, which cost you about 19% of your winning chances. This move allowed Black to gain control over the e5 square and potentially develop their bishop or queen. It's crucial to consider how each piece moves in relation to the board and avoid unnecessary sacrifices.\n\nThe final inaccurate move was 28.Qg7?. The engine recommended Nc3, which cost you about 13% of your winning chances. This move allowed Black to gain a significant advantage by controlling key squares and potentially developing their bishop or queen. It's important to be mindful of the overall position and avoid moves that do not contribute positively.\n\n**Key Takeaways:**\n- Focus on controlling key squares with your pieces.\n- Avoid unnecessary sacrifices, especially when they don't serve a clear purpose.\n- Be aware of how each piece moves in relation to the board and aim for a solid structure rather than making quick or unproductive moves.\n\n**Next Steps:**\n- Practice maintaining control over the center and avoiding pawn weaknesses.\n- Work on developing your pieces efficiently without sacrificing too much material.\n- Continue analyzing positions where you made inaccurate moves to understand why they were incorrect.",
+      "grounding": {
+        "score": 0.857,
+        "grounded": false,
+        "hallucinated": [
+          "e5"
+        ]
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 4,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "Correctly leads with 13.Bc4 as the key mistake and cites accurate engine-preferred moves and win-probability costs. However, the tactical explanations (control of e5, developing bishop/queen, center control) are invented and not grounded in the facts. It also omits the huge cp loss (9480) anomaly on move 28 without comment. Clear structure and generic-but-reasonable advice, though somewhat repetitive and vague."
+      }
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "coached_side": "black",
+      "note": "multiple blunders in one game (2 blunders + a mistake)",
+      "coaching": "You, as Black (PseudoBenko), made several critical errors that significantly weakened your position. The most costly move was **59...Kf7??**, which allowed DrNykterstein to gain a decisive advantage with the bishop on c5+ and put pressure on your king. This move cost you about 68% of the win probability, indicating a significant loss in positional control.\n\nAdditionally, moves like **35...Qd5?** and **42...Bf6?!** were inaccuracies that allowed DrNykterstein to gain better piece placement and develop threats more effectively. The move **30...Qb3?** also missed an opportunity with the queen on d7, which would have been more advantageous.\n\nA recurring pattern in your play was allowing your opponent to improve their position by developing pieces prematurely or making unnecessary weakening moves like **37...Rc8?** and **59...Kf7??**, which both cost you about 12% of the win probability each.\n\nTo improve, focus on:\n- Improving your piece development and avoiding premature sacrifices.\n- Being more selective with your move choices to avoid unnecessary weakening moves.\n- Strengthening your king position by controlling key squares and developing pieces in a coordinated manner.",
+      "grounding": {
+        "score": 0.714,
+        "grounded": false,
+        "hallucinated": [
+          "c5",
+          "d7"
+        ]
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 3,
+          "actionability": 2,
+          "identifies_key_mistake": 4
+        },
+        "overall": 2.75,
+        "rationale": "Correctly leads with 59...Kf7?? as the key blunder and cites its 68% cost accurately. However, it contains errors: 59...Kf7 was the blunder (Bc5+ was the better move, not what White played), and the result was Black winning (0-1), yet the coaching implies Black's errors let the opponent 'gain a decisive advantage.' It also falsely claims both 37...Rc8 and 59...Kf7 cost ~12% each\u2014the Kf7 blunder cost 68%. The 'premature sacrifices' and 'piece development' advice is generic and not grounded in an endgame context (moves 59, 42, 35). Clarity is moderate but advice is vague and mismatched to a late endgame."
+      }
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "coached_side": "black",
+      "note": "death by many small inaccuracies; no blunder or mistake",
+      "coaching": "You, as Black, made several inaccuracies in this game that significantly impacted your chances of winning. The most costly move was 38...Ng2?, which the engine recommended Qd7 instead. This move lost you about 19% of the game's win probability (a centipawn loss of 242). It allowed White to gain a significant advantage and eventually secure the win.\n\nThe other inaccuracies were:\n- 21...Bxb5??: The engine preferred h6, which cost you about 13% of the win probability (centipawn loss of 163).\n- 17...Nf6??: The engine recommended f3 instead, costing you about 12% of the win probability (centipawn loss of 131).\n- 31...cxb4??: The engine suggested Nxd5, which would have cost you about 10% of the win probability (centipawn loss of 141).\n\nThese inaccuracies suggest that you were not fully aware of your pieces' positions and threats. You also seem to be missing tactical opportunities.\n\nTo improve, focus on:\n- Improving your piece control and understanding of your own position.\n- Being more vigilant about spotting and responding to White's tactics.\n- Practicing precise moves rather than making hasty or inaccurate ones.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 4,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "Correctly leads with 38...Ng2 as the key mistake and cites accurate cp losses and engine preferences. However, it mislabels the inaccuracies as '??' (blunders) when facts say zero blunders occurred, and reframes 31...cxb4's cost misleadingly ('would have cost' the engine move). Advice is generic and not tied to specific positions."
+      }
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "coached_side": "white",
+      "note": "a couple of mistakes, no blunder",
+      "coaching": "You made several critical errors in this game, which significantly impacted your chances of winning. The most costly move was **16.Qc5?**, where you chose to play **g4** instead of the engine's preferred move **g3**. This decision cost you about 25% win probability and led to a significant loss.\n\nAnother critical mistake was **22.g4?**, where you played **Rd2** instead of the engine\u2019s recommendation **g3**. This choice reduced your winning chances by approximately 24%, costing you another substantial amount in centipawn points (cp loss).\n\nAdditionally, there were two inaccuracies: **17.Bxd5?!** and **21.Rd1?!.** The engine suggested playing **g3** instead of the move you chose. These moves cost you about 12% win probability each.\n\n### Key Takeaways:\n- You should focus on improving your decision-making, especially in critical moments like these.\n- Be more attentive to the engine's recommendations and consider their implications for winning chances.\n- Practice playing through different scenarios to better understand how various moves affect the game\u2019s outcome.\n\n### Areas to Work On:\n1. **Study common patterns of blunders and inaccuracies:** Focus on avoiding moves that lead to significant losses in win probability, such as those you made at move 16 and 22.\n2. **Develop a routine for analyzing engine reports:** Regularly review your games with the engine to identify recurring mistakes and improve your understanding of key positions.\n\nBy focusing on these areas, you can significantly enhance your game and reduce costly errors in future matches.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 1,
+          "clarity": 3,
+          "actionability": 2,
+          "identifies_key_mistake": 2
+        },
+        "overall": 2.0,
+        "rationale": "The coaching mangles the facts badly: it describes 16.Qc5 as choosing g4 instead of g3 (engine preferred g4, not g3), reverses the 22.g4 description (claims played Rd2 instead of g3, but engine preferred Rd2 and g3 was not the suggestion), and misstates the inaccuracy corrections. Nearly every factual claim about which move was played vs. preferred is wrong. Advice is generic. It does lead with 16.Qc5 (the most costly by cp per-move it lists first, though 22.g4 had higher cp loss), so mistake identification is muddled."
+      }
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'slow_loss' (coached side: white)",
+      "coaching": "Dear maia5,\n\nWhile there were no specific mistakes in this game, the analysis indicates that you maintained a consistently weaker position throughout the game due to a series of small inaccuracies and gradual losses. The engine's average centipawn loss (47.2) suggests that your pieces were not always placed optimally or moved efficiently.\n\nThe most important mistake was on move 19: **e5**. This move allowed Black to gain control over the center, which is crucial in this opening. Instead, you should have played **d6**, maintaining a more balanced position and controlling key squares like d5 and c7. By playing e5, you likely weakened your own structure and gave Black an opportunity to develop their pieces effectively.\n\nIn general, it seems that you were not always precise with your piece placements or pawn moves. For example, on move 23: **d4** (or perhaps a more active move like **c6**), you could have aimed to control the center better and avoid giving Black too much space advantage.\n\nTo improve, focus on:\n1. Being more precise in placing pieces early in the game.\n2. Maintaining a solid pawn structure by controlling key squares with pawns rather than allowing them to be easily attacked or developed into passive positions.\n\nKeep practicing these areas, and you'll see your position management improving over time. Good luck!\n\nBest,\nYour Chess Coach",
+      "grounding": {
+        "score": 0.0,
+        "grounded": false,
+        "hallucinated": [
+          "c6",
+          "c7",
+          "d4",
+          "d5",
+          "d6",
+          "e5"
+        ]
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 1,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 1
+        },
+        "overall": 2.25,
+        "rationale": "The facts state there were zero flagged blunders/mistakes/inaccuracies and no single key error. The coaching fabricates specific moves (19.e5, d6, 23.d4, c6) and claims a 'most important mistake' that contradicts the facts. Writing is clear and advice is somewhat generic-actionable, but the core content is invented."
+      }
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "You made a significant mistake with your move 13...a6. This move allowed White to gain control of key squares and opened up potential threats, particularly by putting pressure on your king. The engine preferred f5 instead, which would have maintained better structure and reduced the threat landscape for White.\n\nThe other inaccuracies in the game were minor but still contributed to the overall result. These included missed tactical opportunities and slight overreactions that could have been avoided with more precise play.\n\nIn general, you need to focus on maintaining a solid pawn structure and avoiding moves that weaken your position or put your king in danger. Look for ways to keep your pieces active and avoid unnecessary sacrifices.\n\nTo improve, practice recognizing and responding to tactical threats more quickly. Also, work on keeping an eye on the overall board picture rather than getting bogged down in specific tactics. Focus on building a solid foundation with your pawns and pieces before attempting any complex maneuvers.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 4
+        },
+        "overall": 3.5,
+        "rationale": "Correctly identifies 13...a6 and the f5 alternative, but calls it a 'significant mistake' when facts label it only an inaccuracy, and fabricates 'other inaccuracies' and 'missed tactical opportunities' when only one inaccuracy existed and no blunders/mistakes. Advice is generic and partly grounded in invented content. Key moment is nailed, though overstated in severity."
+      }
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Dear Kirill_Zh,\n\nWhile the analysis shows that you did not make any significant mistakes in this game, it indicates that you were consistently losing ground over time due to smaller inaccuracies and imprecisions. This suggests that your defense was gradually becoming weaker without major blunders.\n\nThe key takeaway is to focus on maintaining a solid structure and avoiding unnecessary weakening of your pieces or the king's position. Here are some specific areas to work on:\n\n1. **Strengthen Your Defense:** Ensure you are always defending your pieces effectively, especially when under pressure from White. This means not allowing any piece to be isolated or in danger unnecessarily.\n\n2. **Control Key Squares and Pawns:** Maintain control over key squares and pawns that can help stabilize the position or create threats against White's structure. Avoid giving up these important elements without a clear strategic reason.\n\n3. **Be More Active with Your Pieces:** Try to keep your pieces active on the board, especially knights and bishops, which are crucial for controlling space and creating tactical opportunities. \n\n4. **Monitor Your King\u2019s Safety:** Even though you didn\u2019t make any mistakes that led to immediate threats against your king, it's important to stay vigilant and avoid situations where your king might be in danger.\n\nBy focusing on these areas, you can improve your consistency and reduce the gradual loss of ground over time. Keep practicing maintaining a solid defense and controlling key elements of the board.\n\nGood luck with your chess journey!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 4
+        },
+        "overall": 4.0,
+        "rationale": "The coaching correctly reflects the facts: no blunders/mistakes but gradual loss of ground through imprecisions in a worse defensive position. It doesn't fabricate any moves or evaluations. Advice is generic and not tied to specific moments (understandable given no flagged moves), so actionability is moderate. It correctly recognizes there was no single big error and leads with the gradual decline theme, which is appropriate."
+      }
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "You made a significant mistake with your move 11...g6. The engine analysis suggests that moving the pawn to g6 was not the best option, as it allowed EricRosen to push their pawn to e5, which gained them about 11% in win probability (a centipawn loss of 135). This weakening of your position is costly and could have been avoided.\n\nThe other inaccuracies were minor. The engine did not find any blunders or mistakes, but it noted one move that was less than optimal. \n\nTo improve, focus on understanding the best moves in critical positions like this one where you need to control key squares with pawns and pieces. Practice recognizing when your opponent is creating threats and how to respond effectively.\n\nKeep practicing these types of tactical situations to avoid such inaccuracies in the future.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 3,
+          "actionability": 2,
+          "identifies_key_mistake": 4
+        },
+        "overall": 2.75,
+        "rationale": "It correctly identifies 11...g6 as the key inaccuracy but mislabels it a 'significant mistake' when facts say it was only an inaccuracy. It fabricates that the engine preferred e5 for the opponent to push \u2014 the facts say the engine preferred e5 as Black's own move, not an opponent push, a clear misreading. It also contradicts itself by saying 'other inaccuracies were minor' when there was only one inaccuracy total. Advice is generic and not concrete."
+      }
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'inaccuracies' (coached side: black)",
+      "coaching": "You, as Black, made several inaccuracies in this game that significantly impacted your position. The most costly move was 12...Rb8?!, which allowed White to gain a significant advantage with the engine's preferred move Bc6. This move cost you about 16% of the win probability, indicating a substantial loss.\n\nAnother inaccurate move was 13...Bc6?, where the engine suggested Rc8 instead. This move cost you around 14% of the win probability, showing that your position deteriorated further after this move.\n\nThe third costly inaccuracy was 10...a6?. The engine preferred dxc3 over a6, which would have weakened your pawn structure and allowed White to gain more space on the board. This move cost you about 11% of the win probability.\n\nIn general, these inaccuracies suggest that you were not fully aware of the threats posed by White's pieces and did not consider the long-term consequences of your moves. You also missed some tactical opportunities, such as dxc3 in the opening phase.\n\nTo improve, focus on improving your understanding of key positions and tactics early in the game. Pay closer attention to your opponent\u2019s threats and be more proactive in defending your position. Additionally, work on maintaining a solid pawn structure and avoiding moves that weaken it unnecessarily. Practice analyzing your own games to identify patterns like these inaccuracies so you can avoid them in future matches.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "Correctly identifies and ranks the three inaccuracies with accurate cp/win-probability figures. However, it misstates that 12...Rb8 'allowed White to gain advantage with Bc6' \u2014 Bc6 was Black's preferred move, not White's. It also fabricates that a6 'weakened your pawn structure' as reasoning and invents unsupported tactical claims. Clear structure and reasonable advice, but grounding errors hurt factual accuracy."
+      }
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'inaccuracies' (coached side: white)",
+      "coaching": "You, as White, made two costly moves in your game that significantly impacted the outcome. The first was move 10 with **Qd2**, which is an inaccurate choice compared to the engine's recommendation of **Qe2**. This move cost you about 18% win probability and resulted in a loss of 193 centipawns, indicating significant positional weaknesses.\n\nThe second costly move was at move 12 with **Nxe4**, which the engine preferred as **Qe1**. This choice cost you approximately 11% win probability and led to a loss of 139 centipawns. Both these moves highlight issues with your piece placement and strategic planning.\n\n### Key Takeaways:\n- Your opponent, Black (maia5), did not make any blunders or mistakes in the game.\n- The pattern you exhibited was an overextension of pieces, particularly with the queen and knight, which led to weakening your position. \n\n### Recommendations:\n1. **Focus on Piece Placement:** Ensure that each piece is placed where it can contribute most effectively to the overall strategy. Avoid unnecessary moves like **Qd2** or **Nxe4**, as they often lead to positional weaknesses.\n\n2. **Study Positional Play:** Spend time studying how to better manage your pieces and understand when to be more passive rather than aggressive with piece exchanges. This will help you avoid making costly inaccuracies in the future.\n\nBy focusing on these areas, you can improve your game significantly and reduce such costly mistakes in future games. Keep practicing and analyzing your games to refine your understanding of positional play and piece management.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 4,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "Correctly leads with 10.Qd2 as the most costly move and accurately reports both inaccuracies, their cp losses, and win probability drops. However, it slightly overstates impact by saying these 'significantly impacted the outcome' and adds a somewhat unsupported 'overextension' narrative not clearly grounded in the facts. Clear and organized, but advice is fairly generic (study positional play, piece placement) rather than concrete."
+      }
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'inaccuracies' (coached side: white)",
+      "coaching": "Lettucesuki, in this game you showed a tendency to make inaccuracies that could have been avoided. The most costly move was your 12th move, Nf5?, which the engine recommended as d4 instead. This move cost you about 17% of your win probability, resulting in a significant loss.\n\nAnother inaccurate move was your 7th move, d3?, where the engine suggested c3. This also reduced your win probability by around 14%, indicating that you might have been weakening your position unnecessarily.\n\nOverall, these inaccuracies cost you about 32% of your win probability (a combined cp loss of 383). While there were no blunders or mistakes in this game, the inaccuracies are what led to the most significant losses. \n\nTo improve, focus on understanding and correctly applying opening principles. Make sure to evaluate positions thoroughly before making moves, especially when considering central pawn structures like d4 and c3. Practice recognizing potential threats from your opponent's pieces and avoid unnecessary weakening of your own position. Keep practicing these key points in your openings to build a stronger foundation for future games.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.25,
+        "rationale": "All moves and evaluations match the facts; correctly leads with 12.Nf5 as the worst move. Minor notation quibble (writing ? instead of ?!). Clear and organized. Advice is somewhat generic though grounded in the opening/central-pawn themes; could be more concrete about why d4/c3 were better."
+      }
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'inaccuracies' (coached side: black)",
+      "coaching": "You, as Black in this game, showed a strong understanding of the opening and maintained a solid position. However, there were several inaccuracies that could have been avoided to maintain your advantage. Let's focus on these specific moves:\n\n**Most Costly Move:**\n- **Move 11...O-O?! (inaccuracy):** The engine preferred Bf8; this move cost you about 17% win probability (cp loss 231). Instead, consider playing a more active move like c5 or d4 to control the center and keep your pieces active. This would have maintained your initiative.\n\n**Other Inaccuracies:**\n- **Move 17...Nb6?! (inaccuracy):** The engine preferred Bc6; this move cost you about 13% win probability (cp loss 203). Instead, consider playing a more aggressive move like c5 or d4 to continue your pressure on the center.\n- **Move 3...Nc6?! (inaccuracy):** The engine preferred cxd4; this move cost you about 11% win probability (cp loss 128). Playing c5 or d4 would have been more effective in controlling the center and maintaining your positional advantage.\n\n**Recurring Pattern:**\n- Throughout the game, there were instances where you allowed your opponent to gain a slight edge by not playing active moves. This pattern of allowing your position to weaken without counterplay is common when making inaccuracies like these.\n\n**Actionable Things to Work On:**\n1. **Active Center Play:** Focus on controlling the center with moves like c5, d4, and e5. This will help you maintain a strong position and prevent your opponent from gaining easy advantages.\n2. **Preventative Moves:** Learn to identify when your opponent is making inaccuracies and respond with active moves that counter their mistakes. This can be particularly effective in the middlegame.\n\nBy focusing on these areas, you'll be better equipped to handle similar situations in future games. Keep practicing and stay alert for opportunities to control the center and maintain a strong position.",
+      "grounding": {
+        "score": 0.778,
+        "grounded": false,
+        "hallucinated": [
+          "d4",
+          "e5"
+        ]
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 4
+        },
+        "overall": 3.0,
+        "rationale": "Correctly leads with 11...O-O and cites the accurate engine preferences and cp losses for each move. However, it repeatedly invents concrete alternatives (c5, d4, e5) that contradict the engine's actual preferred moves (Bf8, Bc6, cxd4), which is fabrication. It ignores 10...Bc5. Advice is generic and partly unfounded. Clear structure but the recommendations undermine trust."
+      }
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'two_mistakes' (coached side: black)",
+      "coaching": "You, as Black (Insane_Cookie), made some costly mistakes in this game that significantly impacted your chances of winning. The most critical move was **14...b4?**, which the engine preferred to be played on d6. This move cost you about 24% win probability and resulted in a centipawn loss of 319.\n\nAnother mistake was **19...Nc3?** where the engine suggested playing d6 instead, costing you another 21% win probability with a centipawn loss of 239. \n\nThe move **38...Nc5?!**, while not as costly in terms of win probability (only about 12%), still resulted in a significant centipawn loss of 9466, indicating that you missed an opportunity to maintain your advantage.\n\n### Key Takeaways:\n- You should focus on avoiding moves like **14...b4?** and **19...Nc3?**, as these cost you substantial win probabilities.\n- It's important to be more selective with your responses. The engine\u2019s suggestions often provide better options, especially in critical positions.\n\n### Areas for Improvement:\n- Practice recognizing tactical opportunities such as forks or pins early in the game.\n- Be more vigilant about maintaining control over key squares and pieces throughout the middlegame.\n- Consider playing **14...d6** instead of **b4**, which would have been preferred by the engine. \n\nBy focusing on these areas, you can improve your decision-making and reduce costly mistakes like those in this game. Keep practicing!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 4,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "Correctly leads with 14...b4 as the key mistake and cites accurate cp/win-probability figures for all three moves. Slight issue: 'maintain your advantage' at move 38 is unsupported (Black likely wasn't ahead), and the odd 9466 cp figure is repeated uncritically. Awkward phrasing like 'engine preferred to be played on d6' is confusing. Advice about forks/pins is generic and not grounded in the facts, weakening actionability, though the concrete d6 suggestion helps."
+      }
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'two_mistakes' (coached side: black)",
+      "coaching": "You, as Black, made two significant errors in this game that significantly impacted your position. The most costly move was **22...Kg7?**, which you played instead of **Kh8**. This move allowed White to gain a clear advantage by creating threats and gaining space on the board. Specifically, the engine preferred **Kh8**, which would have prevented White from advancing their pawn to c4, maintaining better control over the center.\n\nThe second error was **16...c5?**, where you played instead of **d6**. The engine recommended **d6**, which is a safer move that maintains your king's safety and prevents White from gaining an easy tempo with their next move.\n\nIn general, these moves show a pattern of weakening your position by allowing White to gain space and creating threats. It\u2019s important to focus on maintaining control over the center and protecting your pieces, especially when they are under attack.\n\nTo improve in future games:\n1. **Focus on controlling the center**: Ensure that you maintain strong presence in the central squares with pawns and pieces.\n2. **Be more selective with pawn moves**: Avoid unnecessary pawn advances unless they serve a clear purpose, such as supporting your pieces or creating threats for White.\n\nBy focusing on these areas, you can improve your understanding of positional play and reduce errors like those seen in this game.",
+      "grounding": {
+        "score": 0.8,
+        "grounded": false,
+        "hallucinated": [
+          "c4"
+        ]
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "Correctly identifies the two costly moves and leads with the biggest one (22...Kg7). However, it fabricates specific justifications not in the facts\u2014claiming Kh8 'would have prevented White from advancing their pawn to c4' and that c5 relates to king safety are invented explanations. Clear and organized, but advice is fairly generic and partly grounded in fabricated reasoning."
+      }
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'two_mistakes' (coached side: white)",
+      "coaching": "You made several inaccuracies in this game, which led to your opponent gaining significant advantages. Let's focus on the most costly moves first:\n\n**Most Costly Move:**\n- **Move 46.Kf6??**: This move was a blunder that cost you about 37% of the win probability. The engine preferred moving to Kd4 instead, which would have maintained your king in safety and kept more pieces active.\n\n**Other Inaccuracies:**\n- **Move 15.Bxb7?**: The engine suggested c5, which is a safer move that maintains control over the center without putting too much pressure on your bishop.\n- **Move 3.c4?**: The engine preferred Nc3, which keeps better control of the center and avoids weakening your position by moving a pawn forward prematurely.\n- **Move 11.Ne5?**: The engine suggested O-O (0th move), which is a safer move that protects your king without giving up too much initiative.\n\n**Recurring Patterns:**\nThroughout the game, you seem to have made several inaccuracies in handling central pawns and controlling key squares. This pattern of missing tactical opportunities and making premature pawn moves has cost you significant advantages.\n\n**Next Steps:**\nTo improve, focus on:\n1. **Improving your understanding of center control**: Make sure to keep a strong presence in the center with appropriate pawn moves and knight placements.\n2. **Avoiding premature sacrifices or weakening moves**: Be more cautious about moving pieces that could be easily exploited by your opponent.\n\nBy focusing on these areas, you can start making better decisions and reduce the number of inaccuracies in future games.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 4,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "Correctly leads with 46.Kf6 blunder and lists the inaccuracies with correct engine preferences. Some explanatory embellishments (e.g., 'maintained king safety,' 'kept more pieces active,' the odd '0th move' comment) are unsupported filler but not contradicting facts. Advice is generic and only loosely tied to the actual endgame king blunder. Clear structure overall."
+      }
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'two_mistakes' (coached side: white)",
+      "coaching": "You made some critical errors in this game that significantly impacted your chances of winning. Let's focus on the most costly moves first:\n\n**Most Costly Move: 5.Qf3?**\nThe engine recommended moving d3 instead, which cost you about a quarter (25%) of your win probability. This move allowed Black to gain control over key squares and created threats that weakened your position. Instead, consider playing 5...d6 or another move that maintains better structure.\n\n**Second Most Costly Move: 4.Ng5?**\nThe engine preferred moving c3 instead, which cost you about a tenth (11%) of your win probability. This move allowed Black to develop their pieces more effectively and put pressure on your king side. Instead, consider playing 4...O-O or another move that keeps the game balanced.\n\n**Third Most Costly Move: 6.d4?**\nThe engine recommended moving O-O instead, which cost you about a tenth (11%) of your win probability. This allowed Black to develop their pieces and gain space on the board. Instead, consider playing 6...O-O or another move that maintains better control over the center.\n\n**General Guidance:**\nThroughout the game, there were also several inaccuracies where both sides could have improved their play. These included missing tactical opportunities and allowing your opponent to create threats more easily. It's important to stay alert for such issues in future games.\n\n**Actionable Things to Work On:**\n1. **Focus on Key Moves:** Pay close attention to moves like 5, 4, and 6 where you made significant errors. Study the engine\u2019s preferred moves and understand why they are better.\n2. **Develop Your Pieces Early:** Ensure that your pieces are developed early in the game to support your strategy and control key squares.\n\nBy focusing on these areas, you can improve your understanding of how to play more accurately and effectively. Keep practicing and studying to refine your skills.",
+      "grounding": {
+        "score": 0.857,
+        "grounded": false,
+        "hallucinated": [
+          "d6"
+        ]
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 3,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.25,
+        "rationale": "Correctly leads with 5.Qf3 as the key mistake and cites the right engine-preferred moves and win-probability figures. However, it introduces confusion by suggesting Black-style responses (5...d6, 4...O-O, 6...O-O) as White's alternatives, which contradicts that the engine preferred White playing d3, c3, and O-O \u2014 a factual/logical slip. The move quality labels (4.Ng5? and 6.d4? shown as mistakes) differ from the facts (inaccuracies). Vague generic advice about tactics not grounded in facts. Clarity is decent but the misassigned move suggestions muddy it."
+      }
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'one_blunder' (coached side: black)",
+      "coaching": "You, as Black, made several inaccuracies in this game that allowed White to gain significant advantages. The most costly move was 9...Bxc2??, which is a blunder where you should have played Nxc2 instead. This move cost your opponent about 33% of the win probability, indicating it significantly weakened your position.\n\nThe next inaccuracies were at moves 10 and 11:\n- At move 10, you chose...Nxa2??. The engine recommended a5, which would have been better for maintaining control over the center.\n- At move 11, you played...Qf5?? instead of Bxb3. The engine suggested Bh3, which would have been more effective in defending your queen and controlling key squares.\n\nThese inaccuracies allowed White to gain significant advantages without making any blunders themselves. \n\nIn general, it seems that you were not fully aware of the tactical possibilities available to you at these critical moments. You should focus on improving your understanding of typical tactics such as forks, pins, and discovered attacks. Additionally, practicing better piece placement and development will help you avoid similar inaccuracies in future games.\n\nRemember, even though there were no blunders, every move counts in chess, and a few small errors can lead to significant consequences. Keep working on these areas to improve your game.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 3,
+          "actionability": 3,
+          "identifies_key_mistake": 4
+        },
+        "overall": 3.0,
+        "rationale": "Correctly leads with 9...Bxc2 as the key blunder and its cost. However, it misclassifies inaccuracies as blunders (?? marks), and at move 11 wrongly attributes the recommended move as Bh3 when the facts say Bxb3 (Bh3 was for move 8). It also contradicts itself saying 'no blunders' when 9...Bxc2 was a blunder. Advice is generic and only loosely tied to the facts."
+      }
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "You made several critical errors in this game, and I'll focus on the most costly ones to help you improve. The first and most significant mistake was your move 37.Rxh7??, which is a blunder that cost you about half of your win probability (cp loss 9999). Instead, the engine recommended Rg7+, which would have maintained your advantage.\n\nThe second costly move was 15.cxd5??. The engine preferred Be5 instead, reducing your win probability by about 18%. This shows that you were not taking full advantage of your pieces and missed a tactical opportunity.\n\nYour third mistake was 30.Kg1??, where the engine recommended R1f2. This move cost you about 16% win probability (cp loss 204), indicating that you overstepped with your king into danger.\n\nLastly, at move 26.Rf1??, the engine preferred Re1, reducing your win probability by about 13%. This suggests that you were not considering the long-term implications of moving a rook to a less active square.\n\nIn summary, these moves all stem from overconfidence and missed tactical opportunities. To improve, focus on:\n\n1. **Tactical Awareness**: Pay closer attention to tactical possibilities like forks, pins, and skewers. The engine's suggestions highlight where you could have improved your position.\n2. **Piece Placement**: Ensure that each piece is in the most effective square for the moment. Avoid overstepping with pieces or moving them into danger unnecessarily.\n\nBy focusing on these areas, you can make more informed decisions and reduce such costly errors in future games.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 4,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "Correctly leads with the 37.Rxh7 blunder and cites moves/evals consistent with facts. However, it mislabels the inaccuracies (15.cxd5?!, 30.Kg1?!, 26.Rf1?!) as blunders (??), overstating their severity, and invents motivations like 'overconfidence' and 'missed tactical opportunity' not grounded in facts. Advice is generic (tactics, piece placement) rather than tied to the specific positions."
+      }
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "You, as White, made several errors that allowed Black to gain significant advantages. The most costly move was your 28th move, Qe4+, which you blundered by playing without considering the best continuation. The engine recommended Qf5+ instead, and this move cost you about a third of your win probability (38%). This is a critical mistake as it left your queen exposed on e4, allowing Black to exploit it.\n\nThe second most costly move was 13th move, Qd2?, which the engine preferred Nd5. Your move cost you around 14% in win probability, with the engine's suggestion costing only about 7% less (cp loss of 156). This suggests that your queen wasn't properly placed and needed to be more active.\n\nThe third most costly move was 14th move, Nd5?, which the engine preferred Nd1. Your move cost you about 13% in win probability, with the engine's suggestion costing only about 7% less (cp loss of 166). This indicates that your knight wasn't positioned effectively and needed to be more active.\n\n**Key Takeaways:**\n- **Positional Awareness:** You need to improve your understanding of how pieces should be placed on the board. Your queen was not in a strong position, and your knights were underutilized.\n- **Active Pieces:** Ensure that your pieces are actively supporting each other and creating threats. In this game, you missed opportunities where your pieces could have been more active.\n\n**Next Steps:**\n1. Practice placing your pieces correctly to support the overall strategy of the game.\n2. Work on improving your piece activity by ensuring they are moving effectively and creating threats against the opponent's position.\n\nKeep practicing these areas, and over time, you will see improvements in your game.",
+      "grounding": {
+        "score": 0.833,
+        "grounded": false,
+        "hallucinated": [
+          "e4"
+        ]
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "Correctly leads with the 28.Qe4+ blunder and cites moves/eval swings accurately. However, it invents details: the '7% less' costing claims are fabricated/nonsensical (the cp losses ARE the cost of the played moves), and calling inaccuracies 'Qd2?'/'Nd5?' overstates them (they were ?!). Advice is generic (piece activity/placement) rather than tied to concrete lines like the preferred Nd5/Nd1/Qf5+."
+      }
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "You, as White, made several critical errors that significantly impacted your game. The most costly move was 21.Nd2??, which is a blunder where you allowed g3 from Black, reducing your winning chances by about 79%. This move cost you over 10,000 centipawns in evaluation.\n\nAnother mistake was 6.Nxf7?, which the engine preferred Be2. By playing Nxf7, you left your knight vulnerable and gave up a pawn, costing you around 34% win probability (cp loss of 339).\n\nThe third move that cost you was 5.Ne5??. The engine suggested Bb5+, which is better for Black as it puts pressure on your king. This move cost you about 12% win probability (cp loss of 123).\n\nIn general, these moves show a pattern of weakening your position and allowing the opponent to gain initiative.\n\nTo improve, focus on:\n- Avoiding blunders like Nd2??.\n- Being more selective with your knight moves, especially in complex positions where it can be easily pinned or weakened.\n- Strengthening your king's safety by avoiding unnecessary sacrifices that leave you vulnerable.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "Correctly leads with 21.Nd2 as the key blunder and cites moves consistent with facts. However, it misreports percentages (34% vs 27%, 12% vs 11%), mislabels 5.Ne5 as ?? (it was an inaccuracy), and adds misleading commentary about g3 and 'better for Black' for Bb5+, which is Black's opponent's move confusion. Advice is somewhat generic but tied to actual errors."
+      }
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "You made several critical errors in this game, particularly with moves 19.Bc5?? and 3.Nxe5??, which were blunders costing you significant advantage. The engine analysis shows that these moves drastically reduced your winning chances.\n\n**Key Mistakes:**\n- **Move 19.Bc5?**: You allowed Qxc4, a move the engine preferred. This move cost you about 49% of your win probability (cp loss 602). Instead, consider moving your bishop to a safer square like Bf3 or Bh6.\n- **Move 3.Nxe5?**: The engine suggested d4 instead, which cost you about 36% of your win probability (cp loss 441). Your knight should have been more active and less vulnerable. Consider moving it to e6 where it can support the center better.\n\n**Other Mistakes:**\n- **Move 18.Qe2?**: The engine preferred Qxd4, reducing your winning chances by about 27% (cp loss 306). Instead of this move, consider developing pieces or controlling key squares.\n- **Move 23.Rae1?**: The engine suggested Bxb2, costing you about 22% win probability (cp loss 246). This move allowed your opponent to gain a significant advantage. Focus on maintaining control over the center and avoiding such positional sacrifices.\n\n**Recurring Patterns:**\n- You seem to be missing tactical opportunities, as seen in moves like Nxe5? and Qe2?. Pay more attention to spotting and exploiting these.\n- Your king position also seems vulnerable at times, which is why you lost material or were forced into passive moves.\n\n**Next Steps:**\n1. **Develop your pieces early**: Ensure that all your major pieces are active and in good positions before the middle game begins.\n2. **Be more alert to tactical opportunities**: Look for forks, pins, and skewers, as these can often be decisive in a position like this one.\n\nFocus on improving your piece development and keeping an eye out for tactical threats. Good luck!",
+      "grounding": {
+        "score": 0.727,
+        "grounded": false,
+        "hallucinated": [
+          "Bf3",
+          "Bh6",
+          "e6"
+        ]
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "Correctly leads with 19.Bc5 as the biggest blunder and cites the engine facts accurately for move numbers and cp losses. However, it misinterprets the engine's preferred moves: for 19.Bc5 the engine preferred Qxc4 (coach invents 'Bf3 or Bh6'), for 3.Nxe5 the engine preferred d4 (coach invents 'Ne6'), and the 'other mistakes' section wrongly frames the engine's preferred replies (Qxd4, Bxb2) as if they were the player's errors. These fabricated/confused recommendations penalize factual and actionability scores. Clarity is decent though somewhat generic in advice."
+      }
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "You, as White, made several critical errors that significantly weakened your position and reduced your chances of winning. The most costly move was **29.Kh1??**, which you played without considering the immediate threat of **Rf2** from Black. This move cost you about 41% win probability, resulting in a loss.\n\nAnother blunder occurred on move 30 with **Rb1??**, where the engine recommended moving to **Kg1** instead. This move also reduced your chances by about 40%, indicating that you were not considering all possible threats and consequences of your moves.\n\nAdditionally, you made an inaccuracy with **Bc4??** on move 12, which was preferred by Black's move **Bxc6**. This cost you about 32% win probability, showing a lack of foresight into the tactical possibilities that could have been exploited.\n\nYou also had inaccuracies with moves 10 and 11 where you played **f3?!** and **b5?!,** respectively. These were recommended by Black's move **b6**, which allowed them to gain control over key squares and create threats against your king.\n\nLastly, on move 31, you chose **Rb2??**, which was bettered by Black\u2019s move **Rbe1**. This move cost you about 11% win probability, highlighting a pattern of not considering the full implications of each move in relation to your opponent's potential threats and counterplay.\n\nTo improve, focus on:\n- Improving your evaluation skills so that you can identify blunders more quickly.\n- Practicing tactical awareness and looking for opportunities to exploit weaknesses in your opponent\u2019s position.\n- Being more proactive with moves like **b5** or **f3**, rather than passive ones like **Bc4**.",
+      "grounding": {
+        "score": 0.909,
+        "grounded": false,
+        "hallucinated": [
+          "b6"
+        ]
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 3,
+          "actionability": 3,
+          "identifies_key_mistake": 4
+        },
+        "overall": 3.0,
+        "rationale": "Correctly leads with 29.Kh1 as the biggest blunder and cites accurate cp/win-prob figures for the top moves. However, it repeatedly misattributes the engine's preferred moves to Black: 'Rf2', 'Kg1', 'Bxc6', 'Rbe1' were White's better alternatives, not Black's moves. It also invents 'b6' as Black's recommendation (engine said b5) and mislabels 12.Bc4 an inaccuracy when it's a blunder, and Rb2 an inaccuracy correctly but with confused framing. Advice to be 'more proactive with f3' contradicts f3 being flagged as an inaccuracy. Clear structure but multiple factual distortions."
+      }
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'multi_blunder' (coached side: black)",
+      "coaching": "You, as Black, made several inaccuracies and blunders that significantly impacted your game. The most costly move was 40...Ra4??, which led to a critical weakening of your position by allowing mikesmcc's rook to enter the center. This move cost you about 49% win probability.\n\nThe second worst move was 41...a2??, where you allowed mikesmcc to play c5, gaining significant space and control over key squares. This weakened your king position and opened up lines for his pieces.\n\nAdditionally, moves like 31...Rc5?!, 39...Rc4?!, and 12...Bb4?!, while not as costly individually, all show a pattern of missing tactical opportunities and inaccuracies in development. These moves cost you about 14-16% win probability each.\n\nTo improve, focus on:\n1. Strengthening your pawn structure and controlling key squares early in the game.\n2. Being more vigilant with your pieces' activity and avoiding unnecessary weakening moves like Ra4 or a2.\n3. Practicing better piece coordination to avoid isolated weaknesses and missed tactical opportunities.\n\nRemember, chess is about making calculated decisions under pressure; focus on improving your understanding of positional play and developing your pieces efficiently.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "Correctly leads with 40...Ra4?? and 41...a2?? as the key blunders with accurate win-probability figures. However, it invents specific explanations not in the facts (rook entering center, c5 gaining space, king weakening) which are fabrications. It also mislabels 28...Nxc4?! as costing 14-16% while grouping it incorrectly, and cites 31...Rc5, 39...Rc4, 12...Bb4 with rough figures. Advice is generic but reasonable. Clarity is good."
+      }
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "You made two costly mistakes in this game, both of which significantly weakened your position and reduced your chances of winning. Let's break down these moves:\n\n1. **Move 12: Kxh2??** - The engine recommended Qh5 instead. This move allowed Black to gain significant control over the center with their bishop (Bg5) and knight (Nf6). Your king was left dangerously exposed, which is a common mistake when you leave your king in vulnerable positions.\n\n2. **Move 14: Kf3??** - The engine suggested Bg5 instead. This move not only continued to pressure your king but also created threats against your rook on h8 and the pawn on f7. Your king was again left isolated, which is a critical issue in endgames.\n\n### Key Takeaways:\n- **Avoid leaving your king exposed**: Both of these moves put your king in dangerous positions.\n- **Be mindful of center control**: The engine's preferred moves (Qh5 and Bg5) were effective because they controlled key squares in the center, which is crucial for both attacking and defending.\n\n### Areas to Work On:\n1. **Monitor Your King\u2019s Position**: Always keep an eye on your king\u2019s safety, especially in endgames where it can be easily attacked.\n2. **Control Key Squares**: In the opening and middlegame, aim to control key squares with pieces like bishops and knights. This helps you maintain pressure and avoid exposing your king.\n\nBy focusing on these areas, you'll improve your ability to manage your king safely and maintain a strong presence in the center of the board. Keep practicing these principles, and you\u2019ll see improvement over time.",
+      "grounding": {
+        "score": 0.571,
+        "grounded": false,
+        "hallucinated": [
+          "Nf6",
+          "f7",
+          "h8"
+        ]
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 4
+        },
+        "overall": 3.25,
+        "rationale": "The two blunders and engine preferences (Qh5, Bg5) are correctly cited. However, the coaching fabricates causal explanations: Bg5/Nf6 as Black's moves, threats to rook on h8 and pawn on f7, and 'center control' rationale are all invented and not supported by the facts. Qh5 and Bg5 are the engine's suggested White moves, not Black's, but the write-up confuses this. Clear structure and actionable king-safety advice, and it does lead with the correct key mistakes."
+      }
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'clean_draw' (coached side: white)",
+      "coaching": "Great job, perman59! You played an exceptionally solid game with very few errors. Your opponent did not make any significant mistakes either, which resulted in a win for you.\n\nThe most important mistake to focus on is at move 21: **e4** (your move). This move allowed penguingm1 to gain control of the center and created a weakness on e5 that led to a pawn storm. Instead, consider moving your knight to f3 or g4 to better support your bishop and keep more active pieces.\n\nAcross the game, you maintained good piece activity and avoided any major blunders or inaccuracies. However, there were some areas where you could have been more precise:\n\n1. **e4** (move 21) was a missed opportunity to control the center effectively.\n2. You might want to be more selective about your pawn moves, especially in the opening phase.\n\nTo improve, focus on:\n- Improving your piece placement and activity early in the game.\n- Being more precise with your pawn moves, particularly in controlling key squares like e5.\n\nKeep up the strong play!",
+      "grounding": {
+        "score": 0.0,
+        "grounded": false,
+        "hallucinated": [
+          "e4",
+          "e5",
+          "f3",
+          "g4"
+        ]
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 1,
+          "clarity": 3,
+          "actionability": 2,
+          "identifies_key_mistake": 1
+        },
+        "overall": 1.75,
+        "rationale": "The facts state a clean game with zero blunders, mistakes, or inaccuracies, yet the coaching fabricates a 'most important mistake' at move 21 (e4) with invented consequences (pawn storm, e5 weakness). This directly contradicts the facts and invents a move and evaluation. It also fails to recognize there was no single big error."
+      }
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'clean_draw' (coached side: black)",
+      "coaching": "You made a significant mistake with your move 9...d4. The engine recommended moving the bishop to b7 instead, which would have maintained control over the center and kept your king safer. This move allowed BabyfaceAssassin to gain about 13% in win probability (a centipawn loss of 144). \n\nWhile there were no blunders or mistakes on either side, you did make one inaccurate move with...d4. The engine's preferred move was more precise and better defended your position.\n\nTo improve, focus on:\n- Strengthening the center to control key squares.\n- Keeping your king safe by avoiding moves that expose it unnecessarily.\n- Being mindful of pawn structures and their impact on win probability.\n\nPractice these principles in future games to make more informed decisions.",
+      "grounding": {
+        "score": 0.5,
+        "grounded": false,
+        "hallucinated": [
+          "b7"
+        ]
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "Correctly identifies 9...d4 as the key inaccuracy and cites Bb7 and the cp loss accurately. However, it overstates the move as a 'significant mistake' when facts label it an inaccuracy, and invents unsupported claims about king safety being at risk. The center/king-safety advice is generic and not clearly grounded in the facts, but the write-up is clear and readable."
+      }
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'clean_draw' (coached side: white)",
+      "coaching": "Great job, BabyfaceAssassin! You played a very solid and accurate game with an average centipawn loss of only 16.0, which is excellent for such a complex opening like the Zukertort Opening.\n\nWhile you didn't make any mistakes or blunders, it's important to note that your opponent (penguingm1) did not capitalize on any of your inaccuracies either. This suggests that both players played very well and kept their errors to a minimum throughout the game.\n\nThe key takeaway from this game is that maintaining accurate play in such complex openings can be challenging but rewarding. You managed to keep your pieces active and avoid unnecessary sacrifices, which is crucial for keeping an edge in these types of games.\n\nTo continue improving, focus on staying alert during critical moments where you might have more opportunities to make a mistake. Pay close attention to the position of your pieces and how they interact with each other and your opponent's threats. Also, try to anticipate potential weaknesses or overpromotions that could arise from your moves.\n\nKeep up the good work!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 4,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 4
+        },
+        "overall": 3.5,
+        "rationale": "Consistent with facts (clean game, low ACPL, no errors), though it overstates that Black had zero errors as 'kept errors to a minimum' when opponent had 0.0 loss. Correctly recognizes no big mistake. Advice is generic ('overpromotions' is odd/vague) and not very actionable. Clear enough overall."
+      }
+    }
+  ]
+}
