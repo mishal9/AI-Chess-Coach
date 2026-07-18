@@ -23,9 +23,13 @@ models/
 # Phase 3 distillation artifacts: bulky + reproducible (regenerate via training.*).
 # NOTE: git has no inline comments — keep these as bare patterns on their own lines.
 data/games/
-data/distill/
+data/distill/*
 training/datasets/*/*.jsonl
-# ...but each dataset version's manifest.json (provenance receipt) IS committed.
+# ...but VERSION the moat: it cost real Opus calls to make and isn't cheaply reproducible.
+# The v1 splits + the raw teacher output are committed; intermediate part/chunk files are not.
+!data/distill/raw_v1.jsonl
+!training/datasets/v1/*.jsonl
+# (each dataset version's manifest.json — the provenance receipt — is committed too.)
 
 # Env / secrets
 .env
