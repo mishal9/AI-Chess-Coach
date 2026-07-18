@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "source": "data/distill/raw_v1.jsonl",
+  "format": "chat",
+  "min_grounding": 1.0,
+  "ratios": {
+    "train": 0.8,
+    "val": 0.1,
+    "test": 0.1
+  },
+  "seed": 0,
+  "counts": {
+    "train": 82,
+    "val": 9,
+    "test": 13
+  },
+  "total": 104,
+  "dropped_below_grounding": 33
+}
