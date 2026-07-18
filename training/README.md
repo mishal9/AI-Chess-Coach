@@ -81,9 +81,11 @@ Staged on purpose so we can **measure** what richer data buys us (see `PLAN.md` 
 
 - [x] Scaffold: schema, teacher, distill pipeline, dataset splitter, tests.
 - [x] Corpus assembler (`training.corpus`): fetch CC0 games, guaranteed disjoint from held-out.
-- [x] Assemble the corpus: 93 games, 843–3284 Elo, disjoint from held-out.
-- [ ] **v1**: first distillation run (teacher = `claude-opus-4-8`) → filter/split → `v1` dataset.
-- [ ] Phase 4: QLoRA fine-tune on v1, `eval.run` vs baseline (beat 3.04 / factual 2.33).
+- [x] Assemble the corpus: 137 games, 843–3284 Elo, disjoint from the 29-game held-out set.
+- [x] **v1 distilled** (teacher = `claude-opus-4-8`, depth 15): 137 games → 104 strictly-grounded
+      (76% teacher pass-rate at grounding 1.0; 33 dropped for naming a move not in the facts)
+      → `training/datasets/v1` = train 82 / val 9 / test 13 (chat format).
+- [ ] Phase 4: QLoRA fine-tune on v1, `eval.run` vs the 29-game baseline (beat factual 2.90 / overall 3.38).
 - [ ] **v2**: per-position distillation → second fine-tune → report the v1→v2 eval delta.
 - [ ] First distillation run + `v1` dataset; eyeball teacher quality and grounding pass-rate.
 - [ ] Phase 4: QLoRA fine-tune on Colab, re-run `eval.run`, beat **3.04 / factual 2.33**.

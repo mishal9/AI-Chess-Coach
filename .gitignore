@@ -20,9 +20,12 @@ data/processed/
 models/
 *.gguf
 *.safetensors
-training/datasets/       # Phase 3: built train/val/test splits (reproducible)
-data/distill/            # Phase 3: raw teacher generations
-data/games/              # Phase 3: distillation source corpus
+# Phase 3 distillation artifacts: bulky + reproducible (regenerate via training.*).
+# NOTE: git has no inline comments — keep these as bare patterns on their own lines.
+data/games/
+data/distill/
+training/datasets/*/*.jsonl
+# ...but each dataset version's manifest.json (provenance receipt) IS committed.
 
 # Env / secrets
 .env
