@@ -144,6 +144,29 @@ def test_client_chat_passes_model_and_returns_text(monkeypatch):
     assert captured["options"]["temperature"] == 0.7
 
 
+def test_client_strips_leading_think_block(monkeypatch):
+    def fake_chat(model, messages, options):
+        return {
+            "message": {
+                "content": "<think>\nLet me check the facts block.\n</think>\n\n"
+                "12...Qxb2 dropped your queen to the pin."
+            }
+        }
+
+    monkeypatch.setattr(client.ollama, "chat", fake_chat)
+    out = client.chat([{"role": "user", "content": "hi"}])
+    assert out == "12...Qxb2 dropped your queen to the pin."
+
+
+def test_client_keeps_think_mentions_mid_text(monkeypatch):
+    def fake_chat(model, messages, options):
+        return {"message": {"content": "Think before you trade: <think> is not stripped here."}}
+
+    monkeypatch.setattr(client.ollama, "chat", fake_chat)
+    out = client.chat([{"role": "user", "content": "hi"}])
+    assert out.startswith("Think before you trade")
+
+
 def test_client_missing_model_raises_coach_error(monkeypatch):
     def fake_chat(model, messages, options):
         raise client.ollama.ResponseError("model 'x' not found")
