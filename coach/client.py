@@ -8,6 +8,8 @@ raw connection tracebacks.
 
 from __future__ import annotations
 
+import re
+
 import ollama
 
 # Qwen2.5-3B-Instruct is the Phase-2 baseline model (see PLAN.md). Small enough to run
@@ -17,6 +19,12 @@ DEFAULT_MODEL = "qwen2.5:3b-instruct"
 # Low but non-zero: we want faithful, grounded coaching, not creative variation, while
 # still avoiding the robotic repetition of temperature 0.
 DEFAULT_TEMPERATURE = 0.3
+
+# Qwen3-family coaches are hybrid reasoners trained here in non-thinking mode, but a
+# raw-GGUF Ollama import can still emit a leading <think> block. We strip it rather
+# than pass Ollama's `think` flag, which errors on models not registered as thinking-
+# capable (e.g. the baseline Qwen2.5 and our own GGUF imports).
+_THINK_BLOCK = re.compile(r"\A\s*<think>.*?</think>", re.DOTALL)
 
 
 class CoachModelError(RuntimeError):
@@ -53,4 +61,4 @@ def chat(
             ) from exc
         raise CoachModelError(f"Ollama returned an error: {exc}") from exc
 
-    return response["message"]["content"].strip()
+    return _THINK_BLOCK.sub("", response["message"]["content"]).strip()
