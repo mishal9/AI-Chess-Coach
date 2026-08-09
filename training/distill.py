@@ -242,6 +242,11 @@ def build_parser() -> argparse.ArgumentParser:
         "(best attempt is kept)",
     )
     parser.add_argument(
+        "--no-game-rows", action="store_true",
+        help="emit ONLY position rows (skip the whole-game row) — for topping up an "
+        "existing game-row run without paying for it twice",
+    )
+    parser.add_argument(
         "--max-teacher-calls", type=int, default=100,
         help="refuse to start if the WORST-CASE teacher calls — "
         "games x (1 + positions-per-game) x (1 + retries) — exceed this (spend guard)",
@@ -255,11 +260,12 @@ def main(argv: list[str] | None = None) -> int:
     if not sources:
         print(f"No source games found at {args.sources}", file=sys.stderr)
         return 1
-    worst_case = len(sources) * (1 + args.positions_per_game) * (1 + args.retries)
+    game_calls = 0 if args.no_game_rows else 1
+    worst_case = len(sources) * (game_calls + args.positions_per_game) * (1 + args.retries)
     if worst_case > args.max_teacher_calls:
         print(
             f"Refusing to start: worst case {worst_case} teacher calls "
-            f"({len(sources)} games x (1 + {args.positions_per_game} positions) x "
+            f"({len(sources)} games x ({game_calls} + {args.positions_per_game} positions) x "
             f"(1 + {args.retries} retries)) exceeds "
             f"--max-teacher-calls {args.max_teacher_calls}.",
             file=sys.stderr,
@@ -303,8 +309,9 @@ def main(argv: list[str] | None = None) -> int:
             coached_side = source.coached_side or prompts.choose_coached_side(report)
             source = SourceGame(source.pgn, source.game_index, coached_side)
 
-            emit(fh, build_record(source, report, teacher_fn, teacher_desc,
-                                  retries=args.retries))
+            if not args.no_game_rows:
+                emit(fh, build_record(source, report, teacher_fn, teacher_desc,
+                                      retries=args.retries))
             mistakes = prompts.coachable_mistakes(report, coached_side)
             for move in mistakes[: args.positions_per_game]:
                 emit(fh, build_position_record(source, report, move,
