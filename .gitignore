@@ -16,8 +16,10 @@ data/processed/
 !tests/data/*.pgn
 !eval/heldout/*.pgn
 
-# Models / training artifacts
-models/
+# Models / training artifacts (Modelfiles are tiny config — keep those;
+# models/* not models/ so the negation below can reach into the directory)
+models/*
+!models/Modelfile*
 *.gguf
 *.safetensors
 # Phase 3 distillation artifacts: bulky + reproducible (regenerate via training.*).
