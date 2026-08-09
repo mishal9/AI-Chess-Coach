@@ -45,3 +45,30 @@ def test_chat_example_drops_teacher_and_quality():
 
 def test_source_key_is_pgn_and_index():
     assert _record().source_key() == "g.pgn#2"
+
+
+def test_kind_defaults_to_game_and_roundtrips():
+    assert _record().kind == "game"
+    pos = _record(kind="position",
+                  source={"pgn": "g.pgn", "game_index": 2, "coached_side": "black",
+                          "move_number": 17, "move_san": "Nxd4"})
+    back = DistillRecord.from_dict(pos.to_dict())
+    assert back.kind == "position"
+    assert back.source["move_san"] == "Nxd4"
+
+
+def test_v1_rows_without_kind_load_as_game_rows():
+    d = _record().to_dict()
+    del d["kind"]
+    d["schema_version"] = 1
+    back = DistillRecord.from_dict(d)
+    assert back.kind == "game"
+    assert back.schema_version == 1
+
+
+def test_position_rows_share_the_game_split_key():
+    game = _record()
+    pos = _record(kind="position",
+                  source={"pgn": "g.pgn", "game_index": 2, "coached_side": "black",
+                          "move_number": 17, "move_san": "Nxd4"})
+    assert pos.source_key() == game.source_key()  # same game -> same split, no leakage

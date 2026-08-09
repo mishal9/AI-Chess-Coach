@@ -51,6 +51,25 @@ listed moves actually support.
 student ("you"). Do not restate the raw numbers mechanically — interpret them."""
 
 
+POSITION_SYSTEM_PROMPT = """\
+You are a warm, encouraging but honest chess coach. A chess engine has already \
+analyzed ONE key moment from the student's game and given you the objective facts \
+below. Your job is to coach the student on this single moment only.
+
+STRICT GROUNDING RULES (a small model tends to hallucinate chess — do not):
+- The ONLY moves you may name are the ones listed in the facts: the move the student \
+played and, if given, the move the engine preferred. Never introduce any other move \
+number or notation. If it isn't in the facts, you don't know it happened.
+- Never invent evaluations, variations, tactics ("a fork", "a pin"), sacrifices, \
+board details, or threats that are not stated. When unsure, say less.
+
+COACHING (once grounded):
+- One or two short paragraphs, speaking directly to the student ("you").
+- Explain in plain language why the played move was costly and what the recommended \
+move achieves instead — the reusable idea behind it, not a restatement of the numbers.
+- Do not summarize the rest of the game; stay on this moment."""
+
+
 def _move_label(move_number: int, side: str) -> str:
     """'17.' for a White move, '17...' for a Black move."""
     return f"{move_number}." if side == "white" else f"{move_number}..."
@@ -74,6 +93,21 @@ def choose_coached_side(report: dict) -> str:
     if result == "1-0":
         return "black"
     return "white"
+
+
+def coachable_mistakes(report: dict, coached_side: str) -> list[dict]:
+    """The coached side's flagged mistakes, worst (highest win-prob loss) first.
+
+    The single source of the "critical positions" ordering, shared by the whole-game
+    facts block and the per-position distillation rows.
+    """
+    mistakes = [
+        m
+        for m in report.get("moves", [])
+        if m["side"] == coached_side and m["quality"] in _MISTAKE_QUALITIES
+    ]
+    mistakes.sort(key=lambda m: m["win_prob_loss"], reverse=True)
+    return mistakes
 
 
 def _mistake_line(m: dict) -> str:
@@ -117,13 +151,7 @@ def format_report_facts(
     ]
 
     # Notable mistakes by the coached side only, worst (highest win-prob loss) first.
-    mistakes = [
-        m
-        for m in report.get("moves", [])
-        if m["side"] == coached_side and m["quality"] in _MISTAKE_QUALITIES
-    ]
-    mistakes.sort(key=lambda m: m["win_prob_loss"], reverse=True)
-    mistakes = mistakes[:max_mistakes]
+    mistakes = coachable_mistakes(report, coached_side)[:max_mistakes]
 
     lines.append("")
     if mistakes:
@@ -166,5 +194,44 @@ def build_messages(
     )
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_prompt},
+    ]
+
+
+def format_position_facts(report: dict, coached_side: str, move: dict) -> str:
+    """Render ONE critical position as a tight facts block.
+
+    ``move`` is one entry of ``report["moves"]`` (typically from
+    :func:`coachable_mistakes`). Deliberately mentions only two moves — the one played
+    and the engine's preference — so a perfectly grounded answer has nowhere to wander.
+    """
+    opponent = "black" if coached_side == "white" else "white"
+    return "\n".join(
+        [
+            f"Game context: White ({report.get('white', '?')}) vs "
+            f"Black ({report.get('black', '?')}), result {report.get('result', '*')}. "
+            f"Opening: {report.get('eco', '?')} {report.get('opening', '?')}.",
+            f"You are coaching the {coached_side.upper()} player "
+            f"({report.get(coached_side, '?')}); the opponent is "
+            f"{report.get(opponent, '?')}.",
+            "",
+            "The moment:",
+            _mistake_line(move),
+        ]
+    )
+
+
+def build_position_messages(report: dict, coached_side: str, move: dict) -> list[dict]:
+    """Build the ``[system, user]`` chat messages for coaching one critical position."""
+    if coached_side not in ("white", "black"):
+        raise ValueError(f"coached_side must be 'white' or 'black', got {coached_side!r}")
+    facts = format_position_facts(report, coached_side, move)
+    user_prompt = (
+        "Here is the engine analysis of one key moment from the game. "
+        "Coach the student on it.\n\n"
+        f"{facts}"
+    )
+    return [
+        {"role": "system", "content": POSITION_SYSTEM_PROMPT},
         {"role": "user", "content": user_prompt},
     ]
