@@ -14,25 +14,30 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-SCHEMA_VERSION = 1
+# v2: adds ``kind`` — "game" (whole-game coaching, the deployed task) or "position"
+# (one critical position, tight citation training). v1 rows load as kind="game".
+SCHEMA_VERSION = 2
 
 
 @dataclass
 class DistillRecord:
     """One teacher-written coaching example, plus the input and metadata that made it."""
 
-    source: dict          # {"pgn": str, "game_index": int, "coached_side": str}
+    source: dict          # {"pgn": str, "game_index": int, "coached_side": str};
+                          # position rows add {"move_number": int, "move_san": str}
     coached_side: str
     facts: str            # deterministic facts block (the body the model was grounded on)
     prompt: list[dict]    # the student's exact [system, user] chat messages
     completion: str       # teacher coaching — the gold target
     teacher: dict         # {"backend": str, "model": str}
     quality: dict = field(default_factory=dict)  # grounding self-check + difficulty signals
+    kind: str = "game"    # "game" | "position" — the row's granularity
     schema_version: int = SCHEMA_VERSION
 
     def to_dict(self) -> dict:
         return {
             "schema_version": self.schema_version,
+            "kind": self.kind,
             "source": self.source,
             "coached_side": self.coached_side,
             "facts": self.facts,
@@ -52,7 +57,9 @@ class DistillRecord:
             completion=d["completion"],
             teacher=d["teacher"],
             quality=d.get("quality", {}),
-            schema_version=d.get("schema_version", SCHEMA_VERSION),
+            # v1 rows predate ``kind`` and are all whole-game rows.
+            kind=d.get("kind", "game"),
+            schema_version=d.get("schema_version", 1),
         )
 
     def to_chat_example(self) -> dict:

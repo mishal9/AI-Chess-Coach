@@ -199,3 +199,34 @@ def test_live_coaching_is_grounded():
     messages = prompts.build_messages(SAMPLE_REPORT, "black")
     text = client.chat(messages)
     assert len(text) > 80  # a real paragraph, not an empty/emoji reply
+
+
+# --- Per-position prompts (v2 dataset granularity) ----------------------------------
+
+def test_coachable_mistakes_orders_worst_first_and_filters_side():
+    mistakes = prompts.coachable_mistakes(SAMPLE_REPORT, "black")
+    assert [m["san"] for m in mistakes] == ["Nxd4", "h6"]  # worst first, no white moves
+
+
+def test_position_facts_mention_only_this_moment():
+    move = prompts.coachable_mistakes(SAMPLE_REPORT, "black")[0]
+    facts = prompts.format_position_facts(SAMPLE_REPORT, "black", move)
+    assert "17...Nxd4" in facts and "Qe7" in facts
+    assert "h6" not in facts          # the other black mistake stays out
+    assert "a3" not in facts          # the opponent's move stays out
+    assert "BLACK" in facts and "Bob" in facts
+
+
+def test_build_position_messages_uses_tight_system_prompt():
+    move = prompts.coachable_mistakes(SAMPLE_REPORT, "black")[0]
+    messages = prompts.build_position_messages(SAMPLE_REPORT, "black", move)
+    assert [m["role"] for m in messages] == ["system", "user"]
+    assert messages[0]["content"] == prompts.POSITION_SYSTEM_PROMPT
+    assert "ONE key moment" in messages[0]["content"]
+    assert "17...Nxd4" in messages[1]["content"]
+
+
+def test_build_position_messages_rejects_bad_side():
+    move = prompts.coachable_mistakes(SAMPLE_REPORT, "black")[0]
+    with pytest.raises(ValueError):
+        prompts.build_position_messages(SAMPLE_REPORT, "green", move)
