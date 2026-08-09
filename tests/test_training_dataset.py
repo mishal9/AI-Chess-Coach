@@ -86,3 +86,19 @@ def test_main_writes_splits_and_manifest(tmp_path):
     for split in dataset.SPLITS:
         for row in dataset.read_jsonl(out / f"{split}.jsonl"):
             assert row["messages"][-1]["role"] == "assistant"
+
+
+def test_manifest_counts_row_kinds(tmp_path):
+    import dataclasses
+    import json
+    recs = [
+        _rec("a.pgn", 0),
+        dataclasses.replace(_rec("a.pgn", 0), kind="position"),
+        dataclasses.replace(_rec("b.pgn", 0), kind="position"),
+    ]
+    raw = tmp_path / "raw.jsonl"
+    dataset.write_jsonl(raw, [r.to_dict() for r in recs])
+    out = tmp_path / "ds"
+    assert dataset.main(["--in", str(raw), "--out-dir", str(out)]) == 0
+    manifest = json.loads((out / "manifest.json").read_text())
+    assert manifest["kinds"] == {"game": 1, "position": 2}

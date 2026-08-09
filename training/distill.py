@@ -5,9 +5,15 @@ coaching for those facts, then **self-check the teacher's grounding** against th
 before keeping the pair. The output is a raw JSONL of :class:`~training.schema.DistillRecord`
 that ``training.dataset`` later filters and splits into train/val/test.
 
+v2 emits two row shapes per game: one whole-game row (the deployed task) plus up to
+``--positions-per-game`` single-position rows (worst mistakes first) whose tight facts
+blocks train citation discipline. Outputs that fail strict grounding are re-rolled up to
+``--retries`` times (the anthropic teacher is nondeterministic) keeping the best attempt.
+
 Usage:
     python -m training.distill --sources data/games/manifest.json --out data/distill/raw.jsonl
-    python -m training.distill --sources data/games/ --teacher anthropic --max-teacher-calls 200
+    python -m training.distill --sources data/games/ --teacher anthropic \
+        --positions-per-game 4 --retries 1 --max-teacher-calls 2500
 
 LEAKAGE WARNING: never point ``--sources`` at ``eval/heldout/`` — those games are the
 scoreboard. Distilling on them would make the Phase-4 win meaningless. The pipeline refuses
@@ -107,19 +113,41 @@ def _difficulty(report: dict, coached_side: str) -> dict:
     }
 
 
+def _best_grounded_attempt(generate, check, retries: int):
+    """Generate up to ``1 + retries`` completions, stopping at the first perfectly
+    grounded one; return ``(completion, grounding_result)`` of the best-scoring attempt.
+
+    Retrying is meaningful because the default (anthropic) teacher runs at its default
+    temperature — a re-roll genuinely differs, and the grounding gate later drops
+    anything that never rolled clean.
+    """
+    best = None
+    for _ in range(1 + max(0, retries)):
+        completion = generate()
+        g = check(completion)
+        if best is None or g.score > best[1].score:
+            best = (completion, g)
+        if g.score >= 1.0:
+            break
+    return best
+
+
 def build_record(
     source: SourceGame,
     report: dict,
     teacher_fn: teacher_mod.TeacherFn,
     teacher_desc: dict,
+    retries: int = 0,
 ) -> DistillRecord:
     """Coach one game with the teacher and package the grounding-checked training pair."""
     coached_side = source.coached_side or prompts.choose_coached_side(report)
     messages = prompts.build_messages(report, coached_side)
     facts = prompts.format_report_facts(report, coached_side)
-    completion = teacher_fn(report, coached_side)
-
-    g = grounding.grounding_from_report(completion, report, coached_side)
+    completion, g = _best_grounded_attempt(
+        lambda: teacher_fn(report, coached_side),
+        lambda c: grounding.grounding_from_report(c, report, coached_side),
+        retries,
+    )
     quality = {
         "grounding": round(g.score, 3),
         "grounded": g.grounded,
@@ -138,6 +166,54 @@ def build_record(
         completion=completion,
         teacher=teacher_desc,
         quality=quality,
+        kind="game",
+    )
+
+
+def build_position_record(
+    source: SourceGame,
+    report: dict,
+    move: dict,
+    position_teacher_fn: teacher_mod.PositionTeacherFn,
+    teacher_desc: dict,
+    retries: int = 0,
+) -> DistillRecord:
+    """Coach ONE critical position and package the tight-citation training pair.
+
+    Grounding is checked against the *position* facts block: a move that exists
+    elsewhere in the game but not in this block still counts as hallucinated — that
+    strictness is the entire point of position rows.
+    """
+    coached_side = source.coached_side or prompts.choose_coached_side(report)
+    messages = prompts.build_position_messages(report, coached_side, move)
+    facts = prompts.format_position_facts(report, coached_side, move)
+    completion, g = _best_grounded_attempt(
+        lambda: position_teacher_fn(report, coached_side, move),
+        lambda c: grounding.score_grounding(c, facts),
+        retries,
+    )
+    quality = {
+        "grounding": round(g.score, 3),
+        "grounded": g.grounded,
+        "hallucinated": sorted(g.hallucinated),
+        "move_quality": move["quality"],
+        "win_prob_loss": move["win_prob_loss"],
+    }
+    return DistillRecord(
+        source={
+            "pgn": source.pgn.name,
+            "game_index": source.game_index,
+            "coached_side": coached_side,
+            "move_number": move["move_number"],
+            "move_san": move["san"],
+        },
+        coached_side=coached_side,
+        facts=facts,
+        prompt=messages,
+        completion=completion,
+        teacher=teacher_desc,
+        quality=quality,
+        kind="position",
     )
 
 
@@ -156,8 +232,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--teacher-model", default=None, help="override the teacher's model")
     parser.add_argument("--depth", type=int, default=18, help="Stockfish search depth")
     parser.add_argument(
+        "--positions-per-game", type=int, default=4,
+        help="also emit up to N per-position rows (worst mistakes first) per game; "
+        "0 = whole-game rows only (v1 behavior)",
+    )
+    parser.add_argument(
+        "--retries", type=int, default=1,
+        help="re-roll a teacher output up to N times if it fails strict grounding "
+        "(best attempt is kept)",
+    )
+    parser.add_argument(
         "--max-teacher-calls", type=int, default=100,
-        help="refuse to start if the run would exceed this many teacher calls (spend guard)",
+        help="refuse to start if the WORST-CASE teacher calls — "
+        "games x (1 + positions-per-game) x (1 + retries) — exceed this (spend guard)",
     )
     return parser
 
@@ -168,9 +255,12 @@ def main(argv: list[str] | None = None) -> int:
     if not sources:
         print(f"No source games found at {args.sources}", file=sys.stderr)
         return 1
-    if len(sources) > args.max_teacher_calls:
+    worst_case = len(sources) * (1 + args.positions_per_game) * (1 + args.retries)
+    if worst_case > args.max_teacher_calls:
         print(
-            f"Refusing to start: {len(sources)} teacher calls exceeds "
+            f"Refusing to start: worst case {worst_case} teacher calls "
+            f"({len(sources)} games x (1 + {args.positions_per_game} positions) x "
+            f"(1 + {args.retries} retries)) exceeds "
             f"--max-teacher-calls {args.max_teacher_calls}.",
             file=sys.stderr,
         )
@@ -185,27 +275,50 @@ def main(argv: list[str] | None = None) -> int:
         ),
     }
     teacher_fn = teacher_mod.make_teacher_fn(args.teacher, args.teacher_model)
+    position_teacher_fn = teacher_mod.make_position_teacher_fn(
+        args.teacher, args.teacher_model
+    )
     print(
         f"Distilling {len(sources)} games with {args.teacher} "
-        f"({teacher_desc['model']}) — ~{len(sources)} teacher calls.",
+        f"({teacher_desc['model']}) — worst case {worst_case} teacher calls "
+        f"(game rows + up to {args.positions_per_game} position rows each, "
+        f"{args.retries} grounding retries).",
         file=sys.stderr,
     )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    kept = grounded = 0
+    kept = {"game": 0, "position": 0}
+    grounded = {"game": 0, "position": 0}
+
+    def emit(fh, record: DistillRecord) -> None:
+        fh.write(json.dumps(record.to_dict(), ensure_ascii=False) + "\n")
+        kept[record.kind] += 1
+        grounded[record.kind] += record.quality["grounded"]
+
     with args.out.open("w", encoding="utf-8") as fh:
         for i, source in enumerate(sources, 1):
             print(f"[{i}/{len(sources)}] {source.pgn.name}#{source.game_index}...",
                   file=sys.stderr)
             report = analyze_source(source, args.depth)
-            record = build_record(source, report, teacher_fn, teacher_desc)
-            fh.write(json.dumps(record.to_dict(), ensure_ascii=False) + "\n")
-            kept += 1
-            grounded += record.quality["grounded"]
+            coached_side = source.coached_side or prompts.choose_coached_side(report)
+            source = SourceGame(source.pgn, source.game_index, coached_side)
 
+            emit(fh, build_record(source, report, teacher_fn, teacher_desc,
+                                  retries=args.retries))
+            mistakes = prompts.coachable_mistakes(report, coached_side)
+            for move in mistakes[: args.positions_per_game]:
+                emit(fh, build_position_record(source, report, move,
+                                               position_teacher_fn, teacher_desc,
+                                               retries=args.retries))
+
+    total_kept = sum(kept.values())
+    total_grounded = sum(grounded.values())
     print(
-        f"Wrote {kept} records to {args.out}  "
-        f"({grounded}/{kept} teacher-grounded; filter/split with `python -m training.dataset`).",
+        f"Wrote {total_kept} records to {args.out}  "
+        f"(game {grounded['game']}/{kept['game']} grounded, "
+        f"position {grounded['position']}/{kept['position']} grounded, "
+        f"{total_grounded}/{total_kept} total; "
+        "filter/split with `python -m training.dataset`).",
         file=sys.stderr,
     )
     return 0

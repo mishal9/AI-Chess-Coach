@@ -109,6 +109,10 @@ def main(argv: list[str] | None = None) -> int:
         rows = [r.to_chat_example() if args.as_chat else r.to_dict() for r in recs]
         counts[name] = write_jsonl(args.out_dir / f"{name}.jsonl", rows)
 
+    kinds: dict[str, int] = {}
+    for rec in kept:
+        kinds[rec.kind] = kinds.get(rec.kind, 0) + 1
+
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "source": str(args.in_path),
@@ -117,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
         "ratios": {s: r for s, r in zip(SPLITS, args.ratios)},
         "seed": args.seed,
         "counts": counts,
+        "kinds": kinds,
         "total": sum(counts.values()),
         "dropped_below_grounding": dropped,
     }
