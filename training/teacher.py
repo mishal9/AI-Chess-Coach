@@ -22,10 +22,13 @@ from eval import backends
 # pipeline is unit-testable with a canned teacher — no API key, no network.
 TeacherFn = Callable[[dict, str], str]
 
-# The student's grounding contract, hardened with a quality bar. We keep every STRICT
-# GROUNDING rule verbatim from the deployed prompt (a hallucinated target is worse than
-# no target) and add only what raises the ceiling of an already-grounded answer.
-TEACHER_SYSTEM_PROMPT = prompts.SYSTEM_PROMPT + """
+# A position teacher additionally takes the move dict (one entry of report["moves"]).
+PositionTeacherFn = Callable[[dict, str, dict], str]
+
+# The quality bar layered on top of the student's grounding contract. We keep every
+# STRICT GROUNDING rule verbatim from the deployed prompts (a hallucinated target is
+# worse than no target) and add only what raises the ceiling of a grounded answer.
+_EXCELLENCE_LAYER = """
 
 YOU ARE THE GOLD-STANDARD TEACHER (your output becomes training data):
 - Stay ruthlessly within the facts — a single invented move poisons the dataset. When the \
@@ -34,6 +37,9 @@ facts under-determine something, teach the principle instead of guessing the pos
 move accomplishes, and the reusable idea behind it — not just a restatement of the numbers.
 - Model the exact voice and shape we want the student model to imitate: warm, direct, \
 concise, a few short paragraphs ending in one or two concrete things to work on."""
+
+TEACHER_SYSTEM_PROMPT = prompts.SYSTEM_PROMPT + _EXCELLENCE_LAYER
+TEACHER_POSITION_SYSTEM_PROMPT = prompts.POSITION_SYSTEM_PROMPT + _EXCELLENCE_LAYER
 
 
 def build_teacher_messages(report: dict, coached_side: str) -> list[dict]:
@@ -46,6 +52,23 @@ def build_teacher_messages(report: dict, coached_side: str) -> list[dict]:
     return [{"role": "system", "content": TEACHER_SYSTEM_PROMPT}, *student[1:]]
 
 
+def build_teacher_position_messages(
+    report: dict, coached_side: str, move: dict
+) -> list[dict]:
+    """Position-row teacher messages: the student's exact single-moment user turn under
+    the position teacher system prompt (same construction as whole-game rows)."""
+    student = prompts.build_position_messages(report, coached_side, move)
+    return [{"role": "system", "content": TEACHER_POSITION_SYSTEM_PROMPT}, *student[1:]]
+
+
+def _backend(backend_name: str):
+    return {
+        "ollama": backends.ollama_backend,
+        "anthropic": backends.anthropic_backend,
+        "gemini": backends.gemini_backend,
+    }[backend_name]
+
+
 def make_teacher_fn(backend_name: str = "anthropic", model: str | None = None) -> TeacherFn:
     """A teacher that generates coaching via the named ``eval.backends`` backend.
 
@@ -53,14 +76,23 @@ def make_teacher_fn(backend_name: str = "anthropic", model: str | None = None) -
     quality source). ``model`` overrides that backend's default. Credentials and lazy SDK
     imports are handled inside the backend exactly as they are for the eval judge.
     """
-    backend = {
-        "ollama": backends.ollama_backend,
-        "anthropic": backends.anthropic_backend,
-        "gemini": backends.gemini_backend,
-    }[backend_name]
+    backend = _backend(backend_name)
 
     def teacher_fn(report: dict, coached_side: str) -> str:
         messages = build_teacher_messages(report, coached_side)
         return backend(messages, model=model)
 
     return teacher_fn
+
+
+def make_position_teacher_fn(
+    backend_name: str = "anthropic", model: str | None = None
+) -> PositionTeacherFn:
+    """Like :func:`make_teacher_fn`, for single-position (``kind="position"``) rows."""
+    backend = _backend(backend_name)
+
+    def position_teacher_fn(report: dict, coached_side: str, move: dict) -> str:
+        messages = build_teacher_position_messages(report, coached_side, move)
+        return backend(messages, model=model)
+
+    return position_teacher_fn
