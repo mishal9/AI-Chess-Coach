@@ -4,6 +4,10 @@ Paper-grade records of every fine-tuning/eval experiment: hypothesis, data linea
 exact training config, results tables, threats to validity, and reproduction commands.
 One file per experiment, newest first. Written to be lifted into an arXiv preprint.
 
+Iteration runs single-seed/single-judge on purpose; [`paper-protocol.md`](./paper-protocol.md)
+is the one-time rigor checklist (multi-seed variance, Wilcoxon on the paired design,
+second judge, ablations) to run on the final configuration before writing anything up.
+
 - [2026-08-08 · Qwen3-8B QLoRA (v1 dataset) vs prompted 3B baseline](./2026-08-08-qwen3-8b-qlora-v1.md) —
   **beats baseline** (overall 3.38→3.97, factual 2.90→3.45; clean_draw hallucination
   fixed 0.38→0.88 grounding); gates (grounding ≥0.85, factual ≥4.0) not yet met —
