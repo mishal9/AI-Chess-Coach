@@ -1,0 +1,14 @@
+# Experiment records
+
+Paper-grade records of every fine-tuning/eval experiment: hypothesis, data lineage,
+exact training config, results tables, threats to validity, and reproduction commands.
+One file per experiment, newest first. Written to be lifted into an arXiv preprint.
+
+- [2026-08-08 · Qwen3-8B QLoRA (v1 dataset) vs prompted 3B baseline](./2026-08-08-qwen3-8b-qlora-v1.md) —
+  **beats baseline** (overall 3.38→3.97, factual 2.90→3.45; clean_draw hallucination
+  fixed 0.38→0.88 grounding); gates (grounding ≥0.85, factual ≥4.0) not yet met —
+  new failure mode is citation discipline, targeted by the v2 per-position dataset.
+
+Conventions: judged metrics come from `eval.run` (29-game held-out set,
+`--judge anthropic`, coach temperature 0); comparisons from `eval.compare`; the
+underlying JSON reports are committed in `eval/reports/`.

@@ -1,7 +1,9 @@
 # Chess Analyzer — AI Chess Coach
 
 Analyzes your chess games, explains your mistakes in plain language, and coaches you
-to improve. See [`PLAN.md`](./PLAN.md) for the full roadmap and architecture.
+to improve. See [`PLAN.md`](./PLAN.md) for the full roadmap and architecture, and
+[`docs/experiments/`](./docs/experiments/) for paper-grade records of the fine-tuning
+experiments and their results.
 
 **Core idea:** Stockfish does the objective analysis (blunders, centipawn loss, best
 moves); a small fine-tuned LLM is the *coach* that explains them; a RAG/memory layer
