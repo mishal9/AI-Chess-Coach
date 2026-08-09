@@ -174,3 +174,21 @@ def test_main_emits_game_plus_position_rows(tmp_path, monkeypatch):
     assert kinds == ["game", "position", "position"]   # black has 2 coachable mistakes
     assert rows[1]["source"]["move_san"] == "Nxd4"     # worst first
     assert rows[2]["source"]["move_san"] == "h6"
+
+
+def test_no_game_rows_emits_positions_only(tmp_path, monkeypatch):
+    manifest = tmp_path / "m.json"
+    manifest.write_text(json.dumps([{"pgn": "a.pgn", "coached_side": "black"}]))
+    out = tmp_path / "raw.jsonl"
+
+    monkeypatch.setattr(distill, "analyze_source", lambda src, depth: SAMPLE_REPORT)
+    monkeypatch.setattr(distill.teacher_mod, "make_teacher_fn",
+                        lambda *a, **k: lambda r, s: "game row (should not be emitted)")
+    monkeypatch.setattr(distill.teacher_mod, "make_position_teacher_fn",
+                        lambda *a, **k: lambda r, s, m: f"{m['san']} was costly.")
+
+    rc = distill.main(["--sources", str(manifest), "--out", str(out),
+                       "--no-game-rows", "--max-teacher-calls", "100"])
+    assert rc == 0
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    assert [r["kind"] for r in rows] == ["position", "position"]
