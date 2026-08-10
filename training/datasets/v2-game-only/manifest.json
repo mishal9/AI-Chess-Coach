@@ -1,0 +1,23 @@
+{
+  "schema_version": 2,
+  "source": "data/distill/raw_v2.jsonl",
+  "format": "chat",
+  "min_grounding": 1.0,
+  "kind_filter": "game",
+  "ratios": {
+    "train": 0.8,
+    "val": 0.1,
+    "test": 0.1
+  },
+  "seed": 0,
+  "counts": {
+    "train": 101,
+    "val": 10,
+    "test": 18
+  },
+  "kinds": {
+    "game": 129
+  },
+  "total": 129,
+  "dropped_below_grounding": 8
+}
