@@ -47,11 +47,18 @@ def aggregate(games: list[dict]) -> dict:
         "grounding": sum(g["grounding"]["score"] for g in games) / n,
         "grounded_pct": sum(1 for g in games if g["grounding"]["grounded"]) / n * 100,
         "worst_pct": sum(1 for g in games if g["identifies_worst_move"]) / n * 100,
-        "overall": sum(g["rubric"]["overall"] for g in games) / n,
     }
-    for a in AXES:
-        m[a] = sum(g["rubric"]["scores"][a] for g in games) / n
+    # --no-judge reports carry no rubric; grounding-only comparisons are still valid.
+    if all("rubric" in g for g in games):
+        m["overall"] = sum(g["rubric"]["overall"] for g in games) / n
+        for a in AXES:
+            m[a] = sum(g["rubric"]["scores"][a] for g in games) / n
     return m
+
+
+def has_rubric(*aggs: dict) -> bool:
+    """True only when every aggregate carries judged metrics."""
+    return all("overall" in a for a in aggs)
 
 
 def by_bucket(games: list[dict]) -> dict[str, list[dict]]:
@@ -69,6 +76,8 @@ def paired_factual(base: list[dict], cand: list[dict]) -> dict:
     """
     up = same = down = 0
     for b, c in zip(base, cand):
+        if "rubric" not in b or "rubric" not in c:
+            continue
         if b["pgn"] != c["pgn"] or b.get("coached_side") != c.get("coached_side"):
             continue
         d = c["rubric"]["scores"]["factual_correctness"] - b["rubric"]["scores"]["factual_correctness"]
@@ -99,13 +108,19 @@ def render(base: list[dict], cand: list[dict], base_name="baseline", cand_name="
     out.append(f"{'metric':<14}{base_name[:9]:>10}{cand_name[:9]:>10}{'Δ':>9}")
     out.append("─" * 43)
     for key, label, pct in _METRICS:
+        if key not in ab or key not in ac:
+            continue
         out.append(f"{label:<14}{_fmt(ab[key],pct):>10}{_fmt(ac[key],pct):>10}{_delta(ab[key],ac[key],pct):>9}")
 
     # 2) per bucket (grounding / factual / overall)
     bb, bc = by_bucket(base), by_bucket(cand)
     out.append("")
-    out.append(f"{'bucket':<14}{'n':>3}{'ground Δ':>11}{'factual Δ':>11}{'overall Δ':>11}")
-    out.append("─" * 50)
+    judged = has_rubric(ab, ac)
+    header = f"{'bucket':<14}{'n':>3}{'ground Δ':>11}"
+    if judged:
+        header += f"{'factual Δ':>11}{'overall Δ':>11}"
+    out.append(header)
+    out.append("─" * (50 if judged else 28))
     for b in BUCKETS:
         if b not in bb:
             continue
@@ -113,17 +128,22 @@ def render(base: list[dict], cand: list[dict], base_name="baseline", cand_name="
         if not mc:
             continue
         star = "  ←" if b == "clean_draw" else ""
-        out.append(f"{b:<14}{len(bb[b]):>3}"
-                   f"{_delta(mb['grounding'],mc['grounding'],False):>11}"
-                   f"{_delta(mb['factual_correctness'],mc['factual_correctness'],False):>11}"
-                   f"{_delta(mb['overall'],mc['overall'],False):>11}{star}")
+        row = f"{b:<14}{len(bb[b]):>3}{_delta(mb['grounding'],mc['grounding'],False):>11}"
+        if has_rubric(mb, mc):
+            row += (f"{_delta(mb['factual_correctness'],mc['factual_correctness'],False):>11}"
+                    f"{_delta(mb['overall'],mc['overall'],False):>11}")
+        out.append(row + star)
 
-    # 3) paired
+    # 3) paired + verdict — judged metrics only
+    if not has_rubric(ab, ac):
+        out.append("")
+        out.append("(grounding-only reports — rubric, paired factual, and verdict skipped)")
+        return "\n".join(out)
+
     p = paired_factual(base, cand)
     out.append("")
     out.append(f"paired factual (same games): {p['better']} better · {p['same']} same · {p['worse']} worse")
 
-    # verdict
     beat_f = ac["factual_correctness"] > ab["factual_correctness"]
     beat_o = ac["overall"] > ab["overall"]
     verdict = "BEATS baseline" if (beat_f and beat_o) else \
