@@ -102,3 +102,24 @@ def test_manifest_counts_row_kinds(tmp_path):
     assert dataset.main(["--in", str(raw), "--out-dir", str(out)]) == 0
     manifest = json.loads((out / "manifest.json").read_text())
     assert manifest["kinds"] == {"game": 1, "position": 2}
+
+
+def test_filter_kind_selects_one_granularity():
+    import dataclasses
+    recs = [_rec("a.pgn", 0),
+            dataclasses.replace(_rec("a.pgn", 0), kind="position"),
+            dataclasses.replace(_rec("b.pgn", 0), kind="position")]
+    assert len(dataset.filter_kind(recs, "any")) == 3
+    assert len(dataset.filter_kind(recs, "game")) == 1
+    assert len(dataset.filter_kind(recs, "position")) == 2
+
+
+def test_kind_filter_recorded_in_manifest(tmp_path):
+    import dataclasses, json
+    recs = [_rec("a.pgn", 0), dataclasses.replace(_rec("b.pgn", 0), kind="position")]
+    raw = tmp_path / "raw.jsonl"
+    dataset.write_jsonl(raw, [r.to_dict() for r in recs])
+    out = tmp_path / "ds"
+    assert dataset.main(["--in", str(raw), "--out-dir", str(out), "--kind", "position"]) == 0
+    m = json.loads((out / "manifest.json").read_text())
+    assert m["kind_filter"] == "position" and m["kinds"] == {"position": 1}
