@@ -8,6 +8,11 @@ Iteration runs single-seed/single-judge on purpose; [`paper-protocol.md`](./pape
 is the one-time rigor checklist (multi-seed variance, Wilcoxon on the paired design,
 second judge, ablations) to run on the final configuration before writing anything up.
 
+- [2026-08-10 · Qwen3-8B QLoRA on the v2 mixed-granularity dataset](./2026-08-10-qwen3-8b-qlora-v2.md) —
+  **grounding gate met** (0.79→0.91, grounded games 41%→62%); factual 3.45→3.72, still short of
+  the 4.0 gate. Adding per-position rows fixed citation discipline without regressing whole-game
+  structure (clarity and actionability both rose); clean_draw now perfectly grounded (1.00).
+
 - [2026-08-08 · Qwen3-8B QLoRA (v1 dataset) vs prompted 3B baseline](./2026-08-08-qwen3-8b-qlora-v1.md) —
   **beats baseline** (overall 3.38→3.97, factual 2.90→3.45; clean_draw hallucination
   fixed 0.38→0.88 grounding); gates (grounding ≥0.85, factual ≥4.0) not yet met —
