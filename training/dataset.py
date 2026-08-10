@@ -69,6 +69,16 @@ def split_records(
     return out
 
 
+def filter_kind(records: Iterable[DistillRecord], kind: str) -> list[DistillRecord]:
+    """Keep only rows of one granularity — the lever for the shape-vs-volume ablation.
+
+    ``kind="any"`` keeps everything (the normal mixed dataset).
+    """
+    if kind == "any":
+        return list(records)
+    return [r for r in records if r.kind == kind]
+
+
 def filter_records(
     records: Iterable[DistillRecord], min_grounding: float = 1.0
 ) -> list[DistillRecord]:
@@ -91,6 +101,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ratios", type=float, nargs=3, default=list(DEFAULT_RATIOS),
                         metavar=("TRAIN", "VAL", "TEST"))
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--kind", choices=["any", "game", "position"], default="any",
+                        help="keep only this row granularity (ablation lever; default: any)")
     parser.add_argument("--as-chat", action="store_true",
                         help="emit minimal {messages:[...]} training rows instead of full records")
     return parser
@@ -99,8 +111,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     raw = [DistillRecord.from_dict(d) for d in read_jsonl(args.in_path)]
-    kept = filter_records(raw, args.min_grounding)
-    dropped = len(raw) - len(kept)
+    of_kind = filter_kind(raw, args.kind)
+    kept = filter_records(of_kind, args.min_grounding)
+    dropped = len(of_kind) - len(kept)
     splits = split_records(kept, tuple(args.ratios), args.seed)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -118,6 +131,7 @@ def main(argv: list[str] | None = None) -> int:
         "source": str(args.in_path),
         "format": "chat" if args.as_chat else "record",
         "min_grounding": args.min_grounding,
+        "kind_filter": args.kind,
         "ratios": {s: r for s, r in zip(SPLITS, args.ratios)},
         "seed": args.seed,
         "counts": counts,
