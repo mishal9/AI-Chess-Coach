@@ -1,0 +1,437 @@
+{
+  "coach_model": "qwen-coach-8b-abl-game",
+  "coach_temperature": 0.0,
+  "judge": null,
+  "judge_model": null,
+  "depth": 15,
+  "date": "2026-08-09",
+  "aggregate": {
+    "games": 29,
+    "grounding_mean": 0.764,
+    "grounded_rate": 0.345,
+    "worst_move_identified_rate": 0.724
+  },
+  "games": [
+    {
+      "pgn": "clean_draw.pgn",
+      "coached_side": "white",
+      "note": "near-clean game (both sides low ACPL, nothing flagged) \u2014 the coach must recognize a clean game, not invent errors",
+      "coaching": "Your game was a textbook example of disciplined play \u2014 no flagged inaccuracies, mistakes, or blunders on either side, with centipawn losses hovering around 9. That\u2019s an exceptional score for both players, showing you prioritized accuracy over aggressive risks. Here\u2019s how to build on this:  \n\n1. **Reinforce your opening preparation**: The Paris Defense (C50) is a sharp line where small errors can snowball. Since the engine didn\u2019t flag any tactical oversights, focus on studying *exact* variations in this opening. Look for subtle pawn breaks or piece exchanges that could simplify into endgames \u2014 even minor concessions might be critical here.  \n\n2. **Strengthen your positional intuition**: With such low error rates, you\u2019re already playing at a high level. Now, practice recognizing *when* to trade pieces or push pawns in the middlegame. These decisions often hinge on subtle imbalances (e.g., space vs. piece activity) that engines can spot but humans must intuit.  \n\n3. **Endgame precision**: The engine\u2019s low centipawn loss suggests you\u2019re handling material efficiently, but endgames are where accuracy matters most. Study how to convert small advantages (like a passed pawn or open file) into wins \u2014 even in equal positions, tiny details can decide outcomes.  \n\nYou\u2019ve already mastered the basics of clean play; now refine your ability to *see* the nuances that separate elite players from the rest.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": false
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "coached_side": "black",
+      "note": "gradual loss: high ACPL but no discrete blunder (Opera-like) \u2014 the case where a small model tends to hallucinate",
+      "coaching": "Your game had two critical moments where you lost significant advantage: **23...Kh7?** (a mistake) and **21...Nxd5?!** (an inaccuracy). Let\u2019s start with the most damaging one.  \n\n### 23...Kh7? \u2014 The Costliest Error  \nMoving your king to h7 was a major misstep. This move exposed your king unnecessarily, especially since it left your queen and rook vulnerable on open files. The engine preferred **Bc5**, which would have maintained control of the center and kept your pieces active. By choosing Kh7 instead, you gave White an opportunity to exploit weaknesses in your position \u2014 costing about 21% win probability. This was a clear strategic error: kings should rarely be moved early unless absolutely necessary, and here it weakened your entire setup.  \n\n### 21...Nxd5?! \u2014 A Tactical Oversight  \nTaking the knight on d5 with **Nxd5** was an inaccuracy. While it might seem like a material gain, the engine preferred **Qxe4**, which would have developed your queen more effectively and kept your pieces coordinated. By capturing the knight, you allowed White to consolidate their position without immediate counterplay. This move shows a recurring pattern: sometimes sacrificing small material for development is better than forcing an exchange that weakens your structure.  \n\n### Key Takeaways  \n1. **King safety first**: Avoid moving your king unless it\u2019s unavoidable. Your king should be behind solid pawns or supported by other pieces.  \n2. **Prioritize piece activity**: In positions like this, developing your queen (e.g., Qxe4) often outvalues material gains from captures. Study how to balance short-term threats with long-term coordination.  \n\nWork on recognizing when a capture is a distraction and when it\u2019s a forced move. Practice analyzing similar endgame structures where king safety and piece activity are critical \u2014 this will help you avoid repeating these errors.",
+      "grounding": {
+        "score": 0.667,
+        "grounded": false,
+        "hallucinated": [
+          "d5",
+          "h7"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "coached_side": "white",
+      "note": "a single clear blunder plus high ACPL",
+      "coaching": "Your game shows a clear pattern: you made one critical error (13.Bc4?) that cost nearly 30% of your win probability, followed by two less severe but still costly inaccuracies. Let\u2019s break this down.  \n\n**The most damaging move: 13.Bc4?**  \nThis was the single biggest mistake. The engine preferred **dxc6**, which would have captured a pawn and immediately improved your position (the bishop to c4 is passive here). By developing the bishop instead, you gave Black time to consolidate their center and prepare counterplay. This move directly cost you about 30% of your chances \u2014 a huge swing in a sharp opening like the Winawer Gambit.  \n\n**Other key errors:**  \n- **16.Rxe3?!**: Capturing with the rook instead of the queen (Qxe3) would have been more efficient, preserving piece activity and avoiding a worse exchange.  \n- **28.Qg7?!**: This move had an unusually high centipawn loss (9480), suggesting it was a tactical oversight \u2014 perhaps missing a threat or allowing Black to counterattack.  \n\n**What to focus on:**  \n1. **Development vs. material gain**: In the opening, prioritize active piece play over passive development. Capturing pawns in the center can be tempting, but sometimes it delays your own plans (like 13.Bc4?).  \n2. **Tactical awareness**: The high cp loss at 28.Qg7 suggests you missed a critical threat or counterplay. Practice identifying tactical patterns like forks, pins, and skewers \u2014 especially in the middlegame.  \n\n**Actionable steps:**  \n- Reanalyze your opening phase: Did you develop pieces efficiently? Were there opportunities to trade pawns for space?  \n- Study the Winawer Gambit\u2019s main lines (e.g., 10...Qd6, 12...Nc5) \u2014 this variation is sharp and requires precise play.  \n\nYou\u2019re not making blunders, but your inaccuracies are costing you games. Focus on sharpening your tactical vision and balancing development with material gains.",
+      "grounding": {
+        "score": 0.625,
+        "grounded": false,
+        "hallucinated": [
+          "Nc5",
+          "Qd6",
+          "c4"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "coached_side": "black",
+      "note": "multiple blunders in one game (2 blunders + a mistake)",
+      "coaching": "Your game was lost due to two critical errors and a pattern of suboptimal play. Let\u2019s start with your **biggest mistake**: 59...Kf7?? (blunder). This move cost you nearly 68% win probability \u2014 the engine preferred Bc5+, which would have attacked your queen or created immediate threats. Your king was already exposed, and this move only worsened it by abandoning central control. The recommended move (Bc5+) likely preserved material and kept your pieces active, avoiding a premature collapse.\n\nThe other listed errors show recurring issues:  \n- **35...Qd5?** and **42...Bf6?!** both involved moving the queen or bishop to squares that weakened your position. The engine preferred more central development (Nd5 vs Qd7) \u2014 you were trading space for time, but White capitalized on it.  \n- **30...Qb3?!** and **37...Rc8?!** suggest a tendency to overcommit with the queen or rook in the middlegame without securing key squares. The engine\u2019s alternatives (Qd7/Rd8) prioritized flexibility, which is critical when White has an active plan.\n\n### What to work on:  \n1. **Avoid premature king moves**: Your king was already exposed early \u2014 don\u2019t trade it for a pawn or piece unless you\u2019re creating threats. Keep it centralized until the endgame.  \n2. **Prioritize development over material**: Moves like Qd5? and Bf6?! show you traded space for time, but White exploited that delay. Focus on centralizing your pieces before committing to long-term plans.  \n\nYour average centipawn loss (47.2) reflects a general lack of precision \u2014 practice tactical puzzles with the queen and bishop to sharpen your sense of threats. The game wasn\u2019t lost in one move, but these errors compounded over time.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "coached_side": "black",
+      "note": "death by many small inaccuracies; no blunder or mistake",
+      "coaching": "Your most costly mistake was **38...Ng2?!** \u2014 this was a critical inaccuracy that cost you nearly 19% of your win probability. The engine preferred **Qd7**, which would have maintained control over key squares and kept pressure on White\u2019s king-side. Instead, the knight move (Ng2) seems to have been an attempt to recapture or disrupt, but it allowed White to consolidate their advantage with minimal risk. This highlights a recurring theme: your pieces often seemed reactive rather than proactive \u2014 especially in the endgame, where precise central control and king safety matter most.  \n\nThe other inaccuracies (like 21...Bxb5?!, 17...Nf6?!, and 31...cxb4?!) all share a pattern: they were attempts to simplify or exchange material without fully considering the resulting positional imbalances. For example, **21...Bxb5** might have been an over-ambitious trade that weakened your structure, while **31...cxb4** likely allowed White to centralize their pieces more effectively. These moves suggest a tendency to prioritize short-term gains over long-term strategic clarity \u2014 especially in the middlegame and endgame.  \n\nTo improve:  \n1. **Double-check for tactical threats before moving pieces**, especially when trading or capturing. A single oversight (like missing a pin or fork) can cost you dearly.  \n2. **Focus on central control and king safety** in the endgame \u2014 your opponent\u2019s queen and rooks often dominated key files, which you could have neutralized earlier with better development.  \n\nYou\u2019re playing solidly overall, but refining these small decisions will make a big difference. Keep working on tactical awareness and strategic patience!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": false
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "coached_side": "white",
+      "note": "a couple of mistakes, no blunder",
+      "coaching": "Your game shows promising play overall (no blunders), but three critical mistakes cost you significant chances. Let\u2019s focus on your two most damaging errors first:  \n\n**16.Qc5? (mistake):**  \nThis was a costly misstep. The engine preferred **g4**, which likely aimed to improve piece activity and pressure Black\u2019s center, rather than passively moving the queen to c5. Your move weakened your position by overcommitting to a pawn advance without clear follow-up. Instead of Qc5, g4 would have kept options open for both development and tactical threats.  \n\n**22.g4? (mistake):**  \nThis was another major misstep. The engine recommended **Rd2**, which probably sought to centralize your rook or prepare a knight maneuver (like Nb5). Your pawn push here likely weakened your structure without meaningful compensation, creating vulnerabilities for Black\u2019s counterplay. Rd2 would have maintained flexibility and control over key squares.  \n\n**Other issues:**  \nThe inaccuracies at 17.Bxd5?! and 21.Rd1?!, while less costly, suggest a pattern of **passive piece placement**: you occasionally traded material or moved pieces without securing clear advantages. For example, Bxd5 might have weakened your position by capturing a pawn without sufficient compensation, and Rd1 could have been replaced with a more active knight move (like Nb5).  \n\n**Actionable steps:**  \n1. Study the **Dragon Variation\u2019s main lines**: Focus on how White balances development vs. central control in this opening. Look for patterns where pawn advances like g4 or h5 are tactical tools, not just positional goals.  \n2. Practice **evaluating piece activity**: Before moving a piece, ask: *\u201cDoes this improve my position or restrict it?\u201d* For example, Rd2 often outplays pawn pushes when the rook can control key files.  \n\nYou\u2019re playing solidly but need to refine your decision-making in critical moments. Keep working on these two areas \u2014 you\u2019ll see improvement!",
+      "grounding": {
+        "score": 0.75,
+        "grounded": false,
+        "hallucinated": [
+          "c5",
+          "h5"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'slow_loss' (coached side: white)",
+      "coaching": "You're not missing any single critical error \u2014 but your average centipawn loss (47.2) suggests you were gradually losing ground through many small positional misjudgments rather than one big blunder. This is a common pattern when defending a steadily worse position: the opponent's accurate play and your gradual inaccuracies compound over time, leading to a slow unraveling of your advantage.  \n\nThe key takeaway here isn't about \"fixing\" specific moves (since none were flagged as mistakes) but improving **consistency in decision-making** under pressure. In openings like the Indian Defense, where both sides often trade pieces and simplify toward an endgame, even minor inaccuracies can snowball if you're not fully controlling the flow of the game. Focus on:  \n1. **Maintaining piece activity**: Avoid passively waiting for your opponent to make mistakes \u2014 keep your knights active and your queen engaged in the center.  \n2. **Avoiding overcommitment**: The Indian Defense often rewards patience; don't trade pieces unnecessarily unless you're clearly improving your position.  \n\nYour opponent (BWVolker) seems to have played with precision, so their ability to capitalize on your small errors is likely why they won. To improve, study the opening lines of the Indian Defense and practice games where you\u2019re forced to defend a slightly worse position \u2014 this will sharpen your ability to hold ground when the pressure is on.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": false
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Your single inaccuracy at **13...a6** cost you a critical edge \u2014 it weakened your central control and allowed White to develop their pieces more freely, costing about 19% of your win probability. The engine preferred **f5**, which would have maintained tension in the center and kept Black's pieces active (e.g., preparing ...Nc6 or ...Qd6). This move was a clear opportunity to steer the game toward your advantage rather than letting White consolidate.\n\nThe overall gap in centipawn loss (your 54 vs. opponent\u2019s 12) reflects that you were consistently slightly worse at evaluating positions, but there were no blunders or other errors \u2014 just this one misstep. The key pattern here is **central tension**: your move a6 disrupted the balance, while f5 would have kept it alive.\n\n**Actionable steps:**  \n1. Study the French Defense\u2019s main lines (e.g., 10...Nc6, 12...f5) to understand how central tension shapes outcomes.  \n2. Practice analyzing positions where your pieces are passive \u2014 ask yourself: *\u201cWhat does my opponent gain from this move?\u201d* and *\u201cHow can I keep the center dynamic?\u201d*  \n\nYou\u2019re on solid ground overall, but refining your handling of central tension will sharpen your results.",
+      "grounding": {
+        "score": 0.5,
+        "grounded": false,
+        "hallucinated": [
+          "Nc6",
+          "Qd6"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Your game was a textbook example of how small, consistent errors can erode your position over time \u2014 even when there were no single blunders or mistakes to flag. The engine\u2019s 72.2 CPL (centipawn loss) shows you gradually lost ground through many tiny inaccuracies rather than one big error. This suggests you often played slightly worse moves in critical moments, letting White steadily improve their position while your own plans faltered.  \n\nThe key takeaway is that **accuracy matters more than blunders** when defending a worse position. Even if you avoided catastrophic errors, the cumulative effect of small misjudgments (e.g., missing subtle threats or failing to equalize after exchanges) let White dominate the middlegame and endgame. Focus on refining your decision-making in positions where the engine highlights \"no mistakes\" \u2014 these are often the most dangerous places for human players to slip up.  \n\n**Two concrete steps:**  \n1. **Review games with a focus on \"quiet moves\":** Look for moments where you played a move that felt correct but was objectively slightly worse (e.g., trading pieces or advancing pawns without clear compensation). These are often the hidden cost of your CPL.  \n2. **Strengthen positional understanding:** The Queen\u2019s Pawn Game is flexible, but White\u2019s consistent advantage suggests they outplayed you in long-term planning. Study how to equalize after early pawn breaks and avoid letting their central control snowball.  \n\nYou\u2019re not missing big tactical shots \u2014 the real work is in tightening your accuracy when the engine says \"no mistakes.\" Keep it up!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": false
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Your single inaccuracy at **11...g6** cost you about 11% win probability \u2014 the engine preferred **e5** instead. This move is critical because it directly weakened your position:  \n- **Why g6 was costly**: Moving a pawn to g6 (a passive, unproductive square) blocked your bishop on f8 and delayed development. The engine\u2019s preference for **e5** highlights that developing the knight to e5 would have been more efficient, centralizing your pieces and preparing to challenge White\u2019s center.  \n- **What e5 achieves**: It opens lines for your queen (now on d1) to connect with the rook on a8, supports future pawn breaks like f4 or g5, and keeps your knight active in the center \u2014 all critical in this opening where central control is key.  \n\n**Other patterns**: Your average centipawn loss (38.3) suggests some positional inaccuracies, but since there were no blunders or other mistakes, the game was close. The one inaccuracy at 11...g6 likely tilted it toward White\u2019s win.  \n\n**Actionable fixes**:  \n1. **Prioritize piece development over pawn moves**: In openings like this, avoid moving pawns to block your own pieces (like g6). Instead, focus on centralizing knights and bishops early.  \n2. **Study the C00 Rat Defense**: This opening is rare but sharp \u2014 practice key lines where Black avoids passive play by developing quickly and challenging White\u2019s center.  \n\nYou played a solid game overall, but this one move cost you dearly. Focus on sharpening your development choices in similar positions!",
+      "grounding": {
+        "score": 0.286,
+        "grounded": false,
+        "hallucinated": [
+          "a8",
+          "d1",
+          "f4",
+          "f8",
+          "g5"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'inaccuracies' (coached side: black)",
+      "coaching": "Your most costly mistake was **12...Rb8** \u2014 a passive move that let White seize control of the center and launch an attack on your king. The engine preferred **Bc6**, which develops a piece actively while supporting central tension (e.g., preparing d5 or f4). This inaccuracy cost you 16% win probability, so focus on improving your development choices: avoid moving rooks to unconnected squares unless they\u2019re directly involved in tactics.  \n\nThe second key error was **13...Bc6**, which again prioritized a passive piece move over more dynamic play (engine preferred **Rc8**). This suggests you were hesitant to commit pieces to the center, allowing White to dominate space and initiative. The third inaccuracy (**10...a6**) missed an opportunity to capture material or improve your position \u2014 the engine suggested **dxc3**, which would have gained a pawn and disrupted White\u2019s plans.  \n\n**Actionable steps**:  \n1. Practice developing pieces actively (e.g., avoid moving rooks unless they\u2019re attacking something).  \n2. When evaluating moves, ask: *\u201cIs this move improving my position or just delaying the inevitable?\u201d*  \n3. Study how to capitalize on small material advantages \u2014 even a single pawn can shift momentum.  \n\nYou played solidly overall, but these inaccuracies cost you critical chances. Focus on sharpening your decision-making in the opening and early middlegame!",
+      "grounding": {
+        "score": 0.714,
+        "grounded": false,
+        "hallucinated": [
+          "d5",
+          "f4"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'inaccuracies' (coached side: white)",
+      "coaching": "Your game had two key inaccuracies that cost you significant win probability \u2014 both were missed opportunities to keep your pieces active and control the center. Let\u2019s start with the most costly one: **10.Qd2?!**  \nThe engine preferred **Qe2**, which keeps your queen central, supports development, and avoids weakening your position by moving it too early. By playing Qd2 instead, you allowed Black to consolidate their center (via ...Nc6 or ...Bb4) while your pieces felt cramped. This move cost about 18% of your chances \u2014 a big swing in a sharp opening like the Scandinavian.  \n\nThe second inaccuracy was **12.Nxe4?!**. Capturing on e4 here gave Black an immediate counterattack (e.g., ...Qh4+ or ...Rfe8) and weakened your kingside. The engine suggested **Qe1**, which would have kept your queen active, supported the center, and avoided this tactical trap. This move cost about 11% of your chances \u2014 a reminder that premature captures in open positions can backfire.  \n\n**What to work on:**  \n1. **Develop before moving the queen**: In sharp openings like the Scandinavian, prioritize piece development (knights, bishops) over early central pawn pushes or queen moves. Your queen should be a flexible tool, not a static piece.  \n2. **Evaluate captures carefully**: Before capturing, ask: *Does this square belong to me? Does it open lines for my pieces or weaken my king?* In the Scandinavian, e4 is often a battleground \u2014 consider alternatives like ...Nc6 or ...Bb4 before committing to a capture.  \n\nUse the engine to drill these patterns: replay games where your queen moves early or you capture on e4, and compare with the engine\u2019s preferred lines. Small adjustments here can make a big difference in sharp openings!",
+      "grounding": {
+        "score": 0.444,
+        "grounded": false,
+        "hallucinated": [
+          "Bb4",
+          "Nc6",
+          "Qh4",
+          "Rfe8",
+          "e4"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'inaccuracies' (coached side: white)",
+      "coaching": "Your game had two key inaccuracies that cost you about 14% combined win probability \u2014 both were missed opportunities to develop more actively in the Italian Game's critical early stages. Let\u2019s start with your **most costly move**:  \n\n**7.d3?! (inaccuracy)**  \nThe engine preferred **c3**, which is a classic choice in the Giuoco Piano for two reasons: it supports central tension and prepares Nc6 or Bb5, both of which are key to White's strategy. By playing d3 instead, you delayed development and weakened your center slightly (especially if Black followed up with ...d5). This move felt passive \u2014 like a \"wait-and-see\" approach \u2014 but in the Italian Game, active piece play is more rewarding than static pawn advances.  \n\n**12.Nf5?! (inaccuracy)**  \nThis was a less obvious error: the engine preferred **d4**, which would have supported your central control and kept your knight flexible for later maneuvers. Nf5 here felt like an overcommitment \u2014 it blocked your bishop on c4, limited your knight's mobility, and gave Black space to maneuver freely in the center. The cost was a 17% drop in win probability, which is significant at this stage of the game.  \n\n**Pattern & Fix**  \nBoth inaccuracies stemmed from **hesitating to develop actively** \u2014 you were prioritizing pawn structure over piece activity. In the Giuoco Piano, your goal should be to *pressure Black's center* with knights and bishops while keeping your pieces connected. Practice:  \n1. Study how top players handle the Italian Game (e.g., Kasparov\u2019s 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5). Focus on **central tension** over pawn advances.  \n2. Play more games where you *force* your pieces into action early \u2014 even if it means sacrificing a pawn or two for initiative.  \n\nYou\u2019re not making blunders, but these inaccuracies cost you critical chances to dominate the opening. Work on trusting your development plans and avoiding passive moves like d3 in this setup.",
+      "grounding": {
+        "score": 0.308,
+        "grounded": false,
+        "hallucinated": [
+          "Bb5",
+          "Bc4",
+          "Bc5",
+          "Nc6",
+          "Nf3",
+          "c4",
+          "d5",
+          "e4",
+          "e5"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'inaccuracies' (coached side: black)",
+      "coaching": "Your game shows a solid foundation\u2014no blunders or mistakes\u2014but four key inaccuracies cost you about 30% of your win probability. Let\u2019s focus on the most impactful one first: **11...O-O** (costing ~17%). The engine preferred **Bf8**, which would have kept your bishop active and supported central tension rather than castling passively. This move allowed White to dominate the center, creating a long-term imbalance that cost you significant chances.  \n\nThe next two inaccuracies\u2014**3...Nc6** (costing ~11%) and **10...Bc5** (~10%)\u2014both involved passive piece placement. The engine suggested more aggressive central control with **cxd4** early on, which would have disrupted White\u2019s development faster. Later, **c5** instead of **Bc5** might have better supported your pawn structure and limited White\u2019s space. These moves reflect a recurring pattern: prioritizing immediate safety over dynamic piece activity.  \n\nTo improve:  \n1. **Avoid passive castling early**: Castling should be part of a plan, not an end in itself. Consider keeping the king central or using the rook to control open files before castling.  \n2. **Centralize pieces aggressively**: Your knights and bishops often stayed on the edges. Aim for more active development (e.g., **Bc4** instead of **Bc5**) to pressure White\u2019s center and limit their counterplay.  \n\nThese inaccuracies weren\u2019t catastrophic, but they let White dominate the initiative gradually. Focus on making your pieces work harder\u2014your game will reward that.",
+      "grounding": {
+        "score": 0.857,
+        "grounded": false,
+        "hallucinated": [
+          "Bc4"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'two_mistakes' (coached side: black)",
+      "coaching": "**Key Takeaway:** Your two most costly errors (14...b4? and 19...Nc3?) both involved **missing development opportunities in favor of pawn advances**, costing you over 20% win probability each. These are critical to fix first.  \n\n---\n\n### **1. 14...b4? (Most Costly Mistake)**  \n**Why it hurt:** You advanced the b-pawn instead of developing a piece (the engine preferred d6). This created two problems:  \n- It weakened your queenside structure, giving White space to expand on the c-file.  \n- It delayed critical development, letting White consolidate their center and control key squares.  \n**What you could have done:** 14...d6 would have developed a piece (the d-pawn), maintained flexibility, and avoided this positional weakness.  \n\n---\n\n### **2. 19...Nc3? (Second Costly Mistake)**  \n**Why it hurt:** Again, you prioritized pawn moves over development. Nc3 is a poor square for the knight here\u2014it weakens your center and invites White to exploit the c-file. The engine\u2019s preferred d6 would have kept your pieces active and avoided this vulnerability.  \n\n---\n\n### **Pattern: Missing Development Opportunities**  \nBoth mistakes show a recurring issue: **you\u2019re advancing pawns instead of developing pieces in critical moments**. This is especially dangerous in the Ruy Lopez, where central control and piece activity are key. The engine\u2019s preferred moves (d6) often involve solid development or counterplay\u2014something you missed.  \n\n---\n\n### **Actionable Fixes**  \n1. **Prioritize development over pawn advances:** In positions like this, avoid moving pawns unless it directly threatens something. Instead, develop knights and bishops to active squares (e.g., d6 for the knight).  \n2. **Watch for \"pawn traps\":** When you see a pawn advance that seems harmless, ask: *Does this block my pieces or weaken my structure?* If so, reconsider.  \n\nYou\u2019re playing solidly overall, but these two mistakes cost you dearly. Focus on development and avoid premature pawn advances\u2014this will turn your average CPL from 51 to something closer to the engine\u2019s 26.8.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'two_mistakes' (coached side: black)",
+      "coaching": "**Key mistake: 22...Kg7? (mistake)**  \nThis was your most costly error. By moving your king to g7 instead of the engine's preferred **Kh8**, you weakened your position in two ways:  \n1. **King safety**: The king is now exposed on a file where White can later target it with pieces or pawns, especially after 23...Rf6 (a common follow-up).  \n2. **Piece coordination**: Kh8 would have allowed your rook to stay active on the h-file, while Kg7 blocks that line and reduces your options for counterplay.  \n\n**Why Kh8 matters**: The engine\u2019s recommendation prioritizes king safety and flexibility. By choosing Kh8 instead of Kg7, you\u2019d avoid this vulnerability and maintain better control over key squares.  \n\n---\n\n**Secondary issue: 16...c5?! (inaccuracy)**  \nThis move slightly weakened your position by advancing the c-pawn too early. The engine preferred **d6**, which keeps your pieces connected and avoids creating a weak pawn structure on the queenside. While not as critical as the earlier mistake, this inaccuracy allowed White to develop more freely and gradually gain space advantage.  \n\n---\n\n**Patterns & advice**:  \n- **King safety first**: Your two mistakes both involved suboptimal king moves (g7 vs. h8). Prioritize securing your monarch before committing to long-term plans.  \n- **Avoid premature pawn advances**: Moves like 16...c5 can create weaknesses if not fully compensated by piece activity. Study how d6 maintains flexibility.  \n\n**Actionable steps**:  \n1. Reanalyze the two moves (22...Kg7 and 16...c5) with a focus on king safety and pawn structure. Ask: *What threats does this move expose?*  \n2. Practice identifying \"safe squares\" for your king in similar positions \u2014 especially when it\u2019s not under immediate attack.  \n\nYou\u2019re playing solidly overall, but refining these two decisions will sharpen your results. Keep up the good work!",
+      "grounding": {
+        "score": 0.571,
+        "grounded": false,
+        "hallucinated": [
+          "Rf6",
+          "g7",
+          "h8"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'two_mistakes' (coached side: white)",
+      "coaching": "Your most critical error came at **46.Kf6??**, a blunder that cost you nearly 37% of your win chances. This move exposed your king to immediate threats, likely allowing Black to exploit the weakened center or launch an attack on your back rank. The engine\u2019s preferred **Kd4** would have maintained better piece coordination and kept your king safer. This mistake highlights a recurring theme: **prioritizing short-term material gains over long-term positional safety** (e.g., 15.Bxb7?! vs c5, 3.c4?! vs Nc3).  \n\nThe other inaccuracies were less costly but still worth addressing:  \n- **15.Bxb7?!** missed a key development opportunity with **c5**, which would have solidified your center and prepared for counterplay.  \n- **3.c4?!** (vs Nc3) suggests hesitation in early development; the engine\u2019s preference likely aimed to centralize your knight faster, avoiding pawn weaknesses.  \n- **11.Ne5?!** (vs O-O) shows a tendency to overextend pieces before castling\u2014Black\u2019s king-side fianchetto might have been better handled with more patience.  \n\n### Actionable fixes:  \n1. **King safety first**: Always castle early and avoid exposing your king in the opening/middle game. If you\u2019re forced into a risky position (like 46.Kf6), double-check for immediate threats before moving.  \n2. **Development over material**: In positions like 3.c4 or 15.Bxb7, prioritize piece activity (e.g., developing knights to natural squares) rather than chasing isolated pawns.  \n\nYou\u2019re playing solidly overall\u2014just refine your balance between aggression and caution!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'two_mistakes' (coached side: white)",
+      "coaching": "Your most costly error was **5.Qf3?** \u2014 a mistake that cost you about 25% of your win probability. This move felt aggressive but actually weakened your position by overextending the queen early. The engine preferred **d3**, which is more solid: it supports central control, prepares development (like Nc3 or Bb5), and keeps the queen safe while letting Black develop naturally. Your queen on f3 was exposed to counterplay without clear compensation.  \n\nThe other inaccuracies \u2014 **4.Ng5?!** and **6.d4?** \u2014 were less costly but still missed better options. Both involved premature central pawn advances or piece activity that let Black consolidate their position. The pattern here is a tendency to prioritize immediate action over long-term structure, especially in the opening. For example, d3 (instead of d4) would have kept your center flexible and avoided weakening it too early.  \n\n**Actionable fixes:**  \n1. **Slow down in the opening**: Before committing to central pawns or piece moves, ask: *Does this square support my development? Does it block my king\u2019s escape path?*  \n2. **Test engine-recommended alternatives**: When you see a move like d3 (or c3), try playing it for one game and compare results \u2014 often engines spot subtle structural advantages that humans miss.  \n\nYou\u2019re not making critical errors, but refining your opening choices will sharpen your edge. Keep working on this!",
+      "grounding": {
+        "score": 0.625,
+        "grounded": false,
+        "hallucinated": [
+          "Bb5",
+          "Nc3",
+          "f3"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'one_blunder' (coached side: black)",
+      "coaching": "Your game had a clear pattern: you were often outplayed in critical moments by missing tactical opportunities or making suboptimal exchanges, especially when your pieces weren\u2019t fully coordinated. Let\u2019s break it down.  \n\n**The most costly mistake was 9...Bxc2?? (blunder):**  \nYou took the pawn on c2 with your bishop instead of the engine\u2019s preferred **Nxc2**, which would have preserved your queen and kept your knight active. This single move cost you about 33% win probability \u2014 a huge swing. The engine calculated that by taking the pawn, you gave White an immediate material advantage (White could then recapture with their bishop or queen) while leaving your pieces uncoordinated. Your bishop on c2 was now hanging and vulnerable to attack, and your knight had no clear role.  \n\n**Other key inaccuracies:**  \n- **10...Nxa2?!**: You captured the pawn on a2 instead of playing **a5**, which would have blocked White\u2019s queen and kept your pieces connected. This move cost 15% win probability by weakening your position further.  \n- **11...Qf5?!**: Instead of the engine\u2019s **Bxb3** (which would have attacked White\u2019s bishop on b2), you played a passive queen move that allowed White to consolidate their advantage.  \n- **8...Nb4?!**: Your knight was misplaced here; the engine preferred **Bh3**, which would have developed your bishop and supported your pawn structure better.  \n\n**Patterns:**  \nYou often traded pieces or captured pawns without securing long-term compensation, especially when your queen wasn\u2019t fully involved in the action. Moves like 9...Bxc2 and 10...Nxa2 show a tendency to prioritize short-term material gains over positional clarity. Your bishop on c2 (after the blunder) became a liability, and your knight was frequently misplaced or blocked.  \n\n**Actionable fixes:**  \n1. **Avoid premature captures**: Before taking pawns or pieces, ask: *\u201cDoes this exchange give me more space, activity, or threats?\u201d* If not, consider blocking or developing instead (e.g., 10...a5 over Nxa2).  \n2. **Prioritize piece coordination**: After the blunder at 9...Bxc2, your bishop was hanging and unplaced \u2014 this is a red flag. Always check if your pieces are working together to control key squares or support each other.  \n\nYou\u2019re not making tactical errors in isolation; they stem from a lack of positional clarity. Focus on developing your queen and keeping your knights active before trading material.",
+      "grounding": {
+        "score": 0.727,
+        "grounded": false,
+        "hallucinated": [
+          "a2",
+          "b2",
+          "c2"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Your game had one critical blunder (37.Rxh7??) that cost you nearly half your win chances \u2014 this was the most damaging single move. The engine preferred **Rg7+**, which would have forced Black to defend their king or lose material immediately, but instead you gave up a rook for nothing and let Black consolidate. This shows how one misjudged exchange can unravel your position entirely.  \n\nThe other inaccuracies (15.cxd5?! / 26.Rf1?! / 30.Kg1?) all involved losing tempo or missing tactical threats. For example, **cxd5** weakened your center and let Black develop their queen freely; **Rf1** ignored a pin on the rook that could have been exploited. These moves were avoidable with better calculation \u2014 you had time to see the engine\u2019s preferred alternatives (Be5 / Re1 / R1f2) but chose less precise paths.  \n\nThe pattern here is clear: your mistakes came from **over-relying on material gains** without checking for hidden threats or tactical traps. You also let Black consolidate their position after exchanges, which is dangerous in the endgame.  \n\nTo improve:  \n1. **Always calculate variations before trading pieces** \u2014 ask \"what happens if I do this?\" and look for forks, pins, or forced checks.  \n2. **Practice recognizing threats** (e.g., pins on your rook at 26.Rf1) by studying tactical puzzles with similar motifs.  \n\nYou\u2019re playing solidly overall, but these errors cost you the game \u2014 focus on refining those critical moments!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Your game had one critical blunder and two significant inaccuracies \u2014 all costing you meaningful win chances. Let\u2019s start with the most damaging mistake: **28.Qe4+??** (blunder). This move was a complete waste of time. The engine preferred **Qf5+**, which would have forced Black to recapture or develop, but your Qe4+ did nothing and allowed Black to capture your queen for free. That\u2019s why it cost you 38% win probability \u2014 this single mistake tilted the game decisively against you.  \n\nThe other inaccuracies were more subtle: **13.Qd2?!** (engine preferred Nd5) and **14.Nd5?!** (engine preferred Nd1). Both were suboptimal because they failed to support development or control key squares. Your queen on d2 at move 13 was passive, and the knight on d5 at move 14 was misplaced \u2014 it didn\u2019t threaten anything and blocked your own pieces. These moves cost you about 14% and 13% win probability respectively.  \n\n**Pattern**: You were overextending with the queen early (Qd2) and then trying to force action with a misplaced knight (Nd5). Both missed opportunities to develop efficiently or control central squares. The blunder at move 28 was the worst, but the inaccuracies showed a recurring theme of poor piece coordination.  \n\n**Actionable fixes**:  \n1. **Avoid unnecessary queen sacrifices** \u2014 especially in the opening. Your queen should be active and supporting development, not wasting time on unproductive moves like Qd2 or Qe4+.  \n2. **Study tactical motifs** like forks and pins \u2014 your blunder at 28 was a classic case of missing a forced recapture (Black\u2019s queen could have captured the knight for free). Practice recognizing these patterns in puzzles.  \n\nYou\u2019re not making many mistakes overall, but when you do, they cost big. Focus on piece activity and tactical awareness to turn this into a win next time!",
+      "grounding": {
+        "score": 0.714,
+        "grounded": false,
+        "hallucinated": [
+          "d2",
+          "d5"
+        ]
+      },
+      "identifies_worst_move": false
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Your biggest mistake was **21.Nd2??**, a blunder that cost you 79% of your win chances. The engine preferred **g3** instead \u2014 this move would have kept your knight active while improving the bishop\u2019s diagonal control (a key theme in the French Defense). By playing Nxd2, you weakened your center and gave Black an easy target for a pin or fork on the d-file. This was a critical error that let Black seize initiative early in the endgame.  \n\nThe next most costly move was **6.Nxf7?**, a mistake where the engine suggested **Be2** instead. That move would have preserved your queen\u2019s safety and kept your bishop connected to the center, avoiding the tactical trap you fell into. Finally, **5.Ne5?!** (an inaccuracy) missed the engine\u2019s preferred **Bb5+**, which would have forced Black to recapture with a pawn or lose tempo by blocking their own pieces.  \n\nPatterns: You often traded material without securing positional compensation (like 21.Nd2), and you let Black develop passively while your pieces became overextended. These errors were costly because they allowed Black to dominate the center and control key squares.  \n\n**Actionable steps**:  \n1. Study the French Defense\u2019s main lines \u2014 focus on how knights should be developed (e.g., Nf3 vs. Ne5) and avoid premature central pawn breaks unless you\u2019re prepared for counterplay.  \n2. Practice identifying tactical threats before moving pieces, especially in positions where your king is exposed or pawns are blocked.  \n\nYou played well overall, but these three errors were decisive \u2014 fix them to turn the tide next time!",
+      "grounding": {
+        "score": 0.75,
+        "grounded": false,
+        "hallucinated": [
+          "Nf3",
+          "Nxd2"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Your most costly mistake was **19.Bc5??**, a blunder that cost nearly half your win probability (49%). This move allowed Black to seize control of the center with Qxc4, which likely triggered a sequence where you lost material or positional advantage. The engine\u2019s preferred move (Qxc4) would have preserved your initiative and avoided this costly misstep.  \n\nOther critical errors:  \n- **3.Nxe5??** was another blunder that cost 36% of your chances. Here, the engine suggested d4 to maintain central tension and avoid a pawn break like ...e5-e4. Your move instead weakened your structure and gave Black space to maneuver freely.  \n- **18.Qe2?** (a mistake) and **23.Rae1?** (another mistake) both cost 27% and 22% of your win probability, respectively. These moves often involved passive piece placement or missing tactical threats (like a fork or pin). The engine\u2019s alternatives (Qxd4 and Bxb2) likely recaptured material or disrupted Black\u2019s plans.  \n\n**Patterns**: Your blunders and mistakes often stemmed from poor central control or failing to exploit immediate threats. Moves like 19.Bc5 and 3.Nxe5 were especially costly because they let Black dominate the center, which is critical in the Philidor Defense.  \n\n**Actionable steps**:  \n1. **Study the opening**: Focus on how to counter the Philidor Defense (Black\u2019s ...d5) by maintaining central tension with moves like d4 or e5. Avoid overextending pawns early.  \n2. **Check for forced threats**: Before playing a move, ask: *\u201cIs there an immediate tactical gain I\u2019m missing?\u201d* This will help avoid blunders like 19.Bc5 or 3.Nxe5.  \n\nYour average centipawn loss (118.8) shows your moves were less accurate than Black\u2019s overall, so improving central control and tactical awareness in the opening will make a big difference.",
+      "grounding": {
+        "score": 0.727,
+        "grounded": false,
+        "hallucinated": [
+          "d5",
+          "e4",
+          "e5"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Your game was a clear struggle for control in the center, with several costly errors that let Black dominate key squares and disrupt your plans. The most critical mistake came at **29.Kh1??**, where you abandoned the kingside entirely instead of playing 29.Rf2 (engine's preference). This move allowed Black to centralize their pieces and prepare a decisive attack on your king, costing over 40% win probability. Similarly, **30.Rb1??** was another blunder that let Black consolidate their advantage \u2014 you should have retreated the rook with 30.Kg1 instead of wasting time on passive moves.  \n\nEarlier in the game, **12.Bc4??** (a missed capture) and **11.Bb5?!** (a suboptimal development choice) showed a pattern: you often hesitated to trade material or develop pieces cleanly. The engine preferred 12.Bxc6 to simplify into a winning position, and 10.f3?! was an unnecessary pawn move that weakened your center without clear compensation.  \n\nTo improve:  \n1. **Prioritize critical moments**: Study the engine's recommended moves (e.g., Rf2 at 29) \u2014 they often resolve tactical imbalances or simplify into a winning position.  \n2. **Avoid passive king moves**: When under pressure, retreat your king to safer squares (like g1/g8), not waste time on unproductive piece shuffling.  \n\nYour average centipawn loss (108.7) shows you need better evaluation of threats and material imbalances \u2014 focus on recognizing when a move is \"good enough\" versus actively improving the position.",
+      "grounding": {
+        "score": 0.8,
+        "grounded": false,
+        "hallucinated": [
+          "g1",
+          "g8"
+        ]
+      },
+      "identifies_worst_move": false
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'multi_blunder' (coached side: black)",
+      "coaching": "Your game was a close fight, but two critical blunders at the end cost you the win. Let\u2019s start with the most damaging mistake: **40...Ra4??** (costing 49% win probability). This move was a complete misstep \u2014 instead of playing **Ka7**, which kept your king safe and maintained pressure, you sacrificed material for nothing. The engine saw that **a2** was already hanging, so moving the rook to a4 only invited White to capture it with **Rxa4**, giving them an extra pawn and initiative. This is a textbook example of **missing a forced win**: you had a winning position but let your opponent take the prize for free.  \n\nThe second blunder at **41...a2??** was even more costly (48% loss). Here, the engine preferred **c5**, which would have blocked White\u2019s passed pawn and kept the game alive. Instead, you played **a2**, a move that only weakened your own position by creating a backward pawn on the queenside. This shows two recurring issues:  \n1. **Premature pawn advances** (like 40...Ra4 or 41...a2) often weaken your structure without clear compensation.  \n2. **Missing tactical threats**: White had multiple ways to exploit your exposed king and hanging pieces, but you didn\u2019t see them in time.  \n\nOther inaccuracies like **28...Nxc4?!** (costing 16% win probability) suggest a pattern of **overextending with the knight** \u2014 sacrificing material for unclear gains. The engine preferred **Ne4**, which maintained your central control and kept your pieces active. Similarly, moves like **39...Rc4??** or **31...Rc5?!** show you occasionally traded space for time without securing a lasting advantage.  \n\n### What to work on:  \n1. **Endgame technique**: Study how to convert small advantages (like a hanging pawn) into wins. Practice recognizing when a move like **a2** is just a distraction, not a plan.  \n2. **Tactical awareness**: Before moving your king or sacrificing material, ask: *\u201cIs this the only way to win?\u201d* The engine often finds a better path \u2014 even if it\u2019s counterintuitive.  \n\nYou had a strong game but let two critical errors decide it. Focus on these two areas, and you\u2019ll be much harder to beat in similar positions.",
+      "grounding": {
+        "score": 0.8,
+        "grounded": false,
+        "hallucinated": [
+          "Rxa4",
+          "a4"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Your game had two critical blunders that cost you significant winning chances \u2014 both were captures on the kingside where the engine recommended more precise development instead. Let\u2019s break this down:  \n\n**12.Kxh2?? (blunder):**  \nYou captured a knight with your king, but the engine preferred **Qh5**, which would have preserved material and kept your queen active. This move was costly because it exposed your king to threats (Black could follow up with ...Nh3+, forcing you to lose tempo or even material) while wasting your king\u2019s mobility. The recommended Qh5 keeps your pieces coordinated and avoids the trap of overextending your king.  \n\n**14.Kf3?? (blunder):**  \nThis was a far worse mistake \u2014 capturing a knight with your king again, but this time it cost you **over 90% of your winning chances**! The engine preferred **Bg5**, which would have developed the bishop and kept your pieces active. Your move instead weakened your center and allowed Black to dominate development, leading to a forced sequence where you had no good replies.  \n\n**Pattern:**  \nBoth blunders involved capturing on the kingside with your king \u2014 a recurring risk in this opening. The Philidor Defense often relies on tactical traps for White, but overextending your king or ignoring threats from the opponent\u2019s queen/bishop can be fatal.  \n\n**Actionable fixes:**  \n1. **Before capturing material**, always check if the opponent has a fork or pin waiting (e.g., Black\u2019s Qh5 in move 12). A single misplaced piece can turn a capture into a disaster.  \n2. **Develop your queen earlier**: In this opening, queenside development is key for White. Don\u2019t waste time capturing knights \u2014 prioritize active play.  \n\nYou didn\u2019t make other major errors (only one inaccuracy), so focus on these two blunders and the pattern they reveal. Practice recognizing threats before committing to captures \u2014 that\u2019s where your win probability dropped fastest.",
+      "grounding": {
+        "score": 0.8,
+        "grounded": false,
+        "hallucinated": [
+          "Nh3"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'clean_draw' (coached side: white)",
+      "coaching": "Your game was clean \u2014 no flagged inaccuracies, mistakes, or blunders on either side \u2014 but your average centipawn loss (13.0) suggests subtle inefficiencies in White's play that Black exploited to secure the win. While these weren't severe enough to qualify as tactical errors, they reflect small positional weaknesses or missed opportunities for better piece activity.  \n\n**Key takeaway**: The engine didn\u2019t flag any single move as objectively wrong, but your average loss indicates you occasionally let Black\u2019s pieces outplay yours in quiet positions. This often happens when White overcommits to a plan (e.g., central control) without balancing it with counterplay on the flanks or kingside. For example, if Black\u2019s knights were consistently more active than yours, that could explain the slight edge.  \n\n**Actionable steps**:  \n1. **Review positions where your centipawn loss spiked** (even if they weren\u2019t flagged as errors). Look for missed exchanges, passive piece placement, or underdeveloped minor pieces.  \n2. **Balance development**: In the Ruy Lopez Exchange Variation, avoid overextending on the kingside early; instead, ensure your knights are active and your queen is involved in central activity.  \n\nYou played solidly \u2014 just a few small tweaks to sharpen positional clarity could make this game even sharper. Keep up the clean play!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": false
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "coached_side": "black",
+      "note": "auto-curated into 'clean_draw' (coached side: black)",
+      "coaching": "Your single inaccuracy at **9...d4** was the only costly move \u2014 it cost you about 13% win probability (cp loss 144). This is your most critical moment. The engine preferred **Bb7**, which develops a piece and maintains structural balance, while d4 weakens your center and allows White to gain space with moves like e5 or c5. Even though the game ended in a draw, this single misstep created a small but measurable advantage for White that you never fully recovered from.  \n\nThe rest of the game was accurate (no blunders/mistakes), so your overall play was solid \u2014 just one misstep. The higher average centipawn loss (28.4 vs 21.0) suggests some minor positional inefficiencies, but they weren\u2019t enough to cost you a win.  \n\n**Actionable fixes:**  \n1. **Study the Neo-Catalan structure**: Focus on how Black develops pieces in this opening \u2014 Bb7 is often better than d4 here.  \n2. **Check for tactical threats before moving**: In the opening, avoid weakening your center unless you\u2019re certain White has no counterplay (e.g., e5 or c5).  \n\nYou played well overall \u2014 just refine that one critical decision point.",
+      "grounding": {
+        "score": 0.5,
+        "grounded": false,
+        "hallucinated": [
+          "c5",
+          "e5"
+        ]
+      },
+      "identifies_worst_move": true
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "coached_side": "white",
+      "note": "auto-curated into 'clean_draw' (coached side: white)",
+      "coaching": "Your game was a textbook example of precision \u2014 zero inaccuracies, mistakes, or blunders on either side. The engine\u2019s low centipawn loss (16 for you vs 0 for Black) suggests your moves were consistently sound, but the result hinges on subtle strategic choices rather than tactical errors. Here's how to build on this:  \n\n**Key takeaway**: While no single move was objectively flawed, White\u2019s win likely stemmed from **positional clarity** or **endgame efficiency**. Since the engine didn\u2019t flag any specific inaccuracies, focus on refining your **opening preparation** (Zukertort is a flexible but tricky opening) and **transitioning to endgames** with precise piece activity.  \n\n**Actionable steps**:  \n1. **Study the Zukertort\u2019s nuances**: This opening often hinges on pawn breaks or central tension \u2014 ensure you\u2019re prepared for both sides\u2019 plans.  \n2. **Practice endgame patterns**: Since your centipawn loss was higher than Black\u2019s, review how small positional advantages (e.g., king activity, pawn structure) can tip the balance in a clean game.  \n\nYou played flawlessly \u2014 now let the win reinforce confidence in your accuracy and strategic vision! \ud83c\udfaf",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": []
+      },
+      "identifies_worst_move": false
+    }
+  ]
+}

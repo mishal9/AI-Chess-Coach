@@ -8,6 +8,11 @@ Iteration runs single-seed/single-judge on purpose; [`paper-protocol.md`](./pape
 is the one-time rigor checklist (multi-seed variance, Wilcoxon on the paired design,
 second judge, ablations) to run on the final configuration before writing anything up.
 
+- [2026-08-10 · Ablation: shape vs volume](./2026-08-10-ablation-shape-vs-volume.md) —
+  retraining on `kind`-filtered subsets shows v2's grounding gain came from **row shape, not
+  volume**: more whole-game rows moved nothing (0.79→0.76), position rows moved a lot
+  (→0.86), and the mixture beat both pure arms (0.91). Zero teacher calls.
+
 - [2026-08-10 · Qwen3-8B QLoRA on the v2 mixed-granularity dataset](./2026-08-10-qwen3-8b-qlora-v2.md) —
   **grounding gate met** (0.79→0.91, grounded games 41%→62%); factual 3.45→3.72, still short of
   the 4.0 gate. Adding per-position rows fixed citation discipline without regressing whole-game
