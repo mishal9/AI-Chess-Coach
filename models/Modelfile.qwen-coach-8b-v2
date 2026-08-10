@@ -1,0 +1,11 @@
+FROM ./qwen-coach-8b-v2-q4_k_m.gguf
+
+# ChatML — matches the Qwen3 chat template the model was fine-tuned with
+TEMPLATE """{{- range .Messages }}<|im_start|>{{ .Role }}
+{{ .Content }}<|im_end|>
+{{ end }}<|im_start|>assistant
+"""
+PARAMETER stop <|im_start|>
+PARAMETER stop <|im_end|>
+# facts blocks for long games can outgrow the 2048 default
+PARAMETER num_ctx 4096
