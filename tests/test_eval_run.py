@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from eval import run
 from eval.rubric import RubricScore
 from tests.test_coach import SAMPLE_REPORT
@@ -108,3 +110,30 @@ def test_spend_guard_refuses_before_spending(capsys):
     rc = run.main(["--max-judge-calls", "0"])
     assert rc == 1
     assert "Refusing to start" in capsys.readouterr().err
+
+
+# --- --resume / incremental partial writes ------------------------------------------
+
+def _rec(pgn="a.pgn", side="white", score=1.0):
+    return {"pgn": pgn, "coached_side": side, "note": "", "coaching": "text",
+            "grounding": {"score": score, "grounded": True, "hallucinated": []},
+            "identifies_worst_move": True}
+
+
+def test_partial_roundtrips_and_strips_provenance(tmp_path):
+    out = tmp_path / "r.json"
+    run.append_partial(out, _rec(), "coach-a", "judge-a")
+    done = run.load_partial(out, "coach-a", "judge-a")
+    assert list(done) == [("a.pgn", "white")]
+    assert "_coach" not in done[("a.pgn", "white")]   # provenance never reaches the report
+
+
+def test_resume_refuses_a_partial_from_another_model(tmp_path):
+    out = tmp_path / "r.json"
+    run.append_partial(out, _rec(), "coach-a", "judge-a")
+    with pytest.raises(SystemExit, match="Refusing to resume"):
+        run.load_partial(out, "coach-b", "judge-a")
+
+
+def test_load_partial_absent_is_empty(tmp_path):
+    assert run.load_partial(tmp_path / "nope.json", "c", "j") == {}

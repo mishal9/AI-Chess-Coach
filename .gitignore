@@ -40,3 +40,6 @@ training/datasets/*/*.jsonl
 
 # OS
 .DS_Store
+
+# eval resume sidecars: per-game scratch, superseded by the committed report
+eval/reports/*.partial.jsonl
