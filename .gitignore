@@ -31,6 +31,8 @@ training/datasets/*/*.jsonl
 # The v1 splits + the raw teacher output are committed; intermediate part/chunk files are not.
 !data/distill/raw_v1.jsonl
 !training/datasets/v1/*.jsonl
+!data/distill/raw_v2.jsonl
+!training/datasets/v2/*.jsonl
 # (each dataset version's manifest.json — the provenance receipt — is committed too.)
 
 # Env / secrets
