@@ -128,6 +128,46 @@ def evaluate_case(
     return record
 
 
+def _partial_path(out: Path) -> Path:
+    """Sidecar holding per-game results as they complete, so a killed run is resumable."""
+    return out.with_suffix(out.suffix + ".partial.jsonl")
+
+
+def load_partial(out: Path, coach: str, judge: str) -> dict[tuple[str, str], dict]:
+    """Per-game records from a previous run, keyed by ``(pgn, coached_side)``.
+
+    Refuses a sidecar written by a different coach/judge: silently mixing two models'
+    scores into one report would produce a number that describes neither.
+    """
+    path = _partial_path(out)
+    if not path.exists():
+        return {}
+    done = {}
+    with path.open(encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            got = (r.pop("_coach", None), r.pop("_judge", None))
+            if got != (coach, judge):
+                raise SystemExit(
+                    f"Refusing to resume: {path} was written by coach={got[0]} judge={got[1]}, "
+                    f"but this run is coach={coach} judge={judge}. Delete it or change --out."
+                )
+            done[(r["pgn"], r["coached_side"])] = r
+    return done
+
+
+def append_partial(out: Path, record: dict, coach: str, judge: str) -> None:
+    """Append one finished game. Flushed immediately — the whole point is surviving a kill."""
+    path = _partial_path(out)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({**record, "_coach": coach, "_judge": judge},
+                            ensure_ascii=False) + "\n")
+        fh.flush()
+
+
 def aggregate(records: list[dict]) -> dict:
     """Reduce per-game records to the headline baseline vector."""
     n = len(records)
@@ -190,6 +230,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="refuse to start if the run would make more judge calls than this (spend guard)",
     )
     parser.add_argument("--out", type=Path, default=None, help="write the full JSON report here")
+    parser.add_argument(
+        "--resume", action="store_true",
+        help="reuse per-game results already in the sidecar <out>.partial.jsonl and only "
+        "evaluate the games missing from it (requires --out)",
+    )
     return parser
 
 
@@ -226,12 +271,27 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
 
+    done = (load_partial(args.out, args.coach_model, judge_desc)
+            if (args.resume and args.out) else {})
+    if done:
+        print(f"Resuming: {len(done)} game(s) already scored, "
+              f"{len(cases) - len(done)} to go.", file=sys.stderr)
+
     records = []
     for i, case in enumerate(cases, 1):
+        key = (case.pgn.name, case.coached_side)
+        if key in done:
+            print(f"[{i}/{len(cases)}] {case.pgn.name} (coach {case.coached_side}) — cached",
+                  file=sys.stderr)
+            records.append(done[key])
+            continue
         print(f"[{i}/{len(cases)}] {case.pgn.name} (coach {case.coached_side})...",
               file=sys.stderr)
         report = analyze_case(case, args.depth)
-        records.append(evaluate_case(case, report, coach_fn, judge_fn))
+        record = evaluate_case(case, report, coach_fn, judge_fn)
+        records.append(record)
+        if args.out:
+            append_partial(args.out, record, args.coach_model, judge_desc)
 
     agg = aggregate(records)
     summary = format_summary(agg, args.coach_model, judge_desc)
