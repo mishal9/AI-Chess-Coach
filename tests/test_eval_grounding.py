@@ -93,3 +93,69 @@ def test_identifies_worst_move():
 def test_identifies_worst_move_false_when_none():
     report = {"summary": {"worst_move": None}}
     assert not grounding.identifies_worst_move("Nxd4 was bad.", report)
+
+
+# --- bare-square disambiguation -------------------------------------------------
+# Pawn moves and square references share a shape ("e4"), and reading every square
+# reference as a claimed pawn move was the metric's dominant error: 84-94% of every
+# hallucination it flagged, and 64 of the 64 rows its gate dropped from the v2
+# distillation set. See docs/experiments/2026-08-11-grounding-metric-audit.md.
+
+
+def test_square_after_location_preposition_is_not_a_move():
+    assert grounding.extract_moves("Your rook on b7 is doing nothing.") == set()
+    assert grounding.extract_moves("You moved your rook from b7 to b8.") == set()
+
+
+def test_square_qualifying_a_noun_is_not_a_move():
+    assert grounding.extract_moves("Fight for control of the e5 square.") == set()
+    assert grounding.extract_moves("The b7 rook was passive.") == set()
+
+
+def test_coordinated_square_inherits_the_preposition():
+    # "f6" is governed by the same "on" as "f3" — both are places, not moves.
+    assert grounding.extract_moves("Knights belong on f3 and f6, usually.") == set()
+
+
+def test_notation_beats_locational_phrasing():
+    # A move number or annotation is decisive even after a locational preposition.
+    assert grounding.extract_moves("The costly moment came on 12...e5?!") == {"e5"}
+    assert grounding.extract_moves("Then e4?? threw the game away.") == {"e4"}
+    assert grounding.extract_moves("He met it with d5+.") == {"d5"}
+
+
+def test_bare_square_used_as_a_move_is_still_counted():
+    # Coaching cites moves in many shapes; none of these is a location.
+    assert grounding.extract_moves("g4 preserved the initiative.") == {"g4"}
+    assert grounding.extract_moves("d3 is passive; c3 keeps your pieces working.") == {
+        "d3",
+        "c3",
+    }
+    assert grounding.extract_moves("The engine preferred **c5**, a better try.") == {"c5"}
+
+
+def test_invented_pawn_move_is_still_flagged():
+    facts = prompts.format_report_facts(SAMPLE_REPORT, "black")
+    result = grounding.score_grounding("You should have played d5 instead.", facts)
+    assert result.hallucinated == {"d5"}
+    assert not result.grounded
+
+
+def test_prose_restatement_of_a_cited_move_scores_clean():
+    """The regression this fix exists for.
+
+    The coach names the move correctly ("12...Rb8") and then restates it in English.
+    The old parser read "b7" and "b8" as two phantom pawn moves and scored 0.71.
+    """
+    facts = (
+        "- 12...Rb8?! (inaccuracy): the engine preferred Bc6; "
+        "cost about 10% win probability (cp loss 119)."
+    )
+    coaching = (
+        "The most costly moment came on **12...Rb8**. You moved your rook from b7 "
+        "to b8, but the engine preferred **Bc6**, a quiet developing move."
+    )
+    result = grounding.score_grounding(coaching, facts)
+    assert result.cited == {"Rb8", "Bc6"}
+    assert result.grounded
+    assert result.score == 1.0
