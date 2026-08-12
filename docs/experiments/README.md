@@ -8,6 +8,13 @@ Iteration runs single-seed/single-judge on purpose; [`paper-protocol.md`](./pape
 is the one-time rigor checklist (multi-seed variance, Wilcoxon on the paired design,
 second judge, ablations) to run on the final configuration before writing anything up.
 
+- [2026-08-11 · Audit: what the grounding metric cannot see](./2026-08-11-grounding-metric-audit.md) —
+  the cheap gate is wrong in **both** directions: blind to the dominant factual failure (role
+  inversion, move-type misreading, invented board state — all scoring grounding up to **1.00**),
+  while **84–94% of what it flags is a bare-square parser false positive** that also discarded
+  **64/64** paid teacher rows. *r*(grounding, factual) = **+0.39**; 62% of games sit at the
+  metric's ceiling. Revises the "concentrated weakness" reading as under-powered noise.
+
 - [2026-08-10 · Ablation: shape vs volume](./2026-08-10-ablation-shape-vs-volume.md) —
   retraining on `kind`-filtered subsets shows v2's grounding gain came from **row shape, not
   volume**: more whole-game rows moved nothing (0.79→0.76), position rows moved a lot
