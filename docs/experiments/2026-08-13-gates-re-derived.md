@@ -26,8 +26,15 @@ manifest is positional and **verified**, not assumed — see §4.
 | model | grounding | games at 1.00 | claims | claim-clean games | violations | judge factual |
 |---|---|---|---|---|---|---|
 | 8b_v1 | 0.890 | 20/29 | 0.966 | 27/29 | 2 | 3.45 |
-| **8b_v2** | **0.965** | **25/29** | **0.974** | 27/29 | 2 | **3.72** |
-| prompted 8B control | *pending* | *pending* | *pending* | *pending* | *pending* | *pending* |
+| **8b_v2** | **0.965** | **25/29** | 0.974 | 27/29 | 2 | 3.72 |
+| **prompted 8B control** | 0.923 | 23/29 | **0.989** | **28/29** | **1** | **3.72** |
+
+**The control landed 2026-08-14 and the progress gate fails outright** — see
+[the control write-up](./2026-08-14-prompted-8b-control.md). Judged factual is *identical*
+(3.72 both), so the fine-tune's improvement over its own un-fine-tuned base is **+0.00**
+against a required **+0.30**. It wins grounding (+0.042, two more clean games) and loses
+claims (one extra violation). The gates below stand as written; v2 simply does not meet
+them, and the next move is diagnosis rather than another dataset.
 
 Violations by kind: v1 — 2 × `invented_placement`; v2 — 1 × `invented_placement`,
 1 × `role_inversion`.

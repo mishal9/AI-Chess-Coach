@@ -8,6 +8,15 @@ Iteration runs single-seed/single-judge on purpose; [`paper-protocol.md`](./pape
 is the one-time rigor checklist (multi-seed variance, Wilcoxon on the paired design,
 second judge, ablations) to run on the final configuration before writing anything up.
 
+- [2026-08-14 · The prompted-8B control](./2026-08-14-prompted-8b-control.md) —
+  the comparison the project was missing. Same base weights, same prompt, same held-out
+  set, only the LoRA differs. **Judged factual is identical: 3.72 both.** Fine-tuning bought
+  citation discipline (grounding 0.923 → 0.965, 79% → 86% fully grounded) and nothing the
+  judge can see; overall is 0.03 *worse* and the control has fewer claim violations. Against
+  the proposed gate (factual ≥ control + 0.30) v2 misses by the whole margin. Also documents
+  an `eval.compare` defect that **inverted the grounding delta** by differencing two metric
+  versions.
+
 - [2026-08-13 · Re-deriving the release gates](./2026-08-13-gates-re-derived.md) —
   the 0.85 grounding gate is cleared by every model after #41, and the **prompted-3B
   reference is retired**: comparing an 8B fine-tune to a prompted 3B confounds the size
