@@ -7,6 +7,7 @@ flagged (see docs/experiments/2026-08-11-grounding-metric-audit.md §3).
 
 from __future__ import annotations
 
+import chess
 import pytest
 
 from eval import claims
@@ -170,3 +171,90 @@ def test_to_dict_is_serialisable():
     assert payload["ok"] is False
     assert payload["violations"][0]["move"] == "g3"
     assert payload["violations"][0]["actual"] == "engine-preferred"
+
+
+# --- invented placement ---------------------------------------------------------
+# The facts block carries no piece placement at all, so any "piece on square" claim is
+# invention unless the game bears it out. This is what the bare-square parser used to
+# catch by accident (audit §5); once #41 fixed that false positive, nothing watched it.
+
+def _game_report(sans: list[str]) -> dict:
+    """Build a report with real ``fen_before`` values by replaying ``sans``."""
+    board = chess.Board()
+    moves = []
+    for san in sans:
+        moves.append({
+            "san": san,
+            "side": "white" if board.turn == chess.WHITE else "black",
+            "fen_before": board.fen(),
+            "quality": "good",
+            "best_san": san,
+            "move_number": board.fullmove_number,
+            "cp_loss": 0,
+            "win_prob_loss": 0.0,
+        })
+        board.push_san(san)
+    return {"moves": moves}
+
+
+OPENING = _game_report(["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5"])
+
+
+def test_occupancy_includes_the_position_after_the_final_move():
+    # Bc5 is the last move and no fen_before shows it, so only the final-position push
+    # can put a black bishop on c5.
+    occupancy = claims.occupied_squares(OPENING)
+    assert (chess.BLACK, "b", "c5") in occupancy
+    assert (chess.WHITE, "n", "f3") in occupancy
+
+
+def test_invented_placement_is_flagged():
+    result = claims.check_board_state(
+        "You moved your rook from b7 to b8, which achieved little.", OPENING, "black"
+    )
+    assert [v.kind for v in result.violations] == ["invented_placement"]
+    assert "b7" in result.violations[0].claimed
+
+
+def test_a_true_placement_claim_passes():
+    result = claims.check_board_state(
+        "Your knight on c6 was well placed.", OPENING, "black"
+    )
+    assert result.checked == 1
+    assert result.ok
+
+
+def test_placement_without_a_possessive_accepts_either_colour():
+    # "the knight on f3" is White's; a claim that vague must not be called invented.
+    assert claims.check_board_state("The knight on f3 was active.", OPENING, "black").ok
+
+
+def test_advice_about_where_a_piece_belongs_is_not_a_claim():
+    """The recommendation trap, in its board-state form.
+
+    None of these asserts where a piece *was*, so none can be false about it.
+    """
+    for text in (
+        "Knights belong on f5 in this structure.",
+        "You should put your rook on d7 next time.",
+        "It would be better to bring your queen to h4.",
+    ):
+        assert claims.check_board_state(text, OPENING, "white").ok
+
+
+def test_no_moves_means_nothing_to_check():
+    assert claims.check_board_state("Your rook on b7 was passive.", {"moves": []}, "white").ok
+
+
+def test_full_check_merges_all_three_families():
+    report = dict(
+        OPENING,
+        summary={"acpl_white": 20.0, "acpl_black": 30.0, "blunders": 0,
+                 "mistakes": 0, "inaccuracies": 0, "worst_move": None},
+        white="Alice", black="Bob", result="1-0", opening="Italian Game", eco="C50",
+    )
+    result = claims.check_claims_from_report(
+        "You moved your rook from b7 to b8. You castled early.", report, "black"
+    )
+    kinds = {v.kind for v in result.violations}
+    assert kinds == {"invented_placement", "invented_castling"}

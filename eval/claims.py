@@ -19,6 +19,13 @@ engine's and the player played Bc6. Both moves are in the facts, so grounding is
 *"29.Kh1 … you castled king-side"* — because king moves and castling co-occur constantly
 in pretraining text. ``Kh1`` is in the facts, so grounding is content here too.
 
+**Invented placement.** The coach asserts where a piece stood — *"you moved your rook from
+b7 to b8"*, when that rook came from a8 and b7 held a pawn. The facts block carries no
+piece placement whatsoever, so these claims are pure invention unless the game bears them
+out; replaying the analyzed positions settles it for free. This is the failure the
+bare-square parser used to catch *by accident*, flagging "b7" as a phantom pawn move: once
+that false positive was fixed in #41, nothing was left watching for it.
+
 A move is only checked when the facts assign it a role, so a citation of something outside
 the facts stays grounding's business and is not double-counted here. Assertions are matched
 by *immediate adjacency* — the cue word next to the move, markdown allowed — rather than by
@@ -99,6 +106,34 @@ _HYPOTHETICAL_RE = re.compile(
     re.IGNORECASE,
 )
 _CASTLING_MOVES = frozenset({"O-O", "O-O-O"})
+
+# --- board-state claims ----------------------------------------------------------
+# "your knight on f5", "the pawn on c2", "your rook from b7" — the coach asserting where
+# a piece stood. The facts block carries no piece placement at all, so every one of these
+# is invented unless the game happens to bear it out. Replaying the analyzed positions
+# settles it for free.
+_PIECES = {
+    "pawn": "p", "knight": "n", "bishop": "b",
+    "rook": "r", "queen": "q", "king": "k",
+}
+_PIECE_CLAIM_RE = re.compile(
+    r"\b(?P<owner>your|the|a|an|his|her|their)\s+"
+    r"(?:\w+\s+){0,2}?"                       # optional adjectives: "the passive rook"
+    r"(?P<piece>pawn|knight|bishop|rook|queen|king)s?\s+"
+    r"(?P<prep>on|at|from|to)\s+"
+    r"(?P<square>[a-h][1-8])\b",
+    re.IGNORECASE,
+)
+
+# Recommendations, not observations: "knights belong on f3", "put your rook on d1".
+# Same trap as the role cues — a suggestion about where a piece *should* go says nothing
+# false about where it *was*.
+_ADVICE_RE = re.compile(
+    r"\b(?:belong|belongs|put|place|should|could|would|want|wants|wanted|try|aim|bring|"
+    r"develop|reroute|swing|maneuver|manoeuvre|prefer|prefers|better|ideally|instead|"
+    r"consider|imagine|keep|get|route)\b[^.;:!?]{0,40}\Z",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -276,6 +311,83 @@ def check_castling(coaching_text: str, report: dict, coached_side: str) -> Claim
     return result
 
 
+def occupied_squares(report: dict) -> set[tuple[bool, str, str]]:
+    """Every ``(is_white, piece_letter, square)`` the game ever contained.
+
+    Built from each move's ``fen_before``, plus the position after the final move, which
+    no ``fen_before`` represents. A piece/square pair absent from this set was never on
+    the board — the only thing strong enough to call a placement claim invented.
+    """
+    import chess
+
+    seen: set[tuple[bool, str, str]] = set()
+
+    def absorb(board: "chess.Board") -> None:
+        for square, piece in board.piece_map().items():
+            seen.add((piece.color, piece.symbol().lower(), chess.square_name(square)))
+
+    moves = report.get("moves", [])
+    board = None
+    for move in moves:
+        fen = move.get("fen_before")
+        if not fen:
+            continue
+        board = chess.Board(fen)
+        absorb(board)
+    if board is not None and moves:
+        try:  # the final position: push the last move onto the last recorded FEN
+            board.push_san(moves[-1]["san"])
+            absorb(board)
+        except (ValueError, KeyError):
+            pass  # a report whose last SAN will not parse simply contributes nothing
+    return seen
+
+
+def check_board_state(
+    coaching_text: str, report: dict, coached_side: str
+) -> ClaimResult:
+    """Flag piece-placement claims the game never bore out.
+
+    Conservative on three axes, because the facts block gives the coach nothing to go on
+    here and a false accusation is worse than a miss:
+
+    * a claim is only wrong if that piece and colour were **never** on that square at any
+      point in the game, not merely at the moment under discussion;
+    * "the rook on b7" (no possessive) is checked against **both** colours, and passes if
+      either could have stood there;
+    * advice is skipped — "knights belong on f3", "put your rook on d1" say nothing about
+      where a piece actually was.
+    """
+    result = ClaimResult()
+    occupancy = occupied_squares(report)
+    if not occupancy:
+        return result
+    coached_white = coached_side == "white"
+
+    for match in _PIECE_CLAIM_RE.finditer(coaching_text):
+        if _ADVICE_RE.search(coaching_text[: match.start()]):
+            continue
+        piece = _PIECES[match.group("piece").lower()]
+        square = match.group("square").lower()
+        owner = match.group("owner").lower()
+        colors = [coached_white] if owner == "your" else [True, False]
+
+        result.checked += 1
+        if any((color, piece, square) in occupancy for color in colors):
+            continue
+        whose = "your" if owner == "your" else "a"
+        result.violations.append(
+            ClaimViolation(
+                kind="invented_placement",
+                move="",
+                claimed=f"{whose} {match.group('piece').lower()} on {square}",
+                actual=f"no {match.group('piece').lower()} ever stood on {square}",
+                excerpt=_excerpt(coaching_text, match.start(), match.end()),
+            )
+        )
+    return result
+
+
 def _merge(*results: ClaimResult) -> ClaimResult:
     merged = ClaimResult()
     for r in results:
@@ -307,4 +419,5 @@ def check_claims_from_report(
     return _merge(
         check_roles(coaching_text, facts),
         check_castling(coaching_text, report, coached_side),
+        check_board_state(coaching_text, report, coached_side),
     )
