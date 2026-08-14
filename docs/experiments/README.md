@@ -8,6 +8,14 @@ Iteration runs single-seed/single-judge on purpose; [`paper-protocol.md`](./pape
 is the one-time rigor checklist (multi-seed variance, Wilcoxon on the paired design,
 second judge, ablations) to run on the final configuration before writing anything up.
 
+- [2026-08-13 · Re-deriving the release gates](./2026-08-13-gates-re-derived.md) —
+  the 0.85 grounding gate is **met by the prompted baseline** (0.861) under the corrected
+  parser, so it must go. Backfills the claim metrics onto all three reports and finds that
+  **claims discriminates less than grounding, not more** (v1→v2: +0.008 vs +0.075), so
+  neither deterministic metric can be the progress gate. Proposes judge factual ≥ 4.0 as
+  the sole progress gate, with **zero claim violations** and **≥27/29 grounded games** as
+  free regression tripwires.
+
 - [2026-08-11 · Audit: what the grounding metric cannot see](./2026-08-11-grounding-metric-audit.md) —
   the cheap gate is wrong in **both** directions: blind to the dominant factual failure (role
   inversion, move-type misreading, invented board state — all scoring grounding up to **1.00**),
