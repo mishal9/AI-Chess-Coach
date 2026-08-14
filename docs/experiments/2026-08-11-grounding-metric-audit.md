@@ -1,6 +1,6 @@
 # Audit: what the grounding metric cannot see, and what it wrongly sees
 
-**Date:** 2026-08-11 · **Status:** finding recorded, fixes scoped, not yet applied · **Cost:** $0 (offline re-analysis of stored reports)
+**Date:** 2026-08-11 · **Status:** step 1 done (#41, results in §9); step 2 next · **Cost:** $0 — offline re-analysis and re-scoring of stored reports, no engine, model or judge
 
 For two fine-tune iterations, `eval/grounding.py` has been the cheap, deterministic instrument
 steering this project — it gates the training data, it justified the v2 dataset design, and it
@@ -159,7 +159,8 @@ It would have spent ~$4 of the binding constraint on the wrong thing.
 **Part of the v1→v2 grounding gain is metric artifact.** Bare-square flags fell 46 → 16 between
 v1 and v2. Some of the 0.79 → 0.91 improvement is the model learning to *stop naming squares* —
 a stylistic suppression of the penalized token pattern — rather than improved citation
-discipline. Direction of the gain is not in doubt; magnitude is.
+discipline. Direction of the gain is not in doubt; magnitude is. (§9 measures it: the corrected
+v1→v2 gain is +0.075, against +0.120 under the biased parser.)
 
 ### What this does *not* invalidate
 
@@ -176,7 +177,7 @@ discipline. Direction of the gain is not in doubt; magnitude is.
 
 | step | work | cost |
 |---|---|---|
-| **1** | Context-aware bare-square handling in `extract_moves` (require move-ish context: move-number prefix, `!`/`?` annotation, or facts membership; exclude `on/at/to/from/the <sq>` and `<sq> square/pawn/file`). Re-score all three stored reports offline — the coaching text is saved, so no model and no judge is needed. Re-run the gate over `raw_v2.jsonl` to **recover ~64 already-paid rows**. | **$0** |
+| **1** ✅ | Context-aware bare-square handling in `extract_moves`; re-score all three stored reports offline — the coaching text is saved, so no model and no judge is needed; re-run the gate over `raw_v2.jsonl` to recover the wrongly-dropped rows. **Done — PR #41, results in §9.** | **$0** |
 | **2** | A deterministic **claim checker**: (a) role binding — verify a move described as played is the played move and one described as preferred is the engine's; (b) move-type — verify king/rook/pawn language matches the actual piece; (c) board state — replaying the PGN gives the true position at every ply for free, so "rook on b7" and "you castled early" are both checkable without a model. Add to the eval **and** to the distillation gate, where `--retries` (86% observed recovery) can re-roll the teacher's own swaps. | **$0** |
 | **3** | Retrain on the recovered dataset; grounding-only eval first (free), then the judged pass (~29 calls). Capture cell-6 `eval_loss` — still never captured, so 3-epoch overfit remains unruled-out. | ~$0.40 GPU |
 | **4** | Targeted teacher spend — **only if step 3 shows the claim checker still failing**, which would be genuine evidence the data lacks role-contrast examples. | ~$1.50–4 |
@@ -194,7 +195,72 @@ discipline. Direction of the gain is not in doubt; magnitude is.
   and step 1 must not simply discard bare squares.
 - **"Recover ~64 rows" is an estimate** until the corrected parser is actually run over them.
 
-## 9 · Transferable lessons
+## 9 · Step 1 result (PR #41, merged 2026-08-12)
+
+### The rule that shipped is not the rule that was scoped
+
+§7 proposed an allowlist: count a bare square as a move only in a recognised move context
+(move number, annotation, or an adjacent cue verb like "preferred"). **Built first, and
+rejected** — it dropped 47 genuine citations across the 29 v2 games, because coaching cites
+moves in far more shapes than an allowlist can hold: *"g4 preserved the initiative"*, *"d3 is
+passive"*, *"why did g6 fall short?"*.
+
+Locational phrasing, by contrast, is a short and stable list. So the default inverted: a bare
+square **is** a move unless the adjacent words make it a location — a location preposition
+before it, a noun it qualifies after it, or coordination inheriting a preposition ("on f3 and
+f6"). Notation is tested first, so `"came on 12...e5?!"` survives the "on".
+
+Every remaining dropped occurrence was inspected by hand: 14 of 15 were unambiguous locations,
+and the one false negative — *"the key idea **behind** e5"*, where the preposition is
+metaphorical — was fixed by removing `behind` from the list.
+
+### Corrected scoreboard
+
+Exact, not estimated: facts-side extraction is provably unchanged (**0 of 1367** allowed-move
+tokens differ across the v2 distillation set), so the allowed set is stable and the diff can be
+recomputed from each committed report.
+
+| report | old | **corrected** | Δ | grounded games |
+|---|---|---|---|---|
+| baseline_29g (prompted 3B) | 0.812 | **0.861** | +0.049 | 16/29 → 20/29 |
+| 8b_v1 | 0.787 | **0.890** | +0.103 | 12/29 → 20/29 |
+| 8b_v2 | 0.907 | **0.965** | +0.058 | 18/29 → 25/29 |
+
+Two conclusions in the existing records are overturned:
+
+- **v1 never regressed grounding.** The biased parser placed v1 (0.787) *below* the prompted
+  baseline (0.812) — recorded at the time as a puzzle, and part of the motivation for the v2
+  dataset. Corrected, v1 is **above** it (0.890 vs 0.861). The regression was an artifact of
+  v1 naming squares more often (46 bare-square flags vs the baseline's 27).
+- **The 0.85 grounding gate was already met by the prompted baseline** (0.861). It was
+  calibrated against a biased instrument, and every "gate met / not met" judgement made against
+  it needs re-deriving. Note the saturation this implies: 25 of 29 games now sit at 1.00, so
+  grounding has even less headroom to discriminate than §2 measured.
+
+### Recovered training data
+
+Re-running the strict gate over `raw_v2.jsonl` recovers **52 of the 64 dropped rows** — 403 →
+455 gated (+12.7%) at **zero teacher cost**. The 12 that still fail split two ways, and only
+one way is error:
+
+- **Genuine out-of-facts citations** the metric *should* catch — the model reaching for opening
+  theory that was never in the facts block: *"in the Scotch, when White plays d4…"*.
+- **A residual false-positive class**: illustrative squares in constructions the rule does not
+  cover, e.g. *"a more advanced square (like d6)"*, *"knights to c6/f6-type squares"*.
+  Documented rather than chased — tightening further risks over-fitting the rule to this corpus.
+
+### Infrastructure closed off
+
+The re-score above needed the allowed set reconstructed by hand, because reports stored only
+`score`/`grounded`/`hallucinated`. Two changes so this is never hand-work again:
+
+- `eval.run` now persists `cited` and `allowed`, making any future metric change re-scorable
+  from a committed report alone.
+- `eval/rescore.py` re-scores committed reports offline. Its `--verify` pass (default on)
+  re-derives each stored score from the stored fields and **refuses to run** if any disagrees,
+  so a report written under a different metric cannot be silently mis-scored.
+
+## 10 · Transferable lessons
 
 1. **A cheap proxy metric earns trust only where it has been checked against the expensive one.**
    Grounding was never validated against the judge on a per-game basis; it was assumed to be a
@@ -213,19 +279,27 @@ discipline. Direction of the gain is not in doubt; magnitude is.
 6. **Free diagnostic work should precede paid corrective work** — and here the free work may
    turn out to have been the whole fix.
 
-## 10 · Reproduction
+## 11 · Reproduction
 
-All offline; requires only the committed reports and `data/distill/raw_v2.jsonl`.
+All offline — no engine, no model, no judge. Requires only the committed reports and
+`data/distill/raw_v2.jsonl`.
 
 ```bash
-# metric decoupling (§2) and per-bucket spread (§6)
-.venv/bin/python -c "..."   # see scripts in the PR that lands step 1
-
-# bare-square share of flagged hallucinations (§4)
-#   filter each report's games[].grounding.hallucinated with ^[a-h][1-8]$
-# distillation gate cost (§4)
-#   rows in raw_v2.jsonl with quality.grounding < 1.0, all of whose
-#   quality.hallucinated entries match ^[a-h][1-8]$   -> 64/64
+# corrected scoreboard (§9)
+python -m eval.rescore eval/reports/baseline_29g_2026-07-10.json \
+                       eval/reports/8b_v1_2026-08-08.json \
+                       eval/reports/8b_v2_2026-08-10.json
 ```
 
-Judge rationales live at `games[].rubric.rationale` in every `eval/reports/*.json`.
+The numbers behind §2, §4 and §6 come from the committed reports directly:
+
+| claim | where it comes from |
+|---|---|
+| decoupling, *r* = +0.39 (§2) | correlate `games[].grounding.score` with `games[].rubric.scores.factual_correctness` |
+| per-bucket spread (§6) | join `games[].pgn` to `bucket` in `eval/heldout/manifest.json` |
+| bare-square share, 84–94% (§4) | filter `games[].grounding.hallucinated` with `^[a-h][1-8]$` |
+| gate cost, 64/64 (§4) | rows in `raw_v2.jsonl` with `quality.grounding < 1.0` whose every `quality.hallucinated` entry matches `^[a-h][1-8]$` |
+| rows recovered, 52 (§9) | re-run `eval.grounding.extract_moves` over those rows' `completion` |
+
+The failure classes in §3 are read from `games[].rubric.rationale`, present in every
+`eval/reports/*.json`.

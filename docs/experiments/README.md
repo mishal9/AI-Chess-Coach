@@ -14,6 +14,9 @@ second judge, ablations) to run on the final configuration before writing anythi
   while **84–94% of what it flags is a bare-square parser false positive** that also discarded
   **64/64** paid teacher rows. *r*(grounding, factual) = **+0.39**; 62% of games sit at the
   metric's ceiling. Revises the "concentrated weakness" reading as under-powered noise.
+  **Step 1 shipped (#41):** corrected grounding is baseline **0.861** / v1 **0.890** / v2
+  **0.965** — so v1 never regressed grounding and the 0.85 gate was already met by the
+  prompted baseline; 52 of the 64 dropped rows recovered at zero teacher cost.
 
 - [2026-08-10 · Ablation: shape vs volume](./2026-08-10-ablation-shape-vs-volume.md) —
   retraining on `kind`-filtered subsets shows v2's grounding gain came from **row shape, not
