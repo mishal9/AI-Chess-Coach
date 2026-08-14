@@ -4,6 +4,10 @@
   "judge": "anthropic",
   "judge_model": "claude-opus-4-8",
   "depth": 15,
+  "metric_versions": {
+    "grounding": 2,
+    "claims": 1
+  },
   "date": "2026-08-14",
   "aggregate": {
     "games": 29,

@@ -32,6 +32,15 @@ from dataclasses import dataclass, field
 
 from coach import prompts
 
+# Semantics version for this metric. Bump whenever a change makes a new score
+# incomparable with an old one, and record what changed — ``eval.compare`` refuses to
+# difference reports whose versions disagree.
+#   1  original parser: every SAN-shaped token counted, so bare squares in prose ("your
+#      rook on b7") scored as invented pawn moves. 84-94% of all flagged hallucinations.
+#   2  (#41) bare squares are read as moves only when context does not make them a
+#      location. See docs/experiments/2026-08-11-grounding-metric-audit.md.
+METRIC_VERSION = 2
+
 # Heuristic Standard Algebraic Notation matcher. Matches castling and normal moves
 # (optional piece + optional disambiguation + optional capture + destination square +
 # optional promotion + optional check/mate). Not preceded by a word char so it won't

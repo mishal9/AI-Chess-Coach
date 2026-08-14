@@ -100,3 +100,12 @@ def test_cli_refuses_an_unaligned_report(tmp_path, capsys, monkeypatch):
     path.write_text(json.dumps({"games": [_game("You played Bg5.")]}), encoding="utf-8")
     assert recheck.main([str(path)]) == 1
     assert "refusing to backfill" in capsys.readouterr().err
+
+
+def test_recheck_stamps_the_current_claims_version():
+    """Same contract as eval.rescore: a backfilled report advertises its semantics."""
+    from eval import claims
+
+    report = {"games": [_game("You played Re8, and the engine preferred Nh5.")]}
+    out = recheck.recheck_report(report, [_analyzed()])
+    assert out["metric_versions"]["claims"] == claims.METRIC_VERSION
