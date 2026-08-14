@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Callable
 
 from coach import client as coach_client, prompts
-from eval import backends, grounding
+from eval import backends, claims, grounding
 from eval import judge as judge_mod
 from eval.rubric import RUBRIC_AXES
 
@@ -111,8 +111,12 @@ def evaluate_case(
     """Coach one game, then score it: grounding always, rubric when a judge is given."""
     coaching = coach_fn(report, case.coached_side)
     g = grounding.grounding_from_report(coaching, report, case.coached_side)
+    c = claims.check_claims_from_report(coaching, report, case.coached_side)
     record = {
         "pgn": case.pgn.name,
+        # Bucket files hold several games each, so the name alone does not identify one —
+        # without this a report cannot be joined back to the game it scored.
+        "game_index": case.game_index,
         "coached_side": case.coached_side,
         "note": case.note,
         "coaching": coaching,
@@ -127,6 +131,7 @@ def evaluate_case(
             "cited": sorted(g.cited),
             "allowed": sorted(g.allowed),
         },
+        "claims": c.to_dict(),
         "identifies_worst_move": grounding.identifies_worst_move(coaching, report),
     }
     if judge_fn is not None:
@@ -140,7 +145,10 @@ def _partial_path(out: Path) -> Path:
 
 
 def load_partial(out: Path, coach: str, judge: str) -> dict[tuple[str, str], dict]:
-    """Per-game records from a previous run, keyed by ``(pgn, coached_side)``.
+    """Per-game records from a previous run, keyed by ``(pgn, game_index, coached_side)``.
+
+    The index is part of the key because a bucket file holds several games: keyed on the
+    name alone, a finished game marks its file-mates done and resume silently skips them.
 
     Refuses a sidecar written by a different coach/judge: silently mixing two models'
     scores into one report would produce a number that describes neither.
@@ -160,7 +168,7 @@ def load_partial(out: Path, coach: str, judge: str) -> dict[tuple[str, str], dic
                     f"Refusing to resume: {path} was written by coach={got[0]} judge={got[1]}, "
                     f"but this run is coach={coach} judge={judge}. Delete it or change --out."
                 )
-            done[(r["pgn"], r["coached_side"])] = r
+            done[(r["pgn"], r.get("game_index", 0), r["coached_side"])] = r
     return done
 
 
@@ -187,6 +195,9 @@ def aggregate(records: list[dict]) -> dict:
             sum(r["identifies_worst_move"] for r in records) / n, 3
         ),
     }
+    if all("claims" in r for r in records):
+        agg["claims_mean"] = round(sum(r["claims"]["score"] for r in records) / n, 3)
+        agg["claims_ok_rate"] = round(sum(r["claims"]["ok"] for r in records) / n, 3)
     if all("rubric" in r for r in records):
         agg["rubric_axis_means"] = {
             ax: round(sum(r["rubric"]["scores"][ax] for r in records) / n, 2)
@@ -206,6 +217,12 @@ def format_summary(agg: dict, coach_model: str, judge_desc: str) -> str:
         f"grounded {agg['grounded_rate'] * 100:.0f}%   "
         f"worst-move identified {agg['worst_move_identified_rate'] * 100:.0f}%",
     ]
+    if "claims_mean" in agg:
+        lines.append(
+            f"  Claims         mean {agg['claims_mean']:.2f}   "
+            f"clean {agg['claims_ok_rate'] * 100:.0f}%   "
+            "(role inversion + invented castling)"
+        )
     if "rubric_overall_mean" in agg:
         lines.append("  Rubric (mean, 1-5):")
         for ax, val in agg["rubric_axis_means"].items():
@@ -285,7 +302,7 @@ def main(argv: list[str] | None = None) -> int:
 
     records = []
     for i, case in enumerate(cases, 1):
-        key = (case.pgn.name, case.coached_side)
+        key = (case.pgn.name, case.game_index, case.coached_side)
         if key in done:
             print(f"[{i}/{len(cases)}] {case.pgn.name} (coach {case.coached_side}) — cached",
                   file=sys.stderr)

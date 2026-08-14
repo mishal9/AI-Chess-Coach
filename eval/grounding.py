@@ -27,6 +27,7 @@ and the coaching text, so both sides score only tokens actually used as citation
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 
 from coach import prompts
@@ -127,17 +128,24 @@ def _normalize(move: str) -> str:
     return move.replace("0", "O").rstrip("+#")
 
 
+def iter_move_citations(text: str) -> Iterator[tuple[str, re.Match[str]]]:
+    """Yield ``(normalized_move, match)`` for every token used as a move citation.
+
+    The match is included so callers can inspect the surrounding words — ``eval.claims``
+    uses it to find which *role* the text assigns each move.
+    """
+    for match in _SAN_RE.finditer(text):
+        if _is_move_citation(text, match):
+            yield _normalize(match.group()), match
+
+
 def extract_moves(text: str) -> set[str]:
     """Return the set of normalized SAN moves cited anywhere in ``text``.
 
     Bare squares are included only where context marks them as moves — see the module
     docstring.
     """
-    return {
-        _normalize(m.group())
-        for m in _SAN_RE.finditer(text)
-        if _is_move_citation(text, m)
-    }
+    return {move for move, _ in iter_move_citations(text)}
 
 
 @dataclass
