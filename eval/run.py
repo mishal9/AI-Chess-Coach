@@ -120,6 +120,12 @@ def evaluate_case(
             "score": round(g.score, 3),
             "grounded": g.grounded,
             "hallucinated": sorted(g.hallucinated),
+            # Persist both sides of the diff so a later change to the metric can be
+            # re-scored from the committed report alone — no engine, no model, no judge.
+            # Their absence is why correcting the bare-square bug needed the allowed set
+            # reconstructed by hand; see eval/rescore.py.
+            "cited": sorted(g.cited),
+            "allowed": sorted(g.allowed),
         },
         "identifies_worst_move": grounding.identifies_worst_move(coaching, report),
     }
