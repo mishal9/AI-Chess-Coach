@@ -407,15 +407,18 @@ def check_claims_from_report(
     report: dict,
     coached_side: str | None = None,
     max_mistakes: int = 6,
+    facts: str | None = None,
 ) -> ClaimResult:
-    """Full check: role inversion plus invented castling.
+    """Full check: role inversion, invented castling, invented placement.
 
     Mirrors :func:`eval.grounding.grounding_from_report` — the facts block is rebuilt
     exactly as the coach received it, so the roles checked are the roles it was given.
+    Pass ``facts`` when the caller already holds that exact block, to skip re-deriving it.
     """
     if coached_side is None:
         coached_side = prompts.choose_coached_side(report)
-    facts = prompts.format_report_facts(report, coached_side, max_mistakes)
+    if facts is None:
+        facts = prompts.format_report_facts(report, coached_side, max_mistakes)
     return _merge(
         check_roles(coaching_text, facts),
         check_castling(coaching_text, report, coached_side),
