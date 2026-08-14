@@ -1,6 +1,6 @@
 # Audit: what the grounding metric cannot see, and what it wrongly sees
 
-**Date:** 2026-08-11 · **Status:** step 1 done (#41, results in §9); step 2 next · **Cost:** $0 — offline re-analysis and re-scoring of stored reports, no engine, model or judge
+**Date:** 2026-08-11 · **Status:** steps 1–2 done (#41 §9, #43 §10); step 3 = board-state checker (§3c) · **Cost:** $0 — offline re-analysis and re-scoring of stored reports, no engine, model or judge
 
 For two fine-tune iterations, `eval/grounding.py` has been the cheap, deterministic instrument
 steering this project — it gates the training data, it justified the v2 dataset design, and it
@@ -178,7 +178,7 @@ v1→v2 gain is +0.075, against +0.120 under the biased parser.)
 | step | work | cost |
 |---|---|---|
 | **1** ✅ | Context-aware bare-square handling in `extract_moves`; re-score all three stored reports offline — the coaching text is saved, so no model and no judge is needed; re-run the gate over `raw_v2.jsonl` to recover the wrongly-dropped rows. **Done — PR #41, results in §9.** | **$0** |
-| **2** | A deterministic **claim checker**: (a) role binding — verify a move described as played is the played move and one described as preferred is the engine's; (b) move-type — verify king/rook/pawn language matches the actual piece; (c) board state — replaying the PGN gives the true position at every ply for free, so "rook on b7" and "you castled early" are both checkable without a model. Add to the eval **and** to the distillation gate, where `--retries` (86% observed recovery) can re-roll the teacher's own swaps. | **$0** |
+| **2** ◑ | A deterministic **claim checker**: (a) role binding — verify a move described as played is the played move and one described as preferred is the engine's; (b) move-type — verify king/rook/pawn language matches the actual piece; (c) board state — replaying the PGN gives the true position at every ply for free, so "rook on b7" and "you castled early" are both checkable without a model. Add to the eval **and** to the distillation gate, where `--retries` (86% observed recovery) can re-roll the teacher's own swaps. **(a) and (b) done — PR #43, results in §10. (c) not done, and §10 shows it is where the residual gap lives.** | **$0** |
 | **3** | Retrain on the recovered dataset; grounding-only eval first (free), then the judged pass (~29 calls). Capture cell-6 `eval_loss` — still never captured, so 3-epoch overfit remains unruled-out. | ~$0.40 GPU |
 | **4** | Targeted teacher spend — **only if step 3 shows the claim checker still failing**, which would be genuine evidence the data lacks role-contrast examples. | ~$1.50–4 |
 
@@ -260,7 +260,76 @@ The re-score above needed the allowed set reconstructed by hand, because reports
   re-derives each stored score from the stored fields and **refuses to run** if any disagrees,
   so a report written under a different metric cannot be silently mis-scored.
 
-## 10 · Transferable lessons
+## 10 · Step 2 result (PR #43, merged 2026-08-13)
+
+`eval/claims.py` checks the assertions grounding is blind to: **role inversion** (§3a) and
+**invented castling** (§3b). Board state and narrative (§3c) are not covered — see below.
+
+### Precision cost three drafts, and the teacher caught two of them
+
+The checker gates training data, so a false positive is worse than a miss. Each draft was
+killed by data rather than by reasoning:
+
+| draft | rule | killed by |
+|---|---|---|
+| 1 | cue immediately adjacent to the move | missed *"you chose a passive rook move (Rc8)"* — a real §3a failure |
+| 2 | nearest cue in a window, stopping at an intervening citation | flagged **8.4% of the teacher's own rows** |
+| 3 | **shipped** — see below | — |
+
+Draft 2's number is the useful one. Claude Opus does not invert roles in 8% of its output,
+so the failures had to be the checker's: *"the engine wanted you **to play** Bxc3"*, *"by
+**not playing** f5"*, *"the chance **to play** b5"* are recommendations and negations, not
+claims about what happened. **Running a candidate metric against known-good output is what
+made that visible** — the same move that would have caught the bare-square bug two
+iterations earlier.
+
+The shipped rule: a cue asserts a role only when its **agent is named beside it** ("you
+played", "the engine preferred"), only in the **past tense** (the present is generic advice
+— *"when you play 3...exd4, you win a pawn"* describes a line, not this game), never across
+a clause boundary, and never past another citation — which is what stops *"the engine
+preferred Nh5 instead of Re8"* from reading Re8 as engine-preferred. Castling likewise
+requires an assertion ("you castled"), not a mention: *"you played d4 instead of castling"*
+and *"work on castling first"* are correct English about a player who never castled, and
+draft 2 flagged both — on a **factual=5** game.
+
+### Precise, and honestly partial
+
+| set | flagged | |
+|---|---|---|
+| teacher rows (claude-opus-4-8) | **0 / 467** | precision check |
+| 8b_v2 | 1 | `role_inversion:g3`, on a factual=2 game |
+| 8b_v1 | 0 | |
+| prompted 3B baseline | 2 | on factual=1 and factual=2 games |
+
+Every violation lands on a game the judge scored 1–2, with no false positives anywhere.
+
+**But recall is low: the judge faults 7 games and this flags 1.** The two checks cover the
+structurally explicit errors; the remainder is §3c — invented board state and narrative
+(*"your rook on b7"*, *"a pawn grab"*, *"you castled early"* where the player did castle but
+at another moment). That is where the residual factual gap actually lives, and it needs
+position replay from `fen_before`.
+
+So the claim checker is a **precise partial instrument**: sound enough to gate distillation
+with (0/467 on teacher output), and a useful regression signal, but **not** a replacement
+for the judge. Anyone reading `claims_ok_rate` should read it as a floor on assertion
+errors, never as an estimate of factual quality.
+
+### Two persistence gaps, both found by trying to validate
+
+Validation needs to join stored coaching back to the game it scored, and could not:
+
+- **`eval.run` never recorded `game_index`.** Bucket files hold ~5 games each, so `pgn`
+  alone never identified a game. The first validation pass silently joined every game to
+  index 0 and reported zero recall; the real numbers above came from re-joining on exact
+  reproduction of each stored grounding score (24 of 29 join unambiguously).
+- **`load_partial` keyed on `(pgn, coached_side)`** — so one finished game marked its
+  file-mates done and **`--resume` silently skipped them**. A live correctness bug in the
+  resume added in #35, not a test artifact.
+
+Both are the same defect as the missing `cited`/`allowed` in §9: the report did not record
+enough to check the work later.
+
+## 11 · Transferable lessons
 
 1. **A cheap proxy metric earns trust only where it has been checked against the expensive one.**
    Grounding was never validated against the judge on a per-game basis; it was assumed to be a
@@ -279,7 +348,7 @@ The re-score above needed the allowed set reconstructed by hand, because reports
 6. **Free diagnostic work should precede paid corrective work** — and here the free work may
    turn out to have been the whole fix.
 
-## 11 · Reproduction
+## 12 · Reproduction
 
 All offline — no engine, no model, no judge. Requires only the committed reports and
 `data/distill/raw_v2.jsonl`.

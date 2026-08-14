@@ -17,6 +17,10 @@ second judge, ablations) to run on the final configuration before writing anythi
   **Step 1 shipped (#41):** corrected grounding is baseline **0.861** / v1 **0.890** / v2
   **0.965** — so v1 never regressed grounding and the 0.85 gate was already met by the
   prompted baseline; 52 of the 64 dropped rows recovered at zero teacher cost.
+  **Step 2 shipped (#43):** `eval/claims.py` catches role inversion and invented castling
+  at **0/467 false positives** on teacher output, every hit landing on a judge-scored 1–2
+  game — but **recall is 1 of 7**, so the residual factual gap is invented board state,
+  which needs position replay.
 
 - [2026-08-10 · Ablation: shape vs volume](./2026-08-10-ablation-shape-vs-volume.md) —
   retraining on `kind`-filtered subsets shows v2's grounding gain came from **row shape, not
