@@ -327,6 +327,13 @@ def main(argv: list[str] | None = None) -> int:
             "judge": args.judge if not args.no_judge else None,
             "judge_model": judge_desc if not args.no_judge else None,
             "depth": args.depth,
+            # Which semantics produced the deterministic scores. Without this, eval.compare
+            # cannot tell that two reports' numbers are not subtractable — it once diffed a
+            # post-#41 grounding mean against a pre-#41 one and inverted the sign.
+            "metric_versions": {
+                "grounding": grounding.METRIC_VERSION,
+                "claims": claims.METRIC_VERSION,
+            },
             "date": date.today().isoformat(),
             "aggregate": agg,
             "games": records,

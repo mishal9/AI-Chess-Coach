@@ -8,14 +8,25 @@ Prints three views:
      games got a better / equal / worse factual score. A paired read is far more trustworthy
      on a small set than comparing two independent means.
 
+**Comparability is checked before anything is differenced.** A delta between two numbers
+produced by different metric semantics is meaningless, and silently plausible: this tool
+once reported a fine-tune 0.02 *behind* on grounding when it was 0.042 ahead, because the
+candidate had been scored by the post-#41 parser and the baseline's stored mean by the
+pre-#41 one. Reports now carry ``metric_versions``; reports predating that carry none and
+are treated as the pre-#41 semantics, which is what they are. Judged metrics are likewise
+refused across different judge models — a rubric score is only meaningful against the ruler
+that produced it.
+
 Usage:
     python -m eval.compare eval/reports/baseline_29g_2026-07-10.json eval/reports/v1_finetuned.json
+    python -m eval.compare old.json new.json --allow-version-mismatch   # last resort
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 AXES = ["factual_correctness", "clarity", "actionability", "identifies_key_mistake"]
@@ -34,8 +45,68 @@ _METRICS = [
 ]
 
 
+# Reports written before metric versioning existed were all produced by the pre-#41
+# grounding parser, and none carried claims — so their versions are known, not unknown.
+LEGACY_METRIC_VERSIONS = {"grounding": 1}
+
+# How to repair each mismatch, so the error says what to run rather than just complaining.
+_REPAIR = {
+    "grounding": "python -m eval.rescore <report> --out <rescored>",
+    "claims": "python -m eval.recheck <report> --out <rechecked>",
+}
+
+
+def load_report(path: str | Path) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
 def load_games(path: str | Path) -> list[dict]:
-    return json.loads(Path(path).read_text(encoding="utf-8"))["games"]
+    return load_report(path)["games"]
+
+
+def metric_versions(report: dict) -> dict[str, int]:
+    """The semantics behind this report's deterministic scores."""
+    return report.get("metric_versions") or dict(LEGACY_METRIC_VERSIONS)
+
+
+def comparability_problems(base: dict, cand: dict) -> list[str]:
+    """Reasons these two reports cannot be differenced — empty when they can.
+
+    Only metrics actually present in both are checked: a grounding-only report and a
+    judged one still compare fine on grounding.
+    """
+    problems: list[str] = []
+    bv, cv = metric_versions(base), metric_versions(cand)
+
+    for metric in ("grounding", "claims"):
+        present = all(metric in aggregate_of(r) or _games_have(r, metric)
+                      for r in (base, cand))
+        if not present:
+            continue
+        b, c = bv.get(metric), cv.get(metric)
+        if b != c:
+            problems.append(
+                f"{metric}: baseline is v{b if b is not None else '?'}, "
+                f"candidate is v{c if c is not None else '?'} — the scores mean different "
+                f"things. Bring the older one forward with:\n      {_REPAIR[metric]}"
+            )
+
+    bj, cj = base.get("judge_model"), cand.get("judge_model")
+    if bj and cj and bj != cj:
+        problems.append(
+            f"judge: baseline was scored by {bj}, candidate by {cj} — rubric scores are "
+            "only meaningful against the same ruler. Re-judge one of them."
+        )
+    return problems
+
+
+def aggregate_of(report: dict) -> dict:
+    return report.get("aggregate") or {}
+
+
+def _games_have(report: dict, key: str) -> bool:
+    games = report.get("games") or []
+    return bool(games) and all(key in g for g in games)
 
 
 def aggregate(games: list[dict]) -> dict:
@@ -159,9 +230,32 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Diff two eval.run reports on the same held-out set.")
     ap.add_argument("baseline", help="baseline report JSON")
     ap.add_argument("candidate", help="fine-tuned coach report JSON")
+    ap.add_argument(
+        "--allow-version-mismatch", action="store_true",
+        help="difference reports scored by different metric semantics anyway (the result "
+             "is not a valid delta; every affected number must be re-derived by hand)",
+    )
     args = ap.parse_args(argv)
-    base, cand = load_games(args.baseline), load_games(args.candidate)
-    print(render(base, cand, Path(args.baseline).stem, Path(args.candidate).stem))
+    base_report, cand_report = load_report(args.baseline), load_report(args.candidate)
+
+    problems = comparability_problems(base_report, cand_report)
+    if problems and not args.allow_version_mismatch:
+        print(
+            "Refusing to compare — these reports are not on the same footing:\n\n  - "
+            + "\n  - ".join(problems)
+            + "\n\nPass --allow-version-mismatch to override (the deltas will be wrong).",
+            file=sys.stderr,
+        )
+        return 1
+    if problems:
+        print("!" * 72, file=sys.stderr)
+        print("VERSION MISMATCH OVERRIDDEN — the deltas below are NOT valid:", file=sys.stderr)
+        for problem in problems:
+            print(f"  - {problem.splitlines()[0]}", file=sys.stderr)
+        print("!" * 72, file=sys.stderr)
+
+    print(render(base_report["games"], cand_report["games"],
+                 Path(args.baseline).stem, Path(args.candidate).stem))
     return 0
 
 

@@ -117,10 +117,30 @@ The cause: the control's report was scored by the post-#41 parser, while v2's *s
 version produced either.
 
 This is the same defect the audit kept finding, in a new place: **the artifact does not
-record enough to know whether two numbers are comparable.** Reports should carry a metric
-version, and `eval.compare` should refuse — or loudly flag — a cross-version diff rather
-than silently subtracting. Filed as follow-up work; every number in §2 was assembled by
-hand for this reason.
+record enough to know whether two numbers are comparable.** Every number in §2 was
+assembled by hand for this reason.
+
+**Fixed.** `eval.grounding` and `eval.claims` now each declare a `METRIC_VERSION` beside the
+code that defines their semantics; `eval.run` stamps both into every report, and
+`eval.rescore` / `eval.recheck` re-stamp what they repair. `eval.compare` checks
+comparability before differencing anything and **refuses** a cross-version diff, naming the
+command that repairs it. Reports predating the stamp are read as the pre-#41 semantics —
+which is what they are, not an unknown. Judged metrics are refused across different judge
+models for the same reason: a rubric score means nothing apart from the ruler that produced
+it.
+
+Running the exact comparison above now fails closed:
+
+```
+Refusing to compare — these reports are not on the same footing:
+
+  - grounding: baseline is v2, candidate is v1 — the scores mean different things.
+    Bring the older one forward with:
+      python -m eval.rescore <report> --out <rescored>
+```
+
+and following that advice yields **grounding +0.04, grounded +6.9pp** — the true figures,
+in place of the −0.02 / −17.2pp the tool used to print.
 
 ## 6 · What to do next
 

@@ -128,3 +128,12 @@ def test_cli_writes_the_rescored_report(tmp_path):
     written = json.loads(out.read_text(encoding="utf-8"))
     assert written["rescored_from"] == "r.json"
     assert written["aggregate"]["grounding_mean"] == 1.0
+
+
+def test_rescore_stamps_the_current_grounding_version():
+    """So eval.compare recognises a repaired report as repaired, rather than refusing it."""
+    from eval import grounding
+
+    report = {"games": [_game("Your rook on b7 is passive.", 0.0, ["b7"])]}
+    out = rescore.rescore_report(report)
+    assert out["metric_versions"]["grounding"] == grounding.METRIC_VERSION

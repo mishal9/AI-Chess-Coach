@@ -124,7 +124,10 @@ def recheck_report(report: dict, analyzed: list[dict]) -> dict:
     aggregate = dict(report.get("aggregate", {}))
     aggregate["claims_mean"] = round(sum(g["claims"]["score"] for g in games) / n, 3)
     aggregate["claims_ok_rate"] = round(sum(g["claims"]["ok"] for g in games) / n, 3)
-    return dict(report, games=games, aggregate=aggregate)
+    # Same reason as eval.rescore: mark which semantics these claim scores are on.
+    versions = dict(report.get("metric_versions") or {})
+    versions["claims"] = claims.METRIC_VERSION
+    return dict(report, games=games, aggregate=aggregate, metric_versions=versions)
 
 
 def violation_counts(report: dict) -> dict[str, int]:

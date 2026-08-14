@@ -98,7 +98,11 @@ def rescore_report(report: dict) -> dict:
     aggregate["grounded_rate"] = round(
         sum(g["grounding"]["grounded"] for g in games) / n, 3
     )
-    return dict(report, games=games, aggregate=aggregate)
+    # Record that grounding is now on current semantics, so eval.compare treats this
+    # report as comparable with fresh runs rather than refusing it.
+    versions = dict(report.get("metric_versions") or {})
+    versions["grounding"] = grounding.METRIC_VERSION
+    return dict(report, games=games, aggregate=aggregate, metric_versions=versions)
 
 
 def build_parser() -> argparse.ArgumentParser:

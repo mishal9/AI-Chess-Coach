@@ -42,6 +42,12 @@ from dataclasses import dataclass, field
 from coach import prompts
 from eval import grounding
 
+# Semantics version for this metric — see ``eval.grounding.METRIC_VERSION`` for the
+# contract. Bump whenever a check is added, removed, or retuned, since any of those change
+# what a score means.
+#   1  (#43, #45) role inversion, invented castling, invented placement.
+METRIC_VERSION = 1
+
 # A flagged-mistake line from the facts block, e.g.
 #   - 12...Re8?! (inaccuracy): the engine preferred Nh5; cost about 10% win probability...
 _FACT_LINE_RE = re.compile(
