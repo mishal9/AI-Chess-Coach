@@ -114,8 +114,9 @@ def test_spend_guard_refuses_before_spending(capsys):
 
 # --- --resume / incremental partial writes ------------------------------------------
 
-def _rec(pgn="a.pgn", side="white", score=1.0):
-    return {"pgn": pgn, "coached_side": side, "note": "", "coaching": "text",
+def _rec(pgn="a.pgn", side="white", score=1.0, game_index=0):
+    return {"pgn": pgn, "game_index": game_index, "coached_side": side, "note": "",
+            "coaching": "text",
             "grounding": {"score": score, "grounded": True, "hallucinated": []},
             "identifies_worst_move": True}
 
@@ -124,8 +125,18 @@ def test_partial_roundtrips_and_strips_provenance(tmp_path):
     out = tmp_path / "r.json"
     run.append_partial(out, _rec(), "coach-a", "judge-a")
     done = run.load_partial(out, "coach-a", "judge-a")
-    assert list(done) == [("a.pgn", "white")]
-    assert "_coach" not in done[("a.pgn", "white")]   # provenance never reaches the report
+    assert list(done) == [("a.pgn", 0, "white")]
+    assert "_coach" not in done[("a.pgn", 0, "white")]  # provenance never reaches the report
+
+
+def test_partial_distinguishes_games_within_one_pgn(tmp_path):
+    """Bucket files hold several games; keyed on the name alone, finishing one would mark
+    its file-mates done and resume would silently skip them."""
+    out = tmp_path / "r.json"
+    run.append_partial(out, _rec(game_index=0), "coach-a", "judge-a")
+    run.append_partial(out, _rec(game_index=3), "coach-a", "judge-a")
+    done = run.load_partial(out, "coach-a", "judge-a")
+    assert set(done) == {("a.pgn", 0, "white"), ("a.pgn", 3, "white")}
 
 
 def test_resume_refuses_a_partial_from_another_model(tmp_path):
