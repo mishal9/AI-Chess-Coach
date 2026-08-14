@@ -8,6 +8,16 @@ Iteration runs single-seed/single-judge on purpose; [`paper-protocol.md`](./pape
 is the one-time rigor checklist (multi-seed variance, Wilcoxon on the paired design,
 second judge, ablations) to run on the final configuration before writing anything up.
 
+- [2026-08-13 · Re-deriving the release gates](./2026-08-13-gates-re-derived.md) —
+  the 0.85 grounding gate is cleared by every model after #41, and the **prompted-3B
+  reference is retired**: comparing an 8B fine-tune to a prompted 3B confounds the size
+  jump with the fine-tune and cannot answer whether fine-tuning beats prompting the same
+  base. The control is **prompted `qwen3:8b`**. Backfills the claim metrics and finds
+  **claims discriminates less than grounding, not more** (v1→v2: +0.008 vs +0.075), so
+  neither deterministic metric can be the progress gate. Proposes factual **≥ control
+  + 0.30** as the progress gate, with **zero claim violations** and **≥27/29 grounded
+  games** as free regression tripwires.
+
 - [2026-08-11 · Audit: what the grounding metric cannot see](./2026-08-11-grounding-metric-audit.md) —
   the cheap gate is wrong in **both** directions: blind to the dominant factual failure (role
   inversion, move-type misreading, invented board state — all scoring grounding up to **1.00**),
