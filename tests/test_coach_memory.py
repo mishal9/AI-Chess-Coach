@@ -34,11 +34,11 @@ def report(**overrides) -> dict:
     return base
 
 PROFILE = (
-    "Across 9 analyzed game(s), alice made 20 flagged mistakes "
-    "(average centipawn loss 50.0).\n\n"
-    "Recurring patterns (most costly first):\n"
-    "- leaving material hanging: 4 times across 3 game(s), costing about 20% "
-    "win probability each time."
+    "games_analyzed | 9\n"
+    "total_mistakes | 20\n"
+    "average_centipawn_loss | 50.0\n\n"
+    "pattern | occurrences | games | avg_cost | status\n"
+    "leaving material hanging | 4 | 3 | 20% | recurring"
 )
 
 
@@ -57,16 +57,16 @@ class TestFactsBlockCompatibility:
         assert without == explicit_none
 
     def test_no_profile_adds_no_history_section(self):
-        assert "YOUR HISTORY" not in prompts.format_report_facts(report(), "white")
+        assert "PLAYER HISTORY" not in prompts.format_report_facts(report(), "white")
 
     def test_empty_profile_string_is_treated_as_no_history(self):
         """An empty section would invite the model to fill the silence."""
-        assert "YOUR HISTORY" not in prompts.format_report_facts(report(), "white", 6, "")
+        assert "PLAYER HISTORY" not in prompts.format_report_facts(report(), "white", 6, "")
 
     def test_profile_is_appended_inside_the_facts_block(self):
         facts = prompts.format_report_facts(report(), "white", 6, PROFILE)
-        assert "YOUR HISTORY" in facts
-        assert "leaving material hanging: 4 times" in facts
+        assert "PLAYER HISTORY" in facts
+        assert "leaving material hanging | 4 | 3 | 20% | recurring" in facts
         # Still one block — eval.grounding rebuilds this whole string.
         assert facts.startswith("Game: White")
 
@@ -74,16 +74,21 @@ class TestFactsBlockCompatibility:
 class TestBuildMessages:
     def test_profile_reaches_the_user_turn(self):
         messages = prompts.build_messages(report(), "white", 6, PROFILE)
-        assert "YOUR HISTORY" in messages[-1]["content"]
+        assert "PLAYER HISTORY" in messages[-1]["content"]
 
-    def test_system_prompt_constrains_history_use(self):
+    def test_system_prompt_carries_the_interpretation_rules(self):
+        """The renderer emits statuses; the prompt is where they get meaning."""
         system = prompts.SYSTEM_PROMPT
-        assert "YOUR HISTORY" in system
-        assert "never turn" in system.lower() or "never inflate" in system.lower()
+        assert "PLAYER HISTORY" in system
+        assert "never inflate" in system.lower()
+        # Every status the renderer can emit must be explained here.
+        for status in ("recurring", "once_only", "improving", "declining", "unclear"):
+            assert status in system, f"system prompt never explains {status!r}"
 
-    def test_history_section_is_told_it_holds_no_citable_moves(self):
+    def test_history_section_is_marked_as_holding_no_moves(self):
         facts = prompts.format_report_facts(report(), "white", 6, PROFILE)
-        assert "do not cite moves from here" in facts
+        assert "no moves" in facts
+        assert "It contains NO moves" in prompts.SYSTEM_PROMPT
 
 
 class TestLoadProfile:
@@ -102,7 +107,7 @@ class TestLoadProfile:
         conn.close()
         profile = coach.load_profile(args(user="alice", db=str(db)))
         assert profile is not None
-        assert "alice" in profile
+        assert "games_analyzed | 1" in profile
 
 
 class TestRemember:

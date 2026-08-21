@@ -149,7 +149,8 @@ class TestProfile:
         profile = build_profile(conn, "alice")
         assert [m.motif for m in profile.motifs] == ["hangs_material"]
         assert not profile.motifs[0].is_pattern
-        assert "not yet a pattern" in format_profile(profile)
+        assert profile.motifs[0].status == "once_only"
+        assert "| once_only" in format_profile(profile)
 
     def test_repeated_motif_becomes_a_pattern_with_a_count(self, conn):
         for i in range(MIN_OCCURRENCES_FOR_PATTERN):
@@ -157,8 +158,9 @@ class TestProfile:
         profile = build_profile(conn, "alice")
         stat = profile.motifs[0]
         assert stat.is_pattern
+        assert stat.status == "recurring"
         assert stat.occurrences == MIN_OCCURRENCES_FOR_PATTERN
-        assert "Recurring patterns" in format_profile(profile)
+        assert "| recurring" in format_profile(profile)
 
     def test_average_cost_is_reported_not_a_summed_percentage(self, conn):
         """Summed win-probability runs past 100% and reads as a bug; the average doesn't."""
@@ -167,7 +169,7 @@ class TestProfile:
         stat = build_profile(conn, "alice").motifs[0]
         assert stat.win_prob_lost == pytest.approx(1.0)  # 4 x 0.25 — over 100%
         assert stat.avg_win_prob_lost == pytest.approx(0.25)
-        assert "25% win probability each time" in format_profile(build_profile(conn, "alice"))
+        assert "| 25% |" in format_profile(build_profile(conn, "alice"))
 
     def test_window_limits_to_recent_games(self, conn):
         for i in range(5):
@@ -201,12 +203,16 @@ class TestProfile:
         assert [o.eco for o in openings] == ["C50"]
         assert openings[0].games == 2
 
-    def test_untagged_mistakes_still_say_something_honest(self, conn):
-        """A positional error tags no motif, and the profile must not imply otherwise."""
+    def test_untagged_mistakes_produce_no_pattern_table_at_all(self, conn):
+        """A positional error tags no motif, and the profile must not imply otherwise.
+
+        Absence is the signal: no `pattern` header means nothing was tagged, and the
+        system prompt tells the model how to read that."""
         quiet = report(moves=[move(quality="inaccuracy", cp_loss=40, fen_before=HANG_FEN)])
         ingest_game(conn, pgn(), quiet, "alice")
         text = format_profile(build_profile(conn, "alice"))
-        assert "No motif-tagged mistakes yet" in text
+        assert "pattern | occurrences" not in text
+        assert "total_mistakes | 1" in text
 
 
 class TestProfileIsSafeInsideTheFactsBlock:
