@@ -83,6 +83,21 @@ class OpeningStat:
     games: int
     acpl: float
 
+    @property
+    def name(self) -> str:
+        """The opening as it is safe to print into a coaching prompt.
+
+        A handful of opening names carry move notation ("King's Indian Attack, with e6").
+        The profile is rendered *into the facts block*, and the grounding checker treats
+        everything in that block as a move the coach is licensed to cite — so a name like
+        that would quietly authorize citing ``e6`` in a game where it was never played.
+        Rare enough (1 in 108 across the corpus) that dropping to the bare ECO code costs
+        nothing and closes the hole.
+        """
+        from eval.grounding import extract_moves
+
+        return f"{self.eco} {self.opening}" if not extract_moves(self.opening) else self.eco
+
 
 @dataclass(frozen=True)
 class Trend:
@@ -331,7 +346,7 @@ def format_profile(profile: PlayerProfile) -> str:
         lines.append("")
         worst = profile.openings[0]
         lines.append(
-            f"Worst-scoring opening so far: {worst.eco} {worst.opening} — "
+            f"Worst-scoring opening so far: {worst.name} — "
             f"{worst.games} games, average centipawn loss {worst.acpl}."
         )
 

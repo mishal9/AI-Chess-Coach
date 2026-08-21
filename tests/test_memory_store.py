@@ -207,3 +207,30 @@ class TestProfile:
         ingest_game(conn, pgn(), quiet, "alice")
         text = format_profile(build_profile(conn, "alice"))
         assert "No motif-tagged mistakes yet" in text
+
+
+class TestProfileIsSafeInsideTheFactsBlock:
+    """The profile gets rendered into the coach's facts block, and the grounding checker
+    treats that block as the set of moves the coach may cite. Anything move-like that
+    leaks in from *past* games licenses a citation in *this* one."""
+
+    def test_a_rendered_profile_names_no_moves(self, conn):
+        from eval.grounding import extract_moves
+
+        for i in range(3):
+            ingest_game(conn, pgn(moves=f"1. e4 e5 {i} 1-0"), report(), "alice")
+        assert extract_moves(format_profile(build_profile(conn, "alice"))) == set()
+
+    def test_an_opening_name_containing_notation_falls_back_to_its_eco(self, conn):
+        from eval.grounding import extract_moves
+
+        hostile = report()
+        for i in range(2):
+            game_pgn = pgn(moves=f"1. Nf3 d5 {i} 1-0").replace(
+                '[Opening "Italian Game"]', '[Opening "King\'s Indian Attack, with e6"]'
+            )
+            ingest_game(conn, game_pgn, {**hostile, "opening": "King's Indian Attack, with e6"},
+                        "alice")
+        profile = build_profile(conn, "alice")
+        assert profile.openings and profile.openings[0].name == "C50"
+        assert extract_moves(format_profile(profile)) == set()
