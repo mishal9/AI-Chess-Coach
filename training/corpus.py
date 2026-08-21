@@ -70,6 +70,16 @@ def _normalized_movetext(pgn: str) -> str:
     return " ".join(body.split())
 
 
+def movetext_hash(pgn: str) -> str:
+    """Source-independent identity for a game: a digest of its moves alone.
+
+    Unlike :func:`game_key` this never prefers a site id, so the *same* game exported
+    twice with different tags hashes the same both times. That is what makes it safe as
+    a deduplication key for anything that counts games.
+    """
+    return hashlib.sha256(_normalized_movetext(pgn).encode("utf-8")).hexdigest()[:16]
+
+
 def game_key(pgn: str) -> str:
     """A stable identity for one game, preferring its Lichess id, else a movetext hash.
 
@@ -84,8 +94,7 @@ def game_key(pgn: str) -> str:
                 return f"id:{m_id}"
     if m:
         return f"id:{m.group(1)}"
-    digest = hashlib.sha256(_normalized_movetext(pgn).encode("utf-8")).hexdigest()[:16]
-    return f"moves:{digest}"
+    return f"moves:{movetext_hash(pgn)}"
 
 
 def heldout_fingerprints(heldout_dir: Path = HELDOUT_DIR) -> set[str]:
@@ -98,10 +107,7 @@ def heldout_fingerprints(heldout_dir: Path = HELDOUT_DIR) -> set[str]:
     for pgn_file in sorted(heldout_dir.glob("*.pgn")):
         for game in split_pgn(pgn_file.read_text(encoding="utf-8")):
             prints.add(game_key(game))
-            digest = hashlib.sha256(
-                _normalized_movetext(game).encode("utf-8")
-            ).hexdigest()[:16]
-            prints.add(f"moves:{digest}")
+            prints.add(f"moves:{movetext_hash(game)}")
     return prints
 
 
@@ -128,10 +134,7 @@ def assemble(
     seen: set[str] = set(heldout)
     for game in games:
         key = game_key(game)
-        digest = hashlib.sha256(
-            _normalized_movetext(game).encode("utf-8")
-        ).hexdigest()[:16]
-        move_key = f"moves:{digest}"
+        move_key = f"moves:{movetext_hash(game)}"
         if key in seen or move_key in seen:
             continue
         if _ply_count(game) < min_plies:
