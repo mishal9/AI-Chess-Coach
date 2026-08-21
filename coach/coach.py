@@ -10,6 +10,9 @@ Usage:
     python -m coach.coach game.pgn --depth 18 --game-index 1
     python -m coach.coach --from-json report.json        # coach a saved report
     python -m coach.coach game.pgn --show-facts          # print the facts block only
+
+    # coach against the player's stored history, then remember this game too
+    python -m coach.coach game.pgn --user mishal9 --remember
 """
 
 from __future__ import annotations
@@ -67,7 +70,41 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="print the facts block sent to the model and exit (no LLM call)",
     )
+    parser.add_argument(
+        "--user",
+        help="coach against this player's stored history (see memory.store)",
+    )
+    parser.add_argument(
+        "--db", help="memory database to read history from (default: data/memory.db)"
+    )
+    parser.add_argument(
+        "--last",
+        type=int,
+        help="only summarise this many most-recent games in the history",
+    )
+    parser.add_argument(
+        "--remember",
+        action="store_true",
+        help="also store this game in --user's memory after coaching",
+    )
     return parser
+
+
+def load_profile(args: argparse.Namespace) -> str | None:
+    """Plain-text history for ``--user``, or ``None`` when there is nothing to say.
+
+    A player with no stored games gets no history section rather than an empty one — an
+    empty section invites the model to fill the silence.
+    """
+    if not args.user:
+        return None
+    # Imported lazily so plain coaching needs neither sqlite nor the memory package.
+    from memory.profile import build_profile, format_profile
+    from memory.store import DEFAULT_DB, connect
+
+    conn = connect(args.db or DEFAULT_DB)
+    profile = build_profile(conn, args.user, args.last)
+    return None if profile.is_empty else format_profile(profile)
 
 
 def load_report(args: argparse.Namespace) -> dict:
@@ -86,8 +123,19 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     report = load_report(args)
 
-    coached_side = args.side or prompts.choose_coached_side(report)
-    messages = prompts.build_messages(report, coached_side, args.max_mistakes)
+    if args.user:
+        # Resolve the side from the player's name where possible, so `--user` coaches
+        # *you* rather than whoever happened to play worse.
+        from memory.store import resolve_side
+
+        coached_side = resolve_side(report, args.user, args.side)
+    else:
+        coached_side = args.side or prompts.choose_coached_side(report)
+
+    # Built before this game is stored: a history that already included the game being
+    # coached would let "the fourth time" count itself.
+    profile = load_profile(args)
+    messages = prompts.build_messages(report, coached_side, args.max_mistakes, profile)
 
     if args.show_facts:
         # The user message carries the facts block; print it for inspection/debugging.
@@ -103,7 +151,46 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(coaching)
+
+    if args.remember:
+        remember(args, report, coached_side)
     return 0
+
+
+def remember(args: argparse.Namespace, report: dict, coached_side: str) -> None:
+    """Store the just-coached game in the player's memory, if we can identify it."""
+    if not args.user:
+        print("Nothing remembered: --remember needs --user.", file=sys.stderr)
+        return
+    if not args.pgn:
+        # A saved JSON report has no movetext, and movetext is the dedup key.
+        print(
+            "Nothing remembered: --remember needs the PGN (not --from-json).",
+            file=sys.stderr,
+        )
+        return
+
+    from memory.store import DEFAULT_DB, connect, ingest_game
+    from training.corpus import split_pgn
+
+    games = split_pgn(Path(args.pgn).read_text(encoding="utf-8"))
+    if args.game_index >= len(games):  # pragma: no cover - load_report already checked
+        return
+    conn = connect(args.db or DEFAULT_DB)
+    stored = ingest_game(
+        conn,
+        games[args.game_index],
+        report,
+        args.user,
+        side=coached_side,
+        depth=args.depth,
+    )
+    print(
+        f"Remembered this game for {args.user}."
+        if stored
+        else f"Already in {args.user}'s memory — not counted twice.",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

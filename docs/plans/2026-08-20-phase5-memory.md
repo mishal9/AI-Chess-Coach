@@ -111,7 +111,21 @@ frequency number the coach cites becomes a lie.
 - trend: motif rate over the window's first half vs second half
 - worst openings by ECO
 
-## PR3 — profile injection into the coach prompt
+## PR3 — profile injection into the coach prompt — DONE
+
+`--profile=None` produces a **byte-identical** facts block, so committed eval reports stay
+comparable; a test asserts it, and a second asserts that adding history does not widen the set
+of moves `eval.grounding` will license.
+
+The history section is built **before** the current game is stored, or "the fourth time" would
+count itself. `--user` also resolves the coached side by player name via `resolve_side`.
+
+Verified live on `qwen-coach-8b-v2`, which produced: *"you left material hanging six times and
+walked into forks four times across past games. This isn't just one-off lapses; these are
+recurring patterns."* Every number in the output — 21.2 ACPL, `31.Bc1`, `Rb7`, 13%, 6, 4, 2.57 —
+checks out against the facts block. No hallucination.
+
+### Original design notes
 
 `format_player_profile()` emits a block that joins the existing facts block, and the system
 prompt gets a PROFILE section under the **same strict grounding discipline** as the move facts:
