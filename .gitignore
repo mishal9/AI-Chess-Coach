@@ -25,6 +25,10 @@ models/*
 # Phase 3 distillation artifacts: bulky + reproducible (regenerate via training.*).
 # NOTE: git has no inline comments — keep these as bare patterns on their own lines.
 data/games/
+# Player memory databases: a local, reproducible artifact rebuilt by
+# `python -m memory.store`, and it holds the user's own game history.
+data/*.db
+data/*.db-journal
 data/distill/*
 training/datasets/*/*.jsonl
 # ...but VERSION the moat: it cost real Opus calls to make and isn't cheaply reproducible.

@@ -73,7 +73,25 @@ motifs fire correctly. **The held-out set is the wrong fixture for amateur-mista
 A promotion at the end of a PV inflated one hang to 1130cp (really 330 — a bishop);
 `exchange_window()` now cuts the line before any promotion. 25 tests, 254 total.
 
-## PR2 — `memory/store.py` + `memory/profile.py`
+## PR2 — `memory/store.py` + `memory/profile.py` — DONE
+
+Stdlib `sqlite3`, no ORM, no migration tool, no pandas: three tables and `GROUP BY`.
+
+Two corrections the build surfaced:
+
+- **`choose_coached_side` was the wrong default.** It picks the *worse-playing* side, so
+  ingesting your own games would have silently folded your opponents' mistakes into your
+  profile whenever you outplayed them. `resolve_side()` now matches the PGN's player names
+  against the username first and only falls back to worse-side for third-party PGNs.
+- **Summed win-probability reads as a bug.** Ranking by total damage is right, but printing
+  it gave "costing about 125% win probability". The total still ranks; the *average per
+  occurrence* is what gets rendered.
+
+`training.corpus.movetext_hash()` extracted (it was inlined three times) and reused as the
+dedup key. Deliberately not `game_key()` — that prefers a Lichess id, so the same game
+re-exported without the tag would count twice, and this is the number the coach says out loud.
+
+Verified on 14 real maia1 games: 33 mistakes, 11 motif tags, and a re-run stored 0 / skipped 14.
 
 ```sql
 games(id, source, source_game_id, pgn_hash UNIQUE, white, black, result, eco, opening,
