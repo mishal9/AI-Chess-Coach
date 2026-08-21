@@ -19,6 +19,8 @@ import argparse
 import sqlite3
 import sys
 from dataclasses import dataclass, field
+from math import sqrt
+from statistics import variance
 
 from memory.store import DEFAULT_DB, connect
 
@@ -107,6 +109,12 @@ class Trend:
     later_mistakes_per_game: float
     earlier_acpl: float
     later_acpl: float
+    earlier_damage_per_game: float
+    later_damage_per_game: float
+    # Per-game mistake counts behind the two means, kept so the noise floor can be
+    # computed from the data instead of a guessed constant.
+    earlier_counts: tuple[int, ...] = ()
+    later_counts: tuple[int, ...] = ()
 
     @property
     def mistakes_delta(self) -> float:
@@ -116,6 +124,48 @@ class Trend:
     @property
     def acpl_delta(self) -> float:
         return round(self.later_acpl - self.earlier_acpl, 1)
+
+    @property
+    def damage_delta(self) -> float:
+        """Change in win probability thrown away per game. Negative is improvement.
+
+        Severity-weighted, so a blunder and an inaccuracy stop counting the same. This is
+        the signal :attr:`direction` is judged on: the raw count flips on a threshold (a
+        move at 0.099 vs 0.101 win-probability loss changes it by a whole unit), while
+        damage moves smoothly with how badly you actually played.
+        """
+        return round(self.later_damage_per_game - self.earlier_damage_per_game, 3)
+
+    @property
+    def noise_floor(self) -> float:
+        """Standard error of the difference in mistakes per game.
+
+        Two halves of a short game history differ by chance alone. This is how much
+        they'd typically differ *without* any real change, so a gap smaller than it is
+        not evidence of anything.
+        """
+        if len(self.earlier_counts) < 2 or len(self.later_counts) < 2:
+            return float("inf")
+        earlier = variance(self.earlier_counts) / len(self.earlier_counts)
+        later = variance(self.later_counts) / len(self.later_counts)
+        return sqrt(earlier + later)
+
+    @property
+    def direction(self) -> str:
+        """``"improving"``, ``"declining"``, or ``"unclear"``.
+
+        Deliberately conservative. Telling a player they are getting worse on the strength
+        of three extra mistakes across seven games is both wrong and discouraging, and
+        this project has already been fooled twice by exactly this size of sample — the
+        "concentrated weakness" reading that turned out to be noise, and the 6-game
+        held-out set that had to grow to 29.
+
+        The bar is one standard error: a weak test on purpose, because the question is
+        only "is this worth mentioning at all", not "is this significant".
+        """
+        if abs(self.mistakes_delta) <= self.noise_floor:
+            return "unclear"
+        return "improving" if self.mistakes_delta < 0 else "declining"
 
 
 @dataclass(frozen=True)
@@ -225,8 +275,26 @@ def _opening_stats(conn: sqlite3.Connection, ids: list[int]) -> list[OpeningStat
     ]
 
 
-def _half_stats(conn: sqlite3.Connection, ids: list[int]) -> tuple[float, float]:
-    """``(mistakes_per_game, acpl)`` for a set of games."""
+def _per_game_counts(conn: sqlite3.Connection, ids: list[int]) -> list[int]:
+    """Flagged-mistake count for each game, individually.
+
+    The per-game spread is what makes a noise floor computable; a mean alone cannot say
+    how much two halves would differ by chance.
+    """
+    rows = conn.execute(
+        f"""
+        SELECT blunders + mistakes + inaccuracies AS total
+        FROM games WHERE id IN ({_placeholders(ids)})
+        """,
+        ids,
+    ).fetchall()
+    return [row["total"] for row in rows]
+
+
+def _half_stats(
+    conn: sqlite3.Connection, ids: list[int]
+) -> tuple[float, float, float, list[int]]:
+    """``(mistakes_per_game, acpl, damage_per_game, per_game_counts)`` for a set of games."""
     row = conn.execute(
         f"""
         SELECT COUNT(*) AS games,
@@ -236,8 +304,20 @@ def _half_stats(conn: sqlite3.Connection, ids: list[int]) -> tuple[float, float]
         """,
         ids,
     ).fetchone()
+    damage = conn.execute(
+        f"""
+        SELECT COALESCE(SUM(win_prob_loss), 0) AS damage
+        FROM mistakes WHERE game_id IN ({_placeholders(ids)})
+        """,
+        ids,
+    ).fetchone()["damage"]
     games = row["games"] or 1
-    return round(row["total"] / games, 2), round(row["acpl"] or 0.0, 1)
+    return (
+        round(row["total"] / games, 2),
+        round(row["acpl"] or 0.0, 1),
+        round(damage / games, 3),
+        _per_game_counts(conn, ids),
+    )
 
 
 def _trend(conn: sqlite3.Connection, ids: list[int]) -> Trend | None:
@@ -245,8 +325,8 @@ def _trend(conn: sqlite3.Connection, ids: list[int]) -> Trend | None:
         return None
     midpoint = len(ids) // 2
     earlier, later = ids[:midpoint], ids[midpoint:]
-    earlier_rate, earlier_acpl = _half_stats(conn, earlier)
-    later_rate, later_acpl = _half_stats(conn, later)
+    earlier_rate, earlier_acpl, earlier_damage, earlier_counts = _half_stats(conn, earlier)
+    later_rate, later_acpl, later_damage, later_counts = _half_stats(conn, later)
     return Trend(
         earlier_games=len(earlier),
         later_games=len(later),
@@ -254,6 +334,10 @@ def _trend(conn: sqlite3.Connection, ids: list[int]) -> Trend | None:
         later_mistakes_per_game=later_rate,
         earlier_acpl=earlier_acpl,
         later_acpl=later_acpl,
+        earlier_damage_per_game=earlier_damage,
+        later_damage_per_game=later_damage,
+        earlier_counts=tuple(earlier_counts),
+        later_counts=tuple(later_counts),
     )
 
 
@@ -352,19 +436,31 @@ def format_profile(profile: PlayerProfile) -> str:
 
     if profile.trend is not None:
         trend = profile.trend
-        direction = (
-            "fewer" if trend.mistakes_delta < 0
-            else "more" if trend.mistakes_delta > 0
-            else "the same number of"
-        )
         lines.append("")
         lines.append(
             f"Trend: over the most recent {trend.later_games} games you averaged "
             f"{trend.later_mistakes_per_game} mistakes per game "
             f"(centipawn loss {trend.later_acpl}), versus "
             f"{trend.earlier_mistakes_per_game} (centipawn loss {trend.earlier_acpl}) "
-            f"in the {trend.earlier_games} before that — {direction} mistakes lately."
+            f"in the {trend.earlier_games} before that."
         )
+        if trend.direction == "unclear":
+            # Say this explicitly rather than leaving the two numbers to speak for
+            # themselves — a reader handed "2.57 versus 2.14" will draw a conclusion
+            # from it, and at this sample size there isn't one to draw.
+            lines.append(
+                "That difference is smaller than the normal game-to-game variation, so "
+                "it does NOT show you getting better or worse — treat it as level and "
+                "do not describe a direction of travel."
+            )
+        else:
+            better = trend.direction == "improving"
+            lines.append(
+                f"Weighted by how costly each mistake was, you are throwing away "
+                f"{trend.later_damage_per_game * 100:.0f}% win probability per game "
+                f"lately versus {trend.earlier_damage_per_game * 100:.0f}% before — "
+                f"a real move in the {'right' if better else 'wrong'} direction."
+            )
 
     return "\n".join(lines)
 
