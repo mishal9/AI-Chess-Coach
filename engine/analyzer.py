@@ -31,6 +31,11 @@ from engine.stockfish import find_stockfish
 
 DEFAULT_DEPTH = 15
 
+# How much of the engine's principal variation to keep per move. Long enough to show why
+# a move lost material (capture, recapture, and the follow-up), short enough that a report
+# for a 60-move game stays a reasonable size.
+MAX_PV_PLIES = 8
+
 
 @dataclass
 class MoveAnalysis:
@@ -47,6 +52,7 @@ class MoveAnalysis:
     win_prob_loss: float     # drop in mover's win probability; drives `quality`
     quality: MoveQuality
     fen_before: str          # position the move was played from
+    pv: list[str] = field(default_factory=list)  # engine's best line from `fen_before`, SAN
 
     def to_dict(self) -> dict:
         """JSON-serialisable view (enum → its string value)."""
@@ -62,6 +68,7 @@ class MoveAnalysis:
             "win_prob_loss": round(self.win_prob_loss, 4),
             "quality": self.quality.value,
             "fen_before": self.fen_before,
+            "pv": self.pv,
         }
 
 
@@ -131,8 +138,12 @@ def evaluate_position(
     engine: chess.engine.SimpleEngine,
     board: chess.Board,
     limit: chess.engine.Limit,
-) -> tuple[int, chess.Move | None]:
-    """Return ``(white_pov_centipawns, best_move)`` for a position.
+) -> tuple[int, list[chess.Move]]:
+    """Return ``(white_pov_centipawns, principal_variation)`` for a position.
+
+    The full PV — not just its first move — because it *is* the engine's tactical
+    justification: the line that refutes a blunder shows what was actually lost, so
+    downstream consumers don't have to re-derive the tactics by hand.
 
     Game-over positions are scored directly (Stockfish can't analyse them): a
     checkmate is ±MATE_CP depending on who is mated; other terminal states are 0.
@@ -141,16 +152,30 @@ def evaluate_position(
         if board.is_checkmate():
             # The side to move has been mated.
             cp = -MATE_CP if board.turn == chess.WHITE else MATE_CP
-            return cp, None
-        return 0, None  # stalemate / insufficient material / draw
+            return cp, []
+        return 0, []  # stalemate / insufficient material / draw
 
     info = engine.analyse(board, limit)
     pov = info["score"].white()  # normalize to White's perspective
     mate = pov.mate()
     cp = mate_to_cp(mate) if mate is not None else pov.score()
-    pv = info.get("pv")
-    best = pv[0] if pv else None
-    return cp, best
+    return cp, list(info.get("pv") or [])[:MAX_PV_PLIES]
+
+
+def pv_to_san(board: chess.Board, pv: list[chess.Move]) -> list[str]:
+    """Render a principal variation as SAN, stopping at the first illegal move.
+
+    Defensive because a PV is only guaranteed legal for the position it came from, and
+    a truncated or stale line should degrade to what it can render, not raise.
+    """
+    line: list[str] = []
+    replay = board.copy(stack=False)
+    for move in pv:
+        if not replay.is_legal(move):
+            break
+        line.append(replay.san(move))
+        replay.push(move)
+    return line
 
 
 def analyze_game(
@@ -178,22 +203,23 @@ def analyze_game(
         )
 
         board = game.board()
-        cur_eval, cur_best = evaluate_position(engine, board, limit)
+        cur_eval, cur_pv = evaluate_position(engine, board, limit)
 
         ply = 0
         for move in game.mainline_moves():
             mover_is_white = board.turn == chess.WHITE
             eval_before = cur_eval
-            best_move = cur_best
+            best_move = cur_pv[0] if cur_pv else None
             san = board.san(move)
             best_san = board.san(best_move) if best_move else None
+            pv_san = pv_to_san(board, cur_pv)
             fen_before = board.fen()
 
             played_best = best_move is not None and move == best_move
 
             board.push(move)
             ply += 1
-            cur_eval, cur_best = evaluate_position(engine, board, limit)
+            cur_eval, cur_pv = evaluate_position(engine, board, limit)
 
             if played_best:
                 # You can't be blamed for playing the engine's own top choice. This also
@@ -217,6 +243,7 @@ def analyze_game(
                     win_prob_loss=wp_loss,
                     quality=classify(wp_loss),
                     fen_before=fen_before,
+                    pv=pv_san,
                 )
             )
         return report
