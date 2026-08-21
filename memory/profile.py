@@ -4,9 +4,14 @@ Every number here is a ``GROUP BY`` over :mod:`memory.store`. That is the whole 
 for a relational store: "which mistake costs you most", "are you improving", and "how many
 times now" are counting questions, and counting is what SQL is for.
 
-The renderer is deliberately blunt about sample size. A pattern seen once is not a
-pattern, and a profile that says so keeps the coach from turning a single bad game into a
-character flaw.
+The renderer emits facts and *statuses* (``recurring``/``once_only``, ``improving``/
+``unclear``), not prose. Everything downstream is a coaching model whose whole job is
+turning facts into language; writing sentences here would duplicate that job and do it
+worse. How to speak about each status lives in the system prompt instead.
+
+What stays computed here is every number, because the model provably gets chess facts
+wrong often enough that a count it derived itself could not be trusted — and a wrong count
+stated confidently is worse than no count at all.
 
 Usage:
     python -m memory.profile --user mishal9
@@ -55,6 +60,16 @@ class MotifStat:
     @property
     def is_pattern(self) -> bool:
         return self.occurrences >= MIN_OCCURRENCES_FOR_PATTERN
+
+    @property
+    def status(self) -> str:
+        """``"recurring"`` or ``"once_only"`` — emitted as a field, not as prose.
+
+        The distinction matters (one bad game is not a weakness) but saying so is the
+        coaching model's job. We state which case this is; the system prompt says how to
+        talk about each.
+        """
+        return "recurring" if self.is_pattern else "once_only"
 
     @property
     def avg_win_prob_lost(self) -> float:
@@ -374,95 +389,77 @@ def build_profile(
     )
 
 
-def format_profile(profile: PlayerProfile) -> str:
-    """Render a profile as plain factual lines.
+def _table(header: str, rows: list[tuple]) -> list[str]:
+    """A header row plus its data rows, or nothing at all when there is no data.
 
-    Written to be quotable: every claim carries its own count, so a reader — human or
-    model — cannot upgrade "twice" into "always" without contradicting the text in front
-    of it.
+    Absence is meaningful and cheaper than a placeholder: no ``pattern`` table means no
+    tactical pattern has been tagged, and the system prompt says how to read that.
+    """
+    if not rows:
+        return []
+    return [header] + [" | ".join(str(cell) for cell in row) for row in rows]
+
+
+def _pct(value: float) -> str:
+    return f"{value * 100:.0f}%"
+
+
+def _trend_block(trend: Trend | None) -> list[str]:
+    """The trend as three comparable measures, plus the verdict on whether it is real."""
+    if trend is None:
+        return []
+    return [
+        "measure | recent | earlier | normal_variation | verdict",
+        f"mistakes_per_game | {trend.later_mistakes_per_game} | "
+        f"{trend.earlier_mistakes_per_game} | {trend.noise_floor:.2f} | {trend.direction}",
+        f"centipawn_loss | {trend.later_acpl} | {trend.earlier_acpl} | - | -",
+        f"damage_per_game | {_pct(trend.later_damage_per_game)} | "
+        f"{_pct(trend.earlier_damage_per_game)} | - | -",
+        f"games_compared | {trend.later_games} | {trend.earlier_games} | - | -",
+    ]
+
+
+def format_profile(profile: PlayerProfile) -> str:
+    """Render a profile as structured ``a | b | c`` rows under header lines.
+
+    Deliberately not prose. Everything downstream of this is a coaching model whose whole
+    job is turning facts into language, and hand-writing sentences here both duplicates
+    that job and does it worse — the model can weave a pattern into the rest of its
+    advice, while a canned sentence can only sit next to it.
+
+    So this emits facts and *statuses* (``recurring`` / ``once_only``, ``improving`` /
+    ``unclear``); how to speak about each status lives in the system prompt. The numbers
+    stay computed here because the model provably gets chess facts wrong often enough
+    that a count it derived itself could not be trusted, and a wrong count stated
+    confidently is worse than no count.
     """
     if profile.is_empty:
         return f"No games stored yet for {profile.user}."
 
-    lines = [
-        f"Across {profile.games} analyzed game(s), {profile.user} made "
-        f"{profile.mistakes} flagged mistakes (average centipawn loss {profile.acpl}).",
+    blocks = [
+        [
+            f"games_analyzed | {profile.games}",
+            f"total_mistakes | {profile.mistakes}",
+            f"average_centipawn_loss | {profile.acpl}",
+        ],
+        _table(
+            "pattern | occurrences | games | avg_cost | status",
+            [
+                (m.label, m.occurrences, m.games, _pct(m.avg_win_prob_lost), m.status)
+                for m in profile.motifs
+            ],
+        ),
+        _table(
+            "phase | mistakes | avg_cost",
+            [(p.phase, p.mistakes, _pct(p.avg_win_prob_lost)) for p in profile.phases],
+        ),
+        _table(
+            "opening | games | centipawn_loss",
+            [(o.name, o.games, o.acpl) for o in profile.openings],
+        ),
+        _trend_block(profile.trend),
     ]
-
-    patterns = [m for m in profile.motifs if m.is_pattern]
-    incidents = [m for m in profile.motifs if not m.is_pattern]
-
-    if patterns:
-        lines.append("")
-        lines.append("Recurring patterns (most costly first):")
-        for stat in patterns:
-            lines.append(
-                f"- {stat.label}: {stat.occurrences} times across {stat.games} game(s), "
-                f"costing about {stat.avg_win_prob_lost * 100:.0f}% win probability each time."
-            )
-    if incidents:
-        lines.append("")
-        lines.append(
-            "Seen only once so far (not yet a pattern): "
-            + ", ".join(f"{s.label}" for s in incidents)
-            + "."
-        )
-    if not profile.motifs:
-        lines.append("")
-        lines.append(
-            "No motif-tagged mistakes yet — the errors so far were positional rather "
-            "than the tactical patterns this profile recognizes."
-        )
-
-    if profile.phases:
-        lines.append("")
-        worst = profile.phases[0]
-        lines.append(
-            f"Most damage happens in the {worst.phase}: {worst.mistakes} mistakes there, "
-            f"costing about {worst.avg_win_prob_lost * 100:.0f}% win probability each."
-        )
-        others = ", ".join(f"{p.phase} {p.mistakes}" for p in profile.phases[1:])
-        if others:
-            lines.append(f"By phase, mistake counts are: {worst.phase} "
-                         f"{worst.mistakes}, {others}.")
-
-    if profile.openings:
-        lines.append("")
-        worst = profile.openings[0]
-        lines.append(
-            f"Worst-scoring opening so far: {worst.name} — "
-            f"{worst.games} games, average centipawn loss {worst.acpl}."
-        )
-
-    if profile.trend is not None:
-        trend = profile.trend
-        lines.append("")
-        lines.append(
-            f"Trend: over the most recent {trend.later_games} games you averaged "
-            f"{trend.later_mistakes_per_game} mistakes per game "
-            f"(centipawn loss {trend.later_acpl}), versus "
-            f"{trend.earlier_mistakes_per_game} (centipawn loss {trend.earlier_acpl}) "
-            f"in the {trend.earlier_games} before that."
-        )
-        if trend.direction == "unclear":
-            # Say this explicitly rather than leaving the two numbers to speak for
-            # themselves — a reader handed "2.57 versus 2.14" will draw a conclusion
-            # from it, and at this sample size there isn't one to draw.
-            lines.append(
-                "That difference is smaller than the normal game-to-game variation, so "
-                "it does NOT show you getting better or worse — treat it as level and "
-                "do not describe a direction of travel."
-            )
-        else:
-            better = trend.direction == "improving"
-            lines.append(
-                f"Weighted by how costly each mistake was, you are throwing away "
-                f"{trend.later_damage_per_game * 100:.0f}% win probability per game "
-                f"lately versus {trend.earlier_damage_per_game * 100:.0f}% before — "
-                f"a real move in the {'right' if better else 'wrong'} direction."
-            )
-
-    return "\n".join(lines)
+    return "\n\n".join("\n".join(block) for block in blocks if block)
 
 
 def build_parser() -> argparse.ArgumentParser:

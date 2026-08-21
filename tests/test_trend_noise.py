@@ -81,8 +81,10 @@ class TestRendering:
     def test_unclear_says_so_instead_of_leaving_numbers_to_imply_it(self, conn):
         ingest_series(conn, [1, 3, 4, 1, 5, 1, 0] + [1, 1, 4, 3, 3, 1, 5])
         text = format_profile(build_profile(conn, "alice"))
-        assert "does NOT show you getting better or worse" in text
-        assert "do not describe a direction of travel" in text
+        assert "| unclear" in text
+        # The renderer states the verdict; the prompt forbids describing a direction.
+        from coach.prompts import SYSTEM_PROMPT
+        assert "must NOT tell the student they" in SYSTEM_PROMPT
 
     def test_the_old_unconditional_verdict_is_gone(self, conn):
         """The bug this PR fixes: 'more mistakes lately' stated flatly off noise."""
@@ -94,15 +96,16 @@ class TestRendering:
     def test_a_real_change_is_reported_with_severity_weighting(self, conn):
         ingest_series(conn, [5, 6, 5, 6, 5, 6] + [0, 1, 0, 1, 0, 1])
         text = format_profile(build_profile(conn, "alice"))
-        assert "right direction" in text
-        assert "win probability per game" in text
+        assert "| improving" in text
+        assert "damage_per_game" in text
 
     def test_the_raw_numbers_are_always_shown(self, conn):
         """Gating the verdict must not hide the data behind it."""
         ingest_series(conn, [1, 3, 4, 1, 5, 1, 0] + [1, 1, 4, 3, 3, 1, 5])
         text = format_profile(build_profile(conn, "alice"))
-        assert "mistakes per game" in text
-        assert "centipawn loss" in text
+        assert "mistakes_per_game" in text
+        assert "centipawn_loss" in text
+        assert "normal_variation" in text
 
 
 class TestDamageWeighting:

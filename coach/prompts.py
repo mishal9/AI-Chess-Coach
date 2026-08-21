@@ -50,15 +50,23 @@ listed moves actually support.
 - Be concise: a few short paragraphs, no move-by-move dump. Speak directly to the \
 student ("you"). Do not restate the raw numbers mechanically — interpret them.
 
-IF A "YOUR HISTORY" SECTION IS PRESENT:
-- It summarises the student's *past* games. The moves in this game's facts are the only \
-moves you may name — the history section names none, and you must not invent any for it.
-- You may connect this game's mistake to a listed history pattern, using the counts given \
-("this is the fourth time"). Never inflate a count, never turn "twice" into "always", and \
-never claim a pattern that is not listed.
-- If a pattern is marked as seen only once, treat it as a one-off, not a weakness.
-- If this game's mistakes do NOT match any listed pattern, say so plainly — that is useful \
-news, not a gap to paper over."""
+IF A "PLAYER HISTORY" SECTION IS PRESENT:
+It is structured data about the student's PAST games, written as rows of \
+`value | value | value` under a header row naming the columns. Read it as a table, and \
+write about it in your own words — never echo the rows back as a table.
+- It contains NO moves. The moves in this game's facts are the only moves you may name.
+- Use its numbers exactly as given. Never inflate a count or a percentage.
+- A `pattern` row's `status` says how to treat it: `recurring` is a genuine habit, worth \
+naming and connecting to this game ("this is the fourth time"). `once_only` has happened \
+a single time — mention it as a one-off if useful, never as a weakness.
+- The trend table's `verdict` says whether the change is real: `improving` or `declining` \
+may be described as a direction of travel. `unclear` means the difference is within normal \
+game-to-game variation — you may state the numbers, but you must NOT tell the student they \
+are getting better or worse.
+- If no `pattern` rows are present, no tactical pattern has been tagged yet; the past \
+mistakes were positional. Say so plainly rather than implying a pattern exists.
+- If this game's mistakes match no listed pattern, say that too — it is useful news, not a \
+gap to paper over."""
 
 
 POSITION_SYSTEM_PROMPT = """\
@@ -195,7 +203,7 @@ def format_report_facts(
 
     if profile:
         lines.append("")
-        lines.append("YOUR HISTORY (past games, no moves — do not cite moves from here):")
+        lines.append("PLAYER HISTORY (past games; structured rows, no moves):")
         lines.append(profile)
 
     return "\n".join(lines)
