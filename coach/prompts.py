@@ -48,7 +48,17 @@ language why it was costly, and say what the recommended move achieves instead.
 listed moves actually support.
 - End with one or two concrete, actionable things to work on.
 - Be concise: a few short paragraphs, no move-by-move dump. Speak directly to the \
-student ("you"). Do not restate the raw numbers mechanically — interpret them."""
+student ("you"). Do not restate the raw numbers mechanically — interpret them.
+
+IF A "YOUR HISTORY" SECTION IS PRESENT:
+- It summarises the student's *past* games. The moves in this game's facts are the only \
+moves you may name — the history section names none, and you must not invent any for it.
+- You may connect this game's mistake to a listed history pattern, using the counts given \
+("this is the fourth time"). Never inflate a count, never turn "twice" into "always", and \
+never claim a pattern that is not listed.
+- If a pattern is marked as seen only once, treat it as a one-off, not a weakness.
+- If this game's mistakes do NOT match any listed pattern, say so plainly — that is useful \
+news, not a gap to paper over."""
 
 
 POSITION_SYSTEM_PROMPT = """\
@@ -124,9 +134,20 @@ def _mistake_line(m: dict) -> str:
 
 
 def format_report_facts(
-    report: dict, coached_side: str, max_mistakes: int = 6
+    report: dict, coached_side: str, max_mistakes: int = 6, profile: str | None = None
 ) -> str:
-    """Render the engine report as a compact facts block for the coached side."""
+    """Render the engine report as a compact facts block for the coached side.
+
+    ``profile`` is an optional plain-text summary of the student's past games (see
+    :func:`memory.profile.format_profile`). It is appended *inside* the facts block on
+    purpose: :mod:`eval.grounding` reconstructs this block to decide which moves the coach
+    was licensed to cite, so history that lived outside it would be invisible to the
+    metric. The profile renderer is required to name no moves, which keeps that licence
+    exactly as wide as it was before.
+
+    With ``profile=None`` the output is byte-identical to the pre-memory version, so
+    existing reports and eval baselines stay comparable.
+    """
     summary = report["summary"]
     opponent = "black" if coached_side == "white" else "white"
     player_name = report.get(coached_side, "?")
@@ -172,22 +193,32 @@ def format_report_facts(
             "than one big error — likely defending a steadily worse position."
         )
 
+    if profile:
+        lines.append("")
+        lines.append("YOUR HISTORY (past games, no moves — do not cite moves from here):")
+        lines.append(profile)
+
     return "\n".join(lines)
 
 
 def build_messages(
-    report: dict, coached_side: str | None = None, max_mistakes: int = 6
+    report: dict,
+    coached_side: str | None = None,
+    max_mistakes: int = 6,
+    profile: str | None = None,
 ) -> list[dict]:
     """Build the ``[system, user]`` chat messages for coaching one side of a game.
 
     If ``coached_side`` is ``None``, the worse-playing side is chosen automatically.
+    ``profile`` optionally carries the student's history; see
+    :func:`format_report_facts`.
     """
     if coached_side is None:
         coached_side = choose_coached_side(report)
     elif coached_side not in ("white", "black"):
         raise ValueError(f"coached_side must be 'white' or 'black', got {coached_side!r}")
 
-    facts = format_report_facts(report, coached_side, max_mistakes)
+    facts = format_report_facts(report, coached_side, max_mistakes, profile)
     user_prompt = (
         "Here is the engine analysis of the game. Coach the student based on it.\n\n"
         f"{facts}"
