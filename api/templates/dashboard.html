@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% set p = profile %}
+{% block title %}{{ p.user }} — chess coach{% endblock %}
+
+{% block body %}
+<h1>{{ p.user }}</h1>
+<p class="sub">
+  {{ p.games }} analyzed game{{ '' if p.games == 1 else 's' }}
+  {%- if window %} (most recent {{ window }} of {{ total_games }}){% endif %}
+</p>
+
+<div class="stats">
+  <div class="stat"><div class="n">{{ p.mistakes }}</div><div class="k">flagged mistakes</div></div>
+  <div class="stat"><div class="n">{{ p.acpl }}</div><div class="k">avg centipawn loss</div></div>
+  <div class="stat">
+    <div class="n">{{ "%.1f"|format(p.mistakes / p.games) }}</div>
+    <div class="k">mistakes per game</div>
+  </div>
+</div>
+
+<h2>Recurring weaknesses</h2>
+{% if p.motifs %}
+  {# Bars are scaled to the worst offender, so they compare within this player only. #}
+  {% set worst = p.motifs[0].win_prob_lost or 1 %}
+  <div class="panel scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Pattern</th>
+          <th class="num">Times</th>
+          <th class="num">Games</th>
+          <th class="num">Typical cost</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for m in p.motifs %}
+        <tr>
+          <td>
+            {{ m.label }}
+            {% if not m.is_pattern %}<span class="tag">seen once</span>
+            {% else %}<span class="tag recurring">recurring</span>{% endif %}
+          </td>
+          <td class="num">{{ m.occurrences }}</td>
+          <td class="num">{{ m.games }}</td>
+          <td class="num">{{ "%.0f"|format(m.avg_win_prob_lost * 100) }}%</td>
+          <td style="width:9rem">
+            <span class="meter"><i style="width: {{ (100 * m.win_prob_lost / worst)|round|int }}%"></i></span>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="note">
+    “Typical cost” is the win probability an average occurrence throws away. The bar shows
+    total damage, which is what the ordering follows.
+  </p>
+{% else %}
+  <div class="panel verdict">
+    <p style="margin:0">
+      No tactical pattern has been tagged yet — the mistakes so far were positional rather
+      than the kinds this tracks.
+    </p>
+  </div>
+{% endif %}
+
+<h2>Where it goes wrong</h2>
+<div class="panel scroll">
+  <table>
+    <thead><tr><th>Phase</th><th class="num">Mistakes</th><th class="num">Typical cost</th></tr></thead>
+    <tbody>
+    {% for ph in p.phases %}
+      <tr>
+        <td>{{ ph.phase }}</td>
+        <td class="num">{{ ph.mistakes }}</td>
+        <td class="num">{{ "%.0f"|format(ph.avg_win_prob_lost * 100) }}%</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if p.openings %}
+<h2>Openings, worst first</h2>
+<div class="panel scroll">
+  <table>
+    <thead><tr><th>Opening</th><th class="num">Games</th><th class="num">Avg centipawn loss</th></tr></thead>
+    <tbody>
+    {% for o in p.openings %}
+      <tr><td>{{ o.name }}</td><td class="num">{{ o.games }}</td><td class="num">{{ o.acpl }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="note">Openings played at least twice, so a single bad game cannot top the table.</p>
+{% endif %}
+
+{% if p.trend %}
+{% set t = p.trend %}
+<h2>Are you improving?</h2>
+<div class="panel verdict {{ t.direction }}">
+  {# The unclear case must not be dressed up. A gap inside normal variation is not news. #}
+  {% if t.direction == 'unclear' %}
+    <div class="headline">Too close to call</div>
+    <p>
+      {{ t.later_mistakes_per_game }} mistakes per game across your last {{ t.later_games }},
+      against {{ t.earlier_mistakes_per_game }} in the {{ t.earlier_games }} before.
+      That gap is smaller than the {{ "%.2f"|format(t.noise_floor) }} these games normally
+      vary by, so it shows neither improvement nor decline.
+    </p>
+  {% elif t.direction == 'improving' %}
+    <div class="headline">Moving in the right direction</div>
+    <p>
+      Down to {{ t.later_mistakes_per_game }} mistakes per game from
+      {{ t.earlier_mistakes_per_game }}, and throwing away
+      {{ "%.0f"|format(t.later_damage_per_game * 100) }}% win probability per game against
+      {{ "%.0f"|format(t.earlier_damage_per_game * 100) }}% before.
+    </p>
+  {% else %}
+    <div class="headline">Slipping</div>
+    <p>
+      Up to {{ t.later_mistakes_per_game }} mistakes per game from
+      {{ t.earlier_mistakes_per_game }}, and throwing away
+      {{ "%.0f"|format(t.later_damage_per_game * 100) }}% win probability per game against
+      {{ "%.0f"|format(t.earlier_damage_per_game * 100) }}% before.
+    </p>
+  {% endif %}
+</div>
+<p class="note">
+  Average centipawn loss over the same split: {{ t.later_acpl }} recently,
+  {{ t.earlier_acpl }} before.
+</p>
+{% endif %}
+
+<h2>Window</h2>
+<p class="note">
+  Showing {{ p.games }} of {{ total_games }} stored games.
+  <a href="/player/{{ p.user }}">all</a>
+  {% for n in [10, 20, 40] %}{% if n < total_games %}
+    · <a href="/player/{{ p.user }}?last={{ n }}">last {{ n }}</a>
+  {% endif %}{% endfor %}
+</p>
+{% endblock %}
