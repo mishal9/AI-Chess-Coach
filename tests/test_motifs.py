@@ -213,3 +213,37 @@ class TestTagReport:
 def test_minor_piece_bar_sits_below_a_knight(value):
     """The material bar must let a knight through, or `hangs_material` never fires."""
     assert value < 320
+
+
+# White plays the waiting move h3 and leaves e4 hanging to Nf6.
+PAWN_FEN = "rnbqkb1r/pppp1ppp/5n2/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1"
+PAWN_REPLY_FEN = "rnbqkb1r/pppp1ppp/5n2/8/4P3/7P/PPPP1PP1/RNBQKBNR b KQkq - 0 1"
+
+
+class TestDropsPawn:
+    """Sub-minor-piece losses were the largest untagged group across 25 amateur games."""
+
+    def test_flags_a_hung_pawn(self):
+        m = move(san="h3", fen_before=PAWN_FEN, cp_loss=110, quality="inaccuracy")
+        reply = move(ply=2, side="black", fen_before=PAWN_REPLY_FEN, pv=["Nxe4"])
+        tags = [t for t in tag_move(m, reply) if t.motif == "drops_pawn"]
+        assert len(tags) == 1
+        assert "100cp" in tags[0].detail
+
+    def test_a_pawn_is_not_reported_as_hanging_a_piece(self):
+        m = move(san="h3", fen_before=PAWN_FEN, cp_loss=110)
+        reply = move(ply=2, side="black", fen_before=PAWN_REPLY_FEN, pv=["Nxe4"])
+        assert not [t for t in tag_move(m, reply) if t.motif == "hangs_material"]
+
+    def test_a_piece_is_not_downgraded_to_a_pawn(self):
+        reply = move(ply=2, side="black", fen_before=HANG_REPLY_FEN, pv=["Nxe5"])
+        motifs = {t.motif for t in tag_move(move(), reply)}
+        assert "hangs_material" in motifs
+        assert "drops_pawn" not in motifs
+
+    def test_the_pawn_bar_is_lower_than_the_piece_bar_but_still_real(self):
+        reply = move(ply=2, side="black", fen_before=PAWN_REPLY_FEN, pv=["Nxe4"])
+        # 110cp of engine-confirmed damage clears the pawn bar...
+        assert [t for t in tag_move(move(san="h3", fen_before=PAWN_FEN, cp_loss=110), reply)]
+        # ...but a move the engine barely marks down is still not a dropped pawn.
+        assert not [t for t in tag_move(move(san="h3", fen_before=PAWN_FEN, cp_loss=30), reply)]
