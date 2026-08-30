@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Players — chess coach{% endblock %}
+
+{% block body %}
+<h1>Stored players</h1>
+<p class="sub">Pick whose memory to look at.</p>
+
+<div class="panel scroll">
+  <table>
+    <thead><tr><th>Player</th><th class="num">Games</th><th>Last played</th></tr></thead>
+    <tbody>
+    {% for pl in players %}
+      <tr>
+        <td><a href="/player/{{ pl.user_name }}">{{ pl.user_name }}</a></td>
+        <td class="num">{{ pl.games }}</td>
+        <td>{{ pl.latest or "—" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if not players %}
+<p class="note">
+  Nothing stored yet. Run <code>python -m memory.store --user &lt;name&gt; games.pgn</code>.
+</p>
+{% endif %}
+{% endblock %}

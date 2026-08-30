@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Chess coach{% endblock %}</title>
+<style>
+  /* Light palette on bare :root so the default (system) setting always has values. */
+  :root {
+    --bg: #f7f7f5;      --panel: #ffffff;   --ink: #1a1a1a;
+    --muted: #6b6b6b;   --line: #e2e2df;    --accent: #2f6f4f;
+    --warn: #8a5a1b;    --flat: #4a5568;    --bar: #d8d8d4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181c;    --panel: #1e2126;   --ink: #e8e8e6;
+      --muted: #9a9a96; --line: #2e3238;    --accent: #6fbf8f;
+      --warn: #d2a05a;  --flat: #93a1b5;    --bar: #343941;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16181c;      --panel: #1e2126;   --ink: #e8e8e6;
+    --muted: #9a9a96;   --line: #2e3238;    --accent: #6fbf8f;
+    --warn: #d2a05a;    --flat: #93a1b5;    --bar: #343941;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem 1.25rem 4rem;
+    background: var(--bg); color: var(--ink);
+    font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em;
+       color: var(--muted); margin: 2.25rem 0 .75rem; font-weight: 600; }
+  a { color: inherit; }
+  .sub { color: var(--muted); margin: 0 0 1.5rem; }
+
+  .panel { background: var(--panel); border: 1px solid var(--line);
+           border-radius: 10px; overflow: hidden; }
+  .scroll { overflow-x: auto; }
+
+  table { border-collapse: collapse; width: 100%; min-width: 30rem; }
+  th, td { text-align: left; padding: .6rem .9rem; border-bottom: 1px solid var(--line); }
+  th { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+       color: var(--muted); font-weight: 600; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .stats { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
+  .stat { background: var(--panel); border: 1px solid var(--line);
+          border-radius: 10px; padding: .9rem 1rem; }
+  .stat .n { font-size: 1.6rem; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .stat .k { font-size: .75rem; color: var(--muted); }
+
+  .tag { display: inline-block; font-size: .7rem; padding: .12rem .5rem;
+         border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .tag.recurring { color: var(--warn); border-color: currentColor; }
+
+  .meter { display: block; height: 5px; border-radius: 3px; background: var(--bar);
+           margin-top: .35rem; overflow: hidden; }
+  .meter i { display: block; height: 100%; background: var(--muted); }
+
+  .verdict { padding: 1rem 1.1rem; }
+  .verdict .headline { font-weight: 600; }
+  .verdict.improving .headline { color: var(--accent); }
+  .verdict.declining .headline { color: var(--warn); }
+  .verdict.unclear   .headline { color: var(--flat); }
+  .verdict p { margin: .4rem 0 0; color: var(--muted); font-size: .9rem; }
+
+  .note { color: var(--muted); font-size: .82rem; margin-top: .6rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; }
+</style>
+</head>
+<body>
+<main>
+{% block body %}{% endblock %}
+</main>
+</body>
+</html>
