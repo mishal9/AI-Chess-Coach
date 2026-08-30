@@ -66,9 +66,18 @@ def store_hangs(db, n, user="alice"):
 
 
 class TestAvailability:
-    def test_a_missing_database_explains_how_to_make_one(self, tmp_path, monkeypatch, client):
+    def test_a_first_time_visitor_gets_something_to_do(self, tmp_path, monkeypatch, client):
+        """No database yet is the ordinary first state, not an error worth a 503."""
         monkeypatch.setenv("DB", str(tmp_path / "nope.db"))
         response = client.get("/")
+        assert response.status_code == 200
+        assert 'action="/sync"' in response.text
+
+    def test_a_player_page_without_a_database_says_how_to_fill_it(
+        self, tmp_path, monkeypatch, client
+    ):
+        monkeypatch.setenv("DB", str(tmp_path / "nope.db"))
+        response = client.get("/player/alice")
         assert response.status_code == 503
         assert "python -m memory.store" in response.json()["detail"]
 
@@ -153,3 +162,88 @@ class TestTrendHonesty:
     def test_too_few_games_shows_no_trend_section_at_all(self, db, client):
         store(db, [1, 2])
         assert "Are you improving?" not in client.get("/player/alice").text
+
+
+class TestSyncEndpoint:
+    def test_a_bad_username_is_refused_before_any_work_starts(self, db, client):
+        response = client.post("/sync", data={"user": "../etc/passwd"})
+        assert response.status_code == 400
+        assert "chess.com username" in response.json()["detail"]
+
+    def test_a_valid_sync_redirects_to_the_dashboard(self, db, client, monkeypatch):
+        started = []
+        monkeypatch.setattr(
+            "api.app.start_sync", lambda path, user, **kw: started.append((user, kw)) or 1
+        )
+        response = client.post(
+            "/sync", data={"user": "alice", "max_games": "5"}, follow_redirects=False
+        )
+        assert response.status_code == 303
+        assert response.headers["location"] == "/player/alice"
+        assert started == [("alice", {"max_games": 5})]
+
+    def test_the_fetch_size_is_clamped(self, db, client, monkeypatch):
+        started = []
+        monkeypatch.setattr(
+            "api.app.start_sync", lambda path, user, **kw: started.append(kw) or 1
+        )
+        client.post("/sync", data={"user": "alice", "max_games": "9999"})
+        assert started[0]["max_games"] == 100
+
+    def test_a_second_sync_is_refused_while_one_is_running(self, db, client, monkeypatch):
+        from memory.jobs import create_job
+
+        conn = connect(db)
+        create_job(conn, "alice")   # leaves an active job behind
+        conn.close()
+
+        started = []
+        monkeypatch.setattr(
+            "api.app.start_sync", lambda path, user, **kw: started.append(user) or 1
+        )
+        client.post("/sync", data={"user": "alice"})
+        assert started == [], "a concurrent sync would duplicate minutes of Stockfish"
+
+    def test_a_player_mid_first_sync_is_not_a_404(self, db, client):
+        """The ordinary state for the first thirty seconds after typing a username."""
+        from memory.jobs import create_job
+
+        conn = connect(db)
+        create_job(conn, "newcomer")
+        conn.close()
+
+        response = client.get("/player/newcomer")
+        assert response.status_code == 200
+        assert "Syncing" in response.text
+        assert "Nothing analyzed yet" in response.text
+
+    def test_the_page_polls_only_while_a_job_is_active(self, db, client):
+        from memory.jobs import create_job, update_job
+
+        conn = connect(db)
+        store_hangs(db, 2)
+        job_id = create_job(conn, "alice")
+        conn.close()
+
+        assert 'http-equiv="refresh"' in client.get("/player/alice").text
+
+        conn = connect(db)
+        update_job(conn, job_id, status="done", message="Added 2 new games.")
+        conn.close()
+
+        settled = client.get("/player/alice").text
+        assert 'http-equiv="refresh"' not in settled
+        assert "Sync complete" in settled
+
+    def test_a_failed_sync_shows_the_reason(self, db, client):
+        from memory.jobs import create_job, update_job
+
+        store_hangs(db, 1)
+        conn = connect(db)
+        job_id = create_job(conn, "alice")
+        update_job(conn, job_id, status="failed", message="chess.com said no")
+        conn.close()
+
+        page = client.get("/player/alice").text
+        assert "Sync failed" in page
+        assert "chess.com said no" in page
