@@ -12,6 +12,7 @@ move that created it and the move that follows.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 import chess
@@ -30,6 +31,11 @@ from engine.scoring import (
 from engine.stockfish import find_stockfish
 
 DEFAULT_DEPTH = 15
+
+# chess.com names openings only in an ECOUrl, whose slug often carries the defining
+# variation as a move suffix: ".../Petrovs-Defense-3.d3-Nc6". Everything from the first
+# move number onward is that suffix.
+_VARIATION_SUFFIX_RE = re.compile(r"\s+\d+\.")
 
 # How much of the engine's principal variation to keep per move. Long enough to show why
 # a move lost material (capture, recapture, and the follow-up), short enough that a report
@@ -162,6 +168,30 @@ def evaluate_position(
     return cp, list(info.get("pv") or [])[:MAX_PV_PLIES]
 
 
+def opening_name(headers) -> str:
+    """The opening's name from PGN headers, or ``"?"``.
+
+    Lichess supplies ``Opening`` directly. chess.com supplies neither ``Opening`` nor a
+    usable name — only an ``ECOUrl`` whose final path segment is a slug. That slug often
+    ends in the defining variation ("Petrovs-Defense-3.d3-Nc6"), and **that suffix must
+    go**: the opening is printed into the coach's facts block, which is exactly the set of
+    moves ``eval.grounding`` licenses the coach to cite. Left in, it would authorize
+    citing ``d3`` and ``Nc6`` in games where neither was played — and 11 of 27 slugs
+    across a real chess.com account carry such a suffix.
+
+    There is deliberately no fall back to ``Event``: that header holds "Live Chess" or
+    "Rated Blitz game", which is not an opening and only looked like one.
+    """
+    name = (headers.get("Opening") or "").strip()
+    if not name or name == "?":
+        url = (headers.get("ECOUrl") or "").strip()
+        if not url:
+            return "?"
+        slug = url.rstrip("/").rsplit("/", 1)[-1]
+        name = slug.replace("-", " ").strip()
+    return _VARIATION_SUFFIX_RE.split(name, maxsplit=1)[0].strip() or "?"
+
+
 def pv_to_san(board: chess.Board, pv: list[chess.Move]) -> list[str]:
     """Render a principal variation as SAN, stopping at the first illegal move.
 
@@ -199,7 +229,7 @@ def analyze_game(
             black=headers.get("Black", "?"),
             result=headers.get("Result", "*"),
             eco=headers.get("ECO", "?"),
-            opening=headers.get("Opening", headers.get("Event", "?")),
+            opening=opening_name(headers),
         )
 
         board = game.board()

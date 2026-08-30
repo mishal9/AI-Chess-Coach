@@ -40,6 +40,7 @@ MIN_GAMES_FOR_OPENING = 2
 
 _MOTIF_LABELS = {
     "hangs_material": "leaving material hanging",
+    "drops_pawn": "dropping a pawn",
     "missed_capture": "missing a material-winning capture",
     "allows_fork": "walking into forks",
     "back_rank": "back-rank weakness",

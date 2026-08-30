@@ -33,16 +33,21 @@ PIECE_VALUES: dict[int, int] = {
     chess.QUEEN: 900,
 }
 
-# The bar for "material": a minor piece. Below this we are looking at pawn play, which is
-# rarely the lesson a student needs named.
+# The bar for "material": a minor piece. Below it, and down to a pawn, the loss is real
+# but smaller, and gets its own motif rather than being discarded.
 MINOR_PIECE_VALUE = 300
+PAWN_VALUE = 100
 
 # Corroboration bar. A motif only classifies *how* a move was bad; the engine's own
 # centipawn loss decides *whether* it was. Requiring both means a truncated PV cannot
 # invent a material loss on its own.
 _MATERIAL_MISTAKE_CP = 200
 
-MOTIFS = ("hangs_material", "missed_capture", "allows_fork", "back_rank")
+# The same corroboration idea scaled to a pawn: demanding 200cp of confirmed damage for a
+# ~100cp loss would hide every dropped pawn there is.
+_PAWN_MISTAKE_CP = 80
+
+MOTIFS = ("hangs_material", "drops_pawn", "missed_capture", "allows_fork", "back_rank")
 
 PHASES = ("opening", "middlegame", "endgame")
 
@@ -119,13 +124,20 @@ def game_phase(fen: str, ply: int) -> str:
     return "middlegame"
 
 
-def _tag_hangs_material(move: dict, reply: dict | None) -> MotifTag | None:
-    """Does the engine's refutation line win material the student didn't have to give?
+def _tag_material_loss(move: dict, reply: dict | None) -> MotifTag | None:
+    """Material the engine's refutation wins — a whole piece, or just a pawn.
 
     ``reply`` is the *next* ply's analysis, whose ``fen_before`` is the position the
     played move created and whose ``pv`` is the engine's punishment for it.
+
+    One function rather than two because the measurement is identical and only the
+    threshold differs; the size of the loss picks the motif. Pawns get a lower
+    corroboration bar than pieces, in proportion to what they cost — a dropped pawn is
+    around 100cp, so demanding 200cp of engine-confirmed damage would hide every one of
+    them. Across 25 amateur games, sub-minor-piece losses were the single largest group
+    of mistakes going untagged.
     """
-    if reply is None or move["cp_loss"] < _MATERIAL_MISTAKE_CP:
+    if reply is None:
         return None
     line = exchange_window(reply.get("pv") or [])
     if not line:
@@ -146,12 +158,21 @@ def _tag_hangs_material(move: dict, reply: dict | None) -> MotifTag | None:
     mover = _side_color(move["side"])
     lost = material(start, mover) - material(end, mover)
     conceded = material(start, not mover) - material(end, not mover)
-    if lost - conceded < MINOR_PIECE_VALUE:
+    net = lost - conceded
+
+    if net >= MINOR_PIECE_VALUE:
+        motif, corroboration = "hangs_material", _MATERIAL_MISTAKE_CP
+    elif net >= PAWN_VALUE:
+        motif, corroboration = "drops_pawn", _PAWN_MISTAKE_CP
+    else:
         return None
+    if move["cp_loss"] < corroboration:
+        return None
+
     return MotifTag(
-        "hangs_material",
+        motif,
         f"{line[0]} punishes {move['san']}; the engine line "
-        f"{' '.join(line)} nets {lost - conceded}cp of material",
+        f"{' '.join(line)} nets {net}cp of material",
     )
 
 
@@ -283,7 +304,7 @@ def tag_move(move: dict, reply: dict | None = None) -> list[MotifTag]:
     move of a game, and the reply-based motifs simply don't fire.
     """
     tags = [
-        _tag_hangs_material(move, reply),
+        _tag_material_loss(move, reply),
         _tag_missed_capture(move),
         _tag_allows_fork(move, reply),
         _tag_back_rank(move, reply),
