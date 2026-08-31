@@ -49,3 +49,7 @@ training/datasets/*/*.jsonl
 
 # eval resume sidecars: per-game scratch, superseded by the committed report
 eval/reports/*.partial.jsonl
+
+# Downloaded papers: copyrighted PDFs, large, and not build inputs.
+# The reading notes in docs/experiments/ are the artifact worth keeping.
+literature/

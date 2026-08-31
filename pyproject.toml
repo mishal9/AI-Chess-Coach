@@ -16,6 +16,7 @@ coach = [
 # Phase 3 eval harness — frontier judge backends (optional; local Ollama judge needs none)
 eval = [
     "anthropic>=0.40",
+    "scipy>=1.11",          # paired equivalence testing (TOST) in eval.equivalence
     "google-genai>=0.1",
     "python-dotenv>=1.0",   # load API keys from a gitignored .env
 ]
