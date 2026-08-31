@@ -200,11 +200,19 @@ class PlayerProfile:
         return self.games == 0
 
 
-def _window_ids(conn: sqlite3.Connection, user: str, last_n: int | None) -> list[int]:
+def _window_ids(
+    conn: sqlite3.Connection,
+    user: str,
+    last_n: int | None,
+    exclude_game_id: int | None = None,
+) -> list[int]:
     """Game ids in the reporting window, oldest first.
 
     Ordered by date where the PGN carried one, falling back to ingest order. Lichess and
     chess.com exports always date their games, so the fallback is for hand-made PGNs.
+
+    ``exclude_game_id`` drops one game, which matters when coaching it: a history that
+    counted the game under discussion would let "the fourth time" include itself.
     """
     rows = conn.execute(
         """
@@ -213,7 +221,7 @@ def _window_ids(conn: sqlite3.Connection, user: str, last_n: int | None) -> list
         """,
         (user,),
     ).fetchall()
-    ids = [row["id"] for row in rows]
+    ids = [row["id"] for row in rows if row["id"] != exclude_game_id]
     return ids[-last_n:] if last_n else ids
 
 
@@ -358,14 +366,18 @@ def _trend(conn: sqlite3.Connection, ids: list[int]) -> Trend | None:
 
 
 def build_profile(
-    conn: sqlite3.Connection, user: str, last_n: int | None = None
+    conn: sqlite3.Connection,
+    user: str,
+    last_n: int | None = None,
+    exclude_game_id: int | None = None,
 ) -> PlayerProfile:
     """Aggregate a player's stored games into their recurring weaknesses.
 
     ``last_n`` limits the window to the most recent games, which is what makes the
     profile track a player who is improving rather than averaging over their whole life.
+    ``exclude_game_id`` leaves one game out — see :func:`_window_ids`.
     """
-    ids = _window_ids(conn, user, last_n)
+    ids = _window_ids(conn, user, last_n, exclude_game_id)
     if not ids:
         return PlayerProfile(user=user, games=0, mistakes=0, acpl=0.0)
 

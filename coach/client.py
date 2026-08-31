@@ -8,13 +8,23 @@ raw connection tracebacks.
 
 from __future__ import annotations
 
+import os
 import re
 
 import ollama
 
-# Qwen2.5-3B-Instruct is the Phase-2 baseline model (see PLAN.md). Small enough to run
-# a Q4 quant on the M1 in ~2GB, strong enough to follow a structured coaching prompt.
-DEFAULT_MODEL = "qwen2.5:3b-instruct"
+# The project's own fine-tune, and the best grounded coach we have measured: 0.965
+# grounding against the prompted base's 0.923. The old default was the Phase-2 Qwen2.5-3B
+# baseline, which was retired as a reference in August 2026 — every CLI call passed
+# --model explicitly, so nothing caught that the default had gone stale until the web UI
+# used it and produced coaching with five invented moves out of nine.
+#
+# Override with COACH_MODEL for a machine that has something else pulled.
+DEFAULT_MODEL = os.environ.get("COACH_MODEL", "qwen-coach-8b-v2")
+
+# The un-fine-tuned base. Same judged quality, slightly worse citation hygiene, but it is
+# `ollama pull`-able, whereas the fine-tune has to be built from the Phase-4 notebook.
+FALLBACK_MODEL = "qwen3:8b"
 
 # Low but non-zero: we want faithful, grounded coaching, not creative variation, while
 # still avoiding the robotic repetition of temperature 0.

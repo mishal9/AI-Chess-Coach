@@ -129,3 +129,99 @@ class TestGameDetail:
         game_id = store_game(db, report=clean)
         page = client.get(f"/player/alice/game/{game_id}").text
         assert "played it cleanly" in page
+
+
+class TestCoachEndpoint:
+    def _save_coaching(self, db, game_id, text, facts):
+        from memory.coaching import save
+        conn = connect(db)
+        save(conn, game_id, "white", "test-model", text, facts, used_profile=True)
+        conn.close()
+
+    def test_offers_to_coach_a_game_that_has_none(self, db, client):
+        game_id = store_game(db)
+        assert "Coach this game" in client.get(f"/player/alice/game/{game_id}").text
+
+    def test_shows_stored_coaching(self, db, client):
+        game_id = store_game(db)
+        self._save_coaching(db, game_id, "You hung a knight.", "facts with Nxe5")
+        page = client.get(f"/player/alice/game/{game_id}").text
+        assert "You hung a knight." in page
+        assert "test-model" in page
+        assert "with your history" in page
+
+    def test_reports_when_every_cited_move_was_given_to_it(self, db, client):
+        game_id = store_game(db)
+        self._save_coaching(db, game_id, "Nxe5 was the error.", "the facts list Nxe5")
+        page = client.get(f"/player/alice/game/{game_id}").text
+        assert "all of them from the analysis it was given" in page
+
+    def test_flags_moves_the_model_was_never_given(self, db, client):
+        """The grounding check is only possible because the facts were stored with it."""
+        game_id = store_game(db)
+        self._save_coaching(db, game_id, "Nxe5 was bad, and so was Qh5.", "facts: Nxe5")
+        page = client.get(f"/player/alice/game/{game_id}").text
+        assert "not in the facts it was given" in page
+        assert "Qh5" in page
+
+    def test_starting_a_coach_run_redirects_back_to_the_game(self, db, client, monkeypatch):
+        game_id = store_game(db)
+        started = []
+        monkeypatch.setattr(
+            "api.app.start_coach", lambda path, user, gid, **kw: started.append(gid) or 1
+        )
+        response = client.post(
+            f"/player/alice/game/{game_id}/coach", follow_redirects=False
+        )
+        assert response.status_code == 303
+        assert response.headers["location"] == f"/player/alice/game/{game_id}"
+        assert started == [game_id]
+
+    def test_cannot_coach_another_players_game(self, db, client, monkeypatch):
+        game_id = store_game(db, user="alice")
+        started = []
+        monkeypatch.setattr(
+            "api.app.start_coach", lambda path, user, gid, **kw: started.append(gid) or 1
+        )
+        assert client.post(f"/player/bob/game/{game_id}/coach").status_code == 404
+        assert started == []
+
+    def test_a_second_run_is_refused_while_one_is_going(self, db, client, monkeypatch):
+        from memory.jobs import create_job
+
+        game_id = store_game(db)
+        conn = connect(db)
+        create_job(conn, "alice", kind="coach", game_id=game_id)
+        conn.close()
+
+        started = []
+        monkeypatch.setattr(
+            "api.app.start_coach", lambda path, user, gid, **kw: started.append(gid) or 1
+        )
+        client.post(f"/player/alice/game/{game_id}/coach")
+        assert started == [], "the model takes tens of seconds; don't spend them twice"
+
+    def test_the_page_polls_only_while_coaching_is_running(self, db, client):
+        from memory.jobs import create_job, update_job
+
+        game_id = store_game(db)
+        conn = connect(db)
+        job_id = create_job(conn, "alice", kind="coach", game_id=game_id)
+        conn.close()
+        assert 'http-equiv="refresh"' in client.get(f"/player/alice/game/{game_id}").text
+
+        conn = connect(db)
+        update_job(conn, job_id, status="done", message="Coaching ready.")
+        conn.close()
+        assert 'http-equiv="refresh"' not in client.get(f"/player/alice/game/{game_id}").text
+
+    def test_a_sync_job_does_not_drive_the_coaching_spinner(self, db, client):
+        """Different kinds, different pages — one must not spin the other."""
+        from memory.jobs import create_job
+
+        game_id = store_game(db)
+        conn = connect(db)
+        create_job(conn, "alice", kind="sync")
+        conn.close()
+        page = client.get(f"/player/alice/game/{game_id}").text
+        assert "Thinking…" not in page

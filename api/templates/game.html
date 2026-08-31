@@ -2,6 +2,8 @@
 {% set g = game %}
 {% block title %}{{ g.white }} vs {{ g.black }}{% endblock %}
 
+{% block refresh %}{% if job and job.is_active %}<meta http-equiv="refresh" content="4">{% endif %}{% endblock %}
+
 {% block body %}
 <h1>{{ g.white }} vs {{ g.black }}</h1>
 <p class="sub">
@@ -17,6 +19,51 @@
   <div class="stat"><div class="n">{{ g.mistakes }}</div><div class="k">mistakes</div></div>
   <div class="stat"><div class="n">{{ g.inaccuracies }}</div><div class="k">inaccuracies</div></div>
 </div>
+
+<h2>Coaching</h2>
+{% if job and job.is_active %}
+  <div class="panel job running">
+    <div class="headline">Thinking…</div>
+    <p>{{ job.message }}</p>
+    <span class="progress"><i style="width: {{ job.percent }}%"></i></span>
+    <p class="note" style="margin-bottom:0">A local model writes this; it takes under a
+      minute. The page refreshes itself.</p>
+  </div>
+{% elif job and job.status == 'failed' %}
+  <div class="panel job failed">
+    <div class="headline">Couldn't generate coaching</div>
+    <p>{{ job.message }}</p>
+  </div>
+{% endif %}
+
+{% if coaching %}
+  <div class="panel coaching">
+    {% for para in coaching.text.split('\n') if para.strip() %}
+      <p>{{ para }}</p>
+    {% endfor %}
+  </div>
+  <p class="note">
+    Written by {{ coaching.model }}{% if coaching.used_profile %}, with your history{% endif %}.
+    {% if grounding.cited %}
+      Cited {{ grounding.cited|length }} move{{ '' if grounding.cited|length == 1 else 's' }};
+      {% if grounding.hallucinated %}
+        <strong>{{ grounding.hallucinated|length }} not in the facts it was given
+        ({{ grounding.hallucinated|join(', ') }})</strong> — treat those with suspicion.
+      {% else %}
+        all of them from the analysis it was given.
+      {% endif %}
+    {% else %}
+      It named no specific moves.
+    {% endif %}
+  </p>
+{% endif %}
+
+<form class="sync" method="post" action="/player/{{ user }}/game/{{ g.id }}/coach"
+      style="margin-top:1rem">
+  <button type="submit"{% if job and job.is_active %} disabled{% endif %}>
+    {% if job and job.is_active %}Working…{% elif coaching %}Coach again{% else %}Coach this game{% endif %}
+  </button>
+</form>
 
 <h2>Your mistakes, in order</h2>
 {% if mistakes %}
