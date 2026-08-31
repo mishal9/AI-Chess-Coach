@@ -236,6 +236,72 @@ def ingest_game(
     return game_id
 
 
+def list_games(
+    conn: sqlite3.Connection, user: str, limit: int | None = None
+) -> list[dict]:
+    """A player's stored games, newest first, with their per-game mistake counts."""
+    rows = conn.execute(
+        """
+        SELECT id, white, black, result, eco, opening, played_at, user_side, acpl,
+               blunders, mistakes, inaccuracies,
+               blunders + mistakes + inaccuracies AS total_mistakes
+        FROM games WHERE user_name = ?
+        ORDER BY COALESCE(played_at, '') DESC, id DESC
+        """
+        + ("LIMIT ?" if limit else ""),
+        (user, limit) if limit else (user,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def game_row(conn: sqlite3.Connection, game_id: int, user: str | None = None) -> dict | None:
+    """One stored game. ``user`` scopes the lookup so ids can't be walked across players."""
+    sql = "SELECT * FROM games WHERE id = ?"
+    params: list = [game_id]
+    if user is not None:
+        sql += " AND user_name = ?"
+        params.append(user)
+    row = conn.execute(sql, params).fetchone()
+    return dict(row) if row else None
+
+
+def game_mistakes(conn: sqlite3.Connection, game_id: int) -> list[dict]:
+    """Every flagged mistake in a game, in the order they were played.
+
+    Chronological rather than worst-first: this is for reading a game through. Each
+    mistake carries its motifs, whose ``detail`` quotes the engine line that produced the
+    tag — which is the closest thing to an explanation available without an LLM.
+    """
+    rows = conn.execute(
+        """
+        SELECT id, ply, move_number, san, best_san, quality, cp_loss, win_prob_loss,
+               phase, fen_before
+        FROM mistakes WHERE game_id = ? ORDER BY ply
+        """,
+        (game_id,),
+    ).fetchall()
+    mistakes = [dict(row) for row in rows]
+    if not mistakes:
+        return []
+
+    placeholders = ",".join("?" * len(mistakes))
+    tags = conn.execute(
+        f"""
+        SELECT mistake_id, motif, detail FROM motifs
+        WHERE mistake_id IN ({placeholders}) ORDER BY rowid
+        """,
+        [m["id"] for m in mistakes],
+    ).fetchall()
+    by_mistake: dict[int, list[dict]] = {}
+    for tag in tags:
+        by_mistake.setdefault(tag["mistake_id"], []).append(
+            {"motif": tag["motif"], "detail": tag["detail"]}
+        )
+    for mistake in mistakes:
+        mistake["motifs"] = by_mistake.get(mistake["id"], [])
+    return mistakes
+
+
 def stats(conn: sqlite3.Connection, user: str) -> dict:
     """Row counts for one player — enough to see that ingest did something."""
     row = conn.execute(

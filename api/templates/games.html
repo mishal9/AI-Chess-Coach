@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ user }}'s games{% endblock %}
+
+{% block body %}
+<h1>{{ user }}'s games</h1>
+<p class="sub">
+  {{ games|length }} analyzed · <a href="/player/{{ user }}">back to the summary</a>
+</p>
+
+<div class="panel scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Played</th>
+        <th>Opponent</th>
+        <th>As</th>
+        <th>Result</th>
+        <th>Opening</th>
+        <th class="num">Mistakes</th>
+        <th class="num">Loss</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for g in games %}
+      {% set opponent = g.black if g.user_side == 'white' else g.white %}
+      <tr>
+        <td><a href="/player/{{ user }}/game/{{ g.id }}">{{ (g.played_at or '—')[:10] }}</a></td>
+        <td>{{ opponent or '—' }}</td>
+        <td>{{ g.user_side }}</td>
+        <td>{{ g.result }}</td>
+        <td>{{ g.eco }} {{ g.opening if g.opening != '?' else '' }}</td>
+        <td class="num">{{ g.total_mistakes }}</td>
+        <td class="num">{{ g.acpl }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="note">
+  “Mistakes” counts your flagged blunders, mistakes and inaccuracies only — not your
+  opponent's. “Loss” is your average centipawn loss for that game.
+</p>
+{% endblock %}

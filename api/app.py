@@ -26,7 +26,7 @@ from fastapi.templating import Jinja2Templates
 
 from memory.jobs import USERNAME_RE, active_job, latest_job, start_sync
 from memory.profile import PlayerProfile, build_profile
-from memory.store import DEFAULT_DB, connect
+from memory.store import DEFAULT_DB, connect, game_mistakes, game_row, list_games
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
@@ -132,6 +132,39 @@ def dashboard(request: Request, user: str, last: int | None = None):
             "job": job,
             "window": last,
             "total_games": _total_games(conn, user),
+        },
+    )
+
+
+@app.get("/player/{user}/games", response_class=HTMLResponse)
+def games(request: Request, user: str):
+    """Every stored game for a player, newest first — the way into a single game."""
+    conn = open_db()
+    rows = list_games(conn, user)
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"No stored games for {user!r}.")
+    return TEMPLATES.TemplateResponse(
+        request=request, name="games.html", context={"user": user, "games": rows}
+    )
+
+
+@app.get("/player/{user}/game/{game_id}", response_class=HTMLResponse)
+def game(request: Request, user: str, game_id: int):
+    """One game's mistakes, in the order they were played.
+
+    Scoped by user as well as id so a game id can't be walked across players.
+    """
+    conn = open_db()
+    row = game_row(conn, game_id, user)
+    if row is None:
+        raise HTTPException(status_code=404, detail="No such game for this player.")
+    return TEMPLATES.TemplateResponse(
+        request=request,
+        name="game.html",
+        context={
+            "user": user,
+            "game": row,
+            "mistakes": game_mistakes(conn, game_id),
         },
     )
 
