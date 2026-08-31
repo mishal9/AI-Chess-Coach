@@ -29,6 +29,8 @@ data/games/
 # `python -m memory.store`, and it holds the user's own game history.
 data/*.db
 data/*.db-journal
+data/*.db-wal
+data/*.db-shm
 data/distill/*
 training/datasets/*/*.jsonl
 # ...but VERSION the moat: it cost real Opus calls to make and isn't cheaply reproducible.

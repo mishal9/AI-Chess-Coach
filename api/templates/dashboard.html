@@ -2,12 +2,45 @@
 {% set p = profile %}
 {% block title %}{{ p.user }} — chess coach{% endblock %}
 
+{# Refresh only while a sync is in flight; it stops as soon as the job settles. #}
+{% block refresh %}{% if job and job.is_active %}<meta http-equiv="refresh" content="3">{% endif %}{% endblock %}
+
 {% block body %}
 <h1>{{ p.user }}</h1>
 <p class="sub">
   {{ p.games }} analyzed game{{ '' if p.games == 1 else 's' }}
   {%- if window %} (most recent {{ window }} of {{ total_games }}){% endif %}
 </p>
+
+{% if job %}
+<div class="panel job {{ job.status }}">
+  {% if job.is_active %}
+    <div class="headline">Syncing…</div>
+    <p>{{ job.message }}{% if job.total %} ({{ job.percent }}%){% endif %}</p>
+    <span class="progress"><i style="width: {{ job.percent }}%"></i></span>
+    <p class="note" style="margin-bottom:0">This page refreshes itself. Analysis is a few
+      seconds per game, and closing the tab doesn't stop it.</p>
+  {% elif job.status == 'failed' %}
+    <div class="headline">Sync failed</div>
+    <p>{{ job.message }}</p>
+  {% else %}
+    <div class="headline">Sync complete</div>
+    <p>{{ job.message }}</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<form class="sync" method="post" action="/sync" style="margin-top:1rem">
+  <input type="hidden" name="user" value="{{ p.user }}">
+  <input type="number" name="max_games" value="20" min="1" max="100" title="games to fetch">
+  <button type="submit"{% if job and job.is_active %} disabled{% endif %}>
+    {% if job and job.is_active %}Syncing…{% else %}Sync new games{% endif %}
+  </button>
+</form>
+
+{% if not p.games %}
+<p class="note">Nothing analyzed yet for this player.</p>
+{% else %}
 
 <div class="stats">
   <div class="stat"><div class="n">{{ p.mistakes }}</div><div class="k">flagged mistakes</div></div>
@@ -141,4 +174,5 @@
     · <a href="/player/{{ p.user }}?last={{ n }}">last {{ n }}</a>
   {% endif %}{% endfor %}
 </p>
+{% endif %}
 {% endblock %}

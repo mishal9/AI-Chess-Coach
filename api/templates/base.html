@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Chess coach{% endblock %}</title>
+{# Zero-JS polling: only while work is in flight, and it stops the moment it finishes. #}
+{% block refresh %}{% endblock %}
 <style>
   /* Light palette on bare :root so the default (system) setting always has values. */
   :root {
@@ -70,6 +72,29 @@
   .verdict p { margin: .4rem 0 0; color: var(--muted); font-size: .9rem; }
 
   .note { color: var(--muted); font-size: .82rem; margin-top: .6rem; }
+
+  form.sync { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+  input[type=text], input[type=number] {
+    font: inherit; padding: .45rem .6rem; border-radius: 7px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  }
+  input[type=number] { width: 5.5rem; }
+  button {
+    font: inherit; font-weight: 600; padding: .45rem 1rem; border-radius: 7px;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--panel);
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+
+  .job { padding: 1rem 1.1rem; }
+  .job .headline { font-weight: 600; }
+  .job.running .headline { color: var(--flat); }
+  .job.done .headline    { color: var(--accent); }
+  .job.failed .headline  { color: var(--warn); }
+  .progress { display: block; height: 6px; border-radius: 3px; background: var(--bar);
+              margin-top: .6rem; overflow: hidden; }
+  .progress i { display: block; height: 100%; background: var(--flat);
+                transition: width .3s ease; }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; }
 </style>
 </head>

@@ -20,10 +20,11 @@ import os
 import sqlite3
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from memory.jobs import USERNAME_RE, active_job, latest_job, start_sync
 from memory.profile import PlayerProfile, build_profile
 from memory.store import DEFAULT_DB, connect
 
@@ -37,19 +38,20 @@ def database_path() -> Path:
     return Path(os.environ.get("DB") or DEFAULT_DB)
 
 
-def open_db() -> sqlite3.Connection:
+def open_db(create: bool = False) -> sqlite3.Connection:
     """Open the memory database, or 503 if it isn't there yet.
 
-    A missing database is an ordinary state — nobody has run the ingest — so it gets a
-    clear instruction rather than a stack trace.
+    A missing database is an ordinary state — nobody has synced yet — so it gets a clear
+    instruction rather than a stack trace. ``create=True`` for the sync endpoint, which
+    is precisely the thing that makes the database exist.
     """
     path = database_path()
-    if not path.exists():
+    if not create and not path.exists():
         raise HTTPException(
             status_code=503,
             detail=(
-                f"No memory database at {path}. Create one with: "
-                "python -m memory.store --user <name> games.pgn"
+                f"No memory database at {path}. Sync a chess.com username from the "
+                "home page, or run: python -m memory.store --user <name> games.pgn"
             ),
         )
     return connect(path)
@@ -68,30 +70,68 @@ def known_players(conn: sqlite3.Connection) -> list[dict]:
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    """Straight to the dashboard when there's only one player, else offer a choice."""
-    conn = open_db()
-    players = known_players(conn)
-    if len(players) == 1:
-        return dashboard(request, players[0]["user_name"])
+    """Straight to the dashboard when there's only one player, else offer a choice.
+
+    Tolerates a missing database so a first-time visitor gets the sync form rather than a
+    503 telling them to go and use the CLI.
+    """
+    path = database_path()
+    players = []
+    if path.exists():
+        conn = connect(path)
+        players = known_players(conn)
+        if len(players) == 1:
+            return dashboard(request, players[0]["user_name"])
     return TEMPLATES.TemplateResponse(
         request=request, name="index.html", context={"players": players}
     )
 
 
+@app.post("/sync")
+def sync(user: str = Form(...), max_games: int = Form(20)):
+    """Start a background sync of a chess.com account, then show its dashboard.
+
+    Refuses a second concurrent sync for the same player: two workers analyzing the same
+    fetch would duplicate minutes of Stockfish for nothing, and the ingest would discard
+    one side's results anyway.
+    """
+    user = user.strip()
+    if not USERNAME_RE.match(user):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "That doesn't look like a chess.com username — letters, digits, "
+                "underscore and hyphen only, 3 to 25 characters."
+            ),
+        )
+    max_games = max(1, min(max_games, 100))
+
+    conn = open_db(create=True)
+    if active_job(conn, user) is None:
+        start_sync(database_path(), user, max_games=max_games)
+    return RedirectResponse(f"/player/{user}", status_code=303)
+
+
 @app.get("/player/{user}", response_class=HTMLResponse)
 def dashboard(request: Request, user: str, last: int | None = None):
-    """One player's recurring weaknesses. ``?last=N`` narrows to recent games."""
+    """One player's recurring weaknesses. ``?last=N`` narrows to recent games.
+
+    A player with no games but a job in flight is not a 404 — that is the ordinary state
+    for the first thirty seconds after someone types their username in.
+    """
     conn = open_db()
+    job = latest_job(conn, user)
     profile: PlayerProfile = build_profile(conn, user, last)
-    if profile.is_empty:
+    if profile.is_empty and job is None:
         raise HTTPException(status_code=404, detail=f"No stored games for {user!r}.")
     return TEMPLATES.TemplateResponse(
         request=request,
         name="dashboard.html",
         context={
             "profile": profile,
+            "job": job,
             "window": last,
-            "total_games": len(known_players(conn)) and _total_games(conn, user),
+            "total_games": _total_games(conn, user),
         },
     )
 

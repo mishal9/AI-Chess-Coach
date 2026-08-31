@@ -90,6 +90,10 @@ def connect(path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    if str(path) != ":memory:":
+        # A sync writes for minutes while the dashboard reads; WAL lets those overlap
+        # instead of the reader blocking. Not available for in-memory databases.
+        conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA)
     return conn
 

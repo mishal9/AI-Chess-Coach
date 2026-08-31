@@ -2,9 +2,25 @@
 {% block title %}Players — chess coach{% endblock %}
 
 {% block body %}
-<h1>Stored players</h1>
-<p class="sub">Pick whose memory to look at.</p>
+<h1>Chess coach</h1>
+<p class="sub">Analyze a chess.com account and see what you keep getting wrong.</p>
 
+<div class="panel job">
+  <form class="sync" method="post" action="/sync">
+    <input type="text" name="user" placeholder="chess.com username" required
+           minlength="3" maxlength="25" pattern="[A-Za-z0-9_\-]+">
+    <input type="number" name="max_games" value="20" min="1" max="100" title="games to fetch">
+    <button type="submit">Sync</button>
+  </form>
+  <p class="note" style="margin-bottom:0">
+    Fetches recent games and analyzes the ones not seen before — a few seconds each.
+    Games already analyzed are skipped, so syncing again is cheap.
+  </p>
+</div>
+
+{% if players %}<h2>Stored players</h2>{% endif %}
+
+{% if players %}
 <div class="panel scroll">
   <table>
     <thead><tr><th>Player</th><th class="num">Games</th><th>Last played</th></tr></thead>
@@ -19,10 +35,5 @@
     </tbody>
   </table>
 </div>
-
-{% if not players %}
-<p class="note">
-  Nothing stored yet. Run <code>python -m memory.store --user &lt;name&gt; games.pgn</code>.
-</p>
 {% endif %}
 {% endblock %}
