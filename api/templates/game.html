@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% set g = game %}
+{% block title %}{{ g.white }} vs {{ g.black }}{% endblock %}
+
+{% block body %}
+<h1>{{ g.white }} vs {{ g.black }}</h1>
+<p class="sub">
+  {{ g.result }}{% if g.eco %} · {{ g.eco }}{% if g.opening != '?' %} {{ g.opening }}{% endif %}{% endif %}
+  {%- if g.played_at %} · {{ g.played_at[:10] }}{% endif %}
+  · you played {{ g.user_side }}
+  · <a href="/player/{{ user }}/games">all games</a>
+</p>
+
+<div class="stats">
+  <div class="stat"><div class="n">{{ g.acpl }}</div><div class="k">your centipawn loss</div></div>
+  <div class="stat"><div class="n">{{ g.blunders }}</div><div class="k">blunders</div></div>
+  <div class="stat"><div class="n">{{ g.mistakes }}</div><div class="k">mistakes</div></div>
+  <div class="stat"><div class="n">{{ g.inaccuracies }}</div><div class="k">inaccuracies</div></div>
+</div>
+
+<h2>Your mistakes, in order</h2>
+{% if mistakes %}
+  {# The costliest move is worth pointing at; everything else reads as a walkthrough. #}
+  {% set worst = (mistakes | sort(attribute='win_prob_loss') | last).id %}
+  <div class="panel scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Move</th>
+          <th>Played</th>
+          <th>Engine preferred</th>
+          <th>Quality</th>
+          <th class="num">Cost</th>
+          <th>Phase</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for m in mistakes %}
+        <tr>
+          <td>{{ m.move_number }}{{ '.' if g.user_side == 'white' else '…' }}</td>
+          <td>
+            <strong>{{ m.san }}</strong>
+            {%- if m.id == worst %} <span class="tag recurring">costliest</span>{% endif %}
+          </td>
+          <td>{{ m.best_san or '—' }}</td>
+          <td>{{ m.quality }}</td>
+          <td class="num">{{ "%.0f"|format(m.win_prob_loss * 100) }}%</td>
+          <td>{{ m.phase }}</td>
+        </tr>
+        {% if m.motifs %}
+        <tr>
+          <td></td>
+          <td colspan="5" class="note" style="padding-top:0">
+            {% for t in m.motifs %}
+              <div>{{ t.detail }}</div>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="note">
+    “Cost” is the win probability the move gave away. The lines underneath are the engine's
+    own refutation — what it plays to punish the move, and the material that changes hands.
+  </p>
+{% else %}
+  <div class="panel job">
+    <p style="margin:0">
+      No flagged mistakes in this game — you played it cleanly.
+    </p>
+  </div>
+{% endif %}
+{% endblock %}

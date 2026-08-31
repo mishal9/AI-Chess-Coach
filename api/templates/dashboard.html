@@ -10,6 +10,7 @@
 <p class="sub">
   {{ p.games }} analyzed game{{ '' if p.games == 1 else 's' }}
   {%- if window %} (most recent {{ window }} of {{ total_games }}){% endif %}
+  {%- if total_games %} · <a href="/player/{{ p.user }}/games">see them individually</a>{% endif %}
 </p>
 
 {% if job %}
