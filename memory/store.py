@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS games (
     mistakes       INTEGER NOT NULL DEFAULT 0,
     inaccuracies   INTEGER NOT NULL DEFAULT 0,
     depth          INTEGER,
-    analyzed_at    TEXT NOT NULL
+    analyzed_at    TEXT NOT NULL,
+    pgn            TEXT
 );
 
 CREATE TABLE IF NOT EXISTS mistakes (
@@ -82,6 +83,20 @@ CREATE INDEX IF NOT EXISTS idx_motifs_mistake ON motifs(mistake_id);
 """
 
 
+# Columns added after the schema shipped. `CREATE TABLE IF NOT EXISTS` cannot add a column
+# to a database that already has the table, and real databases already do.
+_ADDED_COLUMNS = {"games": {"pgn": "TEXT"}}
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Add any columns a later version introduced to an existing database."""
+    for table, columns in _ADDED_COLUMNS.items():
+        existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+        for column, definition in columns.items():
+            if column not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def connect(path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
     """Open (creating if needed) a memory database with the schema applied."""
     path = Path(path)
@@ -95,6 +110,7 @@ def connect(path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
         # instead of the reader blocking. Not available for in-memory databases.
         conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA)
+    _migrate(conn)
     return conn
 
 
@@ -147,6 +163,20 @@ def resolve_side(report: dict, user: str, side: str | None = None) -> str:
     return choose_coached_side(report)
 
 
+def backfill_pgn(conn: sqlite3.Connection, pgn: str) -> bool:
+    """Fill in a stored game's text if it was ingested before we kept it.
+
+    Returns whether a row was updated. Lets a re-sync heal an old database in passing,
+    rather than needing a migration script nobody would remember to run.
+    """
+    with conn:
+        cursor = conn.execute(
+            "UPDATE games SET pgn = ? WHERE movetext_hash = ? AND pgn IS NULL",
+            (pgn, movetext_hash(pgn)),
+        )
+    return cursor.rowcount > 0
+
+
 def already_stored(conn: sqlite3.Connection, pgn: str) -> bool:
     """Has this exact game (by movetext) been ingested before?"""
     row = conn.execute(
@@ -172,6 +202,7 @@ def ingest_game(
     from training.corpus import game_key  # local: only needed at ingest
 
     if already_stored(conn, pgn):
+        backfill_pgn(conn, pgn)
         return None
 
     side = resolve_side(report, user, side)
@@ -182,8 +213,8 @@ def ingest_game(
             """
             INSERT INTO games (movetext_hash, game_key, user_name, user_side, white,
                                black, result, eco, opening, played_at, acpl, blunders,
-                               mistakes, inaccuracies, depth, analyzed_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                               mistakes, inaccuracies, depth, analyzed_at, pgn)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 movetext_hash(pgn),
@@ -202,6 +233,7 @@ def ingest_game(
                 counts["inaccuracy"],
                 depth,
                 datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                pgn,
             ),
         )
         game_id = cursor.lastrowid

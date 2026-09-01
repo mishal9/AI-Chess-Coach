@@ -24,7 +24,14 @@ from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from memory.jobs import USERNAME_RE, active_job, latest_job, start_sync
+from memory.coaching import latest as latest_coaching
+from memory.jobs import (
+    USERNAME_RE,
+    active_job,
+    latest_job,
+    start_coach,
+    start_sync,
+)
 from memory.profile import PlayerProfile, build_profile
 from memory.store import DEFAULT_DB, connect, game_mistakes, game_row, list_games
 
@@ -107,7 +114,7 @@ def sync(user: str = Form(...), max_games: int = Form(20)):
     max_games = max(1, min(max_games, 100))
 
     conn = open_db(create=True)
-    if active_job(conn, user) is None:
+    if active_job(conn, user, kind="sync") is None:
         start_sync(database_path(), user, max_games=max_games)
     return RedirectResponse(f"/player/{user}", status_code=303)
 
@@ -120,7 +127,7 @@ def dashboard(request: Request, user: str, last: int | None = None):
     for the first thirty seconds after someone types their username in.
     """
     conn = open_db()
-    job = latest_job(conn, user)
+    job = latest_job(conn, user, kind="sync")
     profile: PlayerProfile = build_profile(conn, user, last)
     if profile.is_empty and job is None:
         raise HTTPException(status_code=404, detail=f"No stored games for {user!r}.")
@@ -158,6 +165,7 @@ def game(request: Request, user: str, game_id: int):
     row = game_row(conn, game_id, user)
     if row is None:
         raise HTTPException(status_code=404, detail="No such game for this player.")
+    coaching = latest_coaching(conn, game_id)
     return TEMPLATES.TemplateResponse(
         request=request,
         name="game.html",
@@ -165,8 +173,26 @@ def game(request: Request, user: str, game_id: int):
             "user": user,
             "game": row,
             "mistakes": game_mistakes(conn, game_id),
+            "coaching": coaching,
+            "grounding": coaching.grounding() if coaching else None,
+            "job": latest_job(conn, user, kind="coach", game_id=game_id),
         },
     )
+
+
+@app.post("/player/{user}/game/{game_id}/coach")
+def coach_game(user: str, game_id: int):
+    """Generate coaching for one game in the background, then show it.
+
+    Refuses a second concurrent run for the same game: the model takes tens of seconds and
+    two answers to the same question is not a useful thing to spend them on.
+    """
+    conn = open_db()
+    if game_row(conn, game_id, user) is None:
+        raise HTTPException(status_code=404, detail="No such game for this player.")
+    if active_job(conn, user, kind="coach", game_id=game_id) is None:
+        start_coach(database_path(), user, game_id)
+    return RedirectResponse(f"/player/{user}/game/{game_id}", status_code=303)
 
 
 def _total_games(conn: sqlite3.Connection, user: str) -> int:
