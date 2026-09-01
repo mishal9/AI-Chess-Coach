@@ -319,3 +319,87 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+# --- cross-judge agreement -------------------------------------------------------------
+
+@dataclass(frozen=True)
+class AgreementResult:
+    """How closely two judges scored the same texts on one axis."""
+
+    axis: str
+    n: int
+    pearson: float
+    kendall: float
+    mean_a: float
+    mean_b: float
+    exact_match: float
+    within_one: float
+
+    @property
+    def bias(self) -> float:
+        """How much more generous judge B was, in rubric points."""
+        return round(self.mean_b - self.mean_a, 3)
+
+
+def judge_agreement(
+    report_a: dict, report_b: dict, axes: tuple[str, ...] = RUBRIC_AXES
+) -> list[AgreementResult]:
+    """Correlate two judges' scores over the same stored coaching.
+
+    Only meaningful when the two reports scored *identical texts* — which is what
+    :mod:`eval.rejudge` produces and what re-running generation would not. Reported
+    alongside Kendall's tau because these are ordinal 1-5 scores on a short scale, where
+    Pearson alone flatters agreement.
+
+    Published context for reading the numbers: Kim et al. (NAACL 2025) validate their
+    LLM judge for chess commentary against human raters at Pearson 0.40-0.56 /
+    Kendall 0.23-0.39. Judge-to-judge agreement in that range is ordinary, not alarming.
+    """
+    from scipy import stats
+
+    results = []
+    for axis in axes:
+        a_scores, b_scores = paired_scores(report_a, report_b, axis)
+        if len(a_scores) < 3:
+            continue
+        # A judge that gave every game the same score has no variance to correlate.
+        if len(set(a_scores)) < 2 or len(set(b_scores)) < 2:
+            pearson = kendall = float("nan")
+        else:
+            pearson = float(stats.pearsonr(a_scores, b_scores).statistic)
+            kendall = float(stats.kendalltau(a_scores, b_scores).statistic)
+        n = len(a_scores)
+        results.append(
+            AgreementResult(
+                axis=axis,
+                n=n,
+                pearson=round(pearson, 3),
+                kendall=round(kendall, 3),
+                mean_a=round(sum(a_scores) / n, 3),
+                mean_b=round(sum(b_scores) / n, 3),
+                exact_match=round(
+                    sum(x == y for x, y in zip(a_scores, b_scores)) / n, 3
+                ),
+                within_one=round(
+                    sum(abs(x - y) <= 1 for x, y in zip(a_scores, b_scores)) / n, 3
+                ),
+            )
+        )
+    return results
+
+
+def render_agreement(results: list[AgreementResult], name_a: str, name_b: str) -> str:
+    lines = [
+        f"Cross-judge agreement on identical texts: {name_a} vs {name_b}",
+        f"n = {results[0].n} games",
+        "",
+        f"{'axis':24s} {'r':>7} {'tau':>7} {name_a[:9]:>9} {name_b[:9]:>9} "
+        f"{'bias':>7} {'exact':>7} {'±1':>7}",
+    ]
+    for r in results:
+        lines.append(
+            f"{r.axis:24s} {r.pearson:>7.2f} {r.kendall:>7.2f} {r.mean_a:>9.2f} "
+            f"{r.mean_b:>9.2f} {r.bias:>+7.2f} {r.exact_match:>7.0%} {r.within_one:>7.0%}"
+        )
+    return "\n".join(lines)
