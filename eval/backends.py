@@ -22,16 +22,14 @@ import time
 # Sensible default judge models per provider. Flagships, because grading reliability
 # matters more than cost here (a judge call is a fraction of a cent) — see eval/README.md.
 DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-8"
-# gemini-2.5-pro is closed to new API keys as of late 2026 ("no longer available to new
-# users"). 3.1-pro is the peer-strength counterpart to the Anthropic judge, which is what a
-# cross-judge check wants: disagreement should be attributable to rubric ambiguity, not to
-# one judge being weaker. It needs billing enabled — at 1143 in / 217 out per judgement it
-# costs about $0.005 a call, roughly $0.28 for a full 58-call cross-judge run.
+# Model availability depends on how new the API key's project is: 2.5-pro and 2.5-flash are
+# both "no longer available to new users", and the 3.1-pro line is paid-only (a free-tier
+# key reports `limit: 0` on it). 3.6-flash is what a project created in late 2026 can reach
+# on the free tier, and it is a newer model than the 2.5-flash it replaces.
 #
-# GEMINI_MODEL overrides it. `gemini-2.5-flash` is the free-tier fallback (5 requests a
-# minute, 20 a day) at about a fifth the cost and noticeably more generous scoring; if you
-# use it, say so in any write-up rather than implying a peer-level check.
-DEFAULT_GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-pro-preview")
+# GEMINI_MODEL overrides this. If a run uses a judge materially weaker than the primary one,
+# say so in any write-up rather than implying a peer-level check.
+DEFAULT_GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
 
 # Enough to ride out the free tier's per-minute window a few times over.
 GEMINI_MAX_RETRIES = 6
