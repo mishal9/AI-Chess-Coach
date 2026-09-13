@@ -1,0 +1,158 @@
+"""The blinded human-rating instrument.
+
+The tests that matter are the blinding ones: an item a rater can trace back to a system
+is not a blind rating, and an agreement number computed from it would be worthless.
+"""
+
+from __future__ import annotations
+
+import csv
+import json
+
+import pytest
+
+pytest.importorskip("scipy", reason="needs the `eval` extra")
+
+from eval.human_rating import (  # noqa: E402
+    RatingItem,
+    agreement,
+    collect,
+    judge_scores_for,
+    load_ratings,
+    render_sheet,
+    stratified_sample,
+    write_round,
+)
+from eval.rubric import RUBRIC_AXES  # noqa: E402
+
+
+def item(bucket="one_blunder", source="report_a", coaching="You played Nxe5.", idx=0):
+    return RatingItem(
+        item_id="", coaching=coaching, facts="the engine preferred d3",
+        source_report=source, pgn=f"{bucket}.pgn", game_index=idx, bucket=bucket,
+    )
+
+
+def pool():
+    """Two arms x three buckets x two games — enough to test stratification."""
+    out = []
+    for source in ("prompted_8b_2026-08-14", "8b_v2_2026-08-10"):
+        for bucket in ("clean_draw", "one_blunder", "multi_blunder"):
+            for i in range(2):
+                # Coaching text must not name its source, or the blinding tests would
+                # be checking the fixture rather than the renderer.
+                out.append(item(bucket=bucket, source=source, idx=i,
+                                coaching=f"Coaching text {bucket} {i} for arm {len(out)}"))
+    return out
+
+
+class TestBlinding:
+    def test_item_ids_carry_no_provenance(self):
+        sample = stratified_sample(pool(), size=6, seed=1)
+        ids = [i.item_id for i in sample.items]
+        assert ids == [f"item-0{n}" for n in range(1, 7)]
+
+    def test_the_sheet_never_names_a_source_report(self):
+        """A rater who can tell which system wrote a text is not rating the text."""
+        items = [item(source="8b_v2_2026-08-10", coaching="Neutral coaching text.")]
+        sheet = render_sheet(stratified_sample(items, size=1, seed=1))
+        assert "8b_v2" not in sheet
+        assert "prompted" not in sheet
+        assert "2026-08-10" not in sheet
+
+    def test_only_the_answer_key_maps_items_back(self, tmp_path):
+        sample = stratified_sample(pool(), size=6, seed=1)
+        paths = write_round(sample, tmp_path)
+        key = paths["key"].read_text()
+        assert "8b_v2_2026-08-10" in key, "the key must record provenance"
+        assert "8b_v2_2026-08-10" not in paths["sheet"].read_text()
+        assert "8b_v2_2026-08-10" not in paths["ratings"].read_text()
+
+    def test_order_does_not_track_the_source(self):
+        """If arms alternated, a rater could infer provenance from position alone."""
+        sample = stratified_sample(pool(), size=12, seed=7)
+        sources = [i.source_report for i in sample.items]
+        alternating = all(a != b for a, b in zip(sources, sources[1:]))
+        assert not alternating
+
+
+class TestSampling:
+    def test_spreads_across_buckets(self):
+        sample = stratified_sample(pool(), size=6, seed=1)
+        assert set(sample.buckets) == {"clean_draw", "one_blunder", "multi_blunder"}
+        assert all(count == 2 for count in sample.buckets.values())
+
+    def test_is_reproducible_for_a_second_rater(self):
+        """Both raters must see identical items or the agreement is between samples."""
+        a = stratified_sample(pool(), size=6, seed=42)
+        b = stratified_sample(pool(), size=6, seed=42)
+        assert [(i.item_id, i.coaching) for i in a.items] == \
+               [(i.item_id, i.coaching) for i in b.items]
+
+    def test_asking_for_more_than_exists_returns_what_there_is(self):
+        assert len(stratified_sample(pool(), size=99, seed=1).items) == 12
+
+
+class TestRoundTrip:
+    def test_the_blank_csv_has_a_row_per_item_and_a_column_per_axis(self, tmp_path):
+        sample = stratified_sample(pool(), size=4, seed=1)
+        paths = write_round(sample, tmp_path)
+        rows = list(csv.DictReader(paths["ratings"].open()))
+        assert len(rows) == 4
+        assert set(RUBRIC_AXES).issubset(rows[0].keys())
+        assert all(rows[0][a] == "" for a in RUBRIC_AXES)
+
+    def test_returned_ratings_load_back(self, tmp_path):
+        path = tmp_path / "ratings.csv"
+        with path.open("w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["item_id", *RUBRIC_AXES, "comment"])
+            writer.writerow(["item-01", 4, 5, 3, 5, "solid"])
+            writer.writerow(["item-02", "", "", "", "", "skipped"])
+        loaded = load_ratings(path)
+        assert loaded["item-01"]["factual_correctness"] == 4
+        assert "item-02" not in loaded, "an unscored row is not a rating"
+
+    def test_out_of_range_scores_are_clamped(self, tmp_path):
+        path = tmp_path / "ratings.csv"
+        with path.open("w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["item_id", *RUBRIC_AXES, "comment"])
+            writer.writerow(["item-01", 9, 0, 3, 3, ""])
+        loaded = load_ratings(path)
+        assert loaded["item-01"]["factual_correctness"] == 5
+        assert loaded["item-01"]["clarity"] == 1
+
+
+class TestAgreement:
+    def test_matches_judge_scores_through_the_key(self, tmp_path):
+        report = {"games": [
+            {"pgn": "one_blunder.pgn", "game_index": 0,
+             "rubric": {"scores": {a: 4 for a in RUBRIC_AXES}, "overall": 4.0}},
+        ]}
+        report_path = tmp_path / "r.json"
+        report_path.write_text(json.dumps(report))
+        key = tmp_path / "answer_key.csv"
+        with key.open("w", newline="") as handle:
+            writer = csv.DictWriter(
+                handle, fieldnames=["item_id","source_report","pgn","game_index","bucket"])
+            writer.writeheader()
+            writer.writerow({"item_id": "item-01", "source_report": "r",
+                             "pgn": "one_blunder.pgn", "game_index": 0,
+                             "bucket": "one_blunder"})
+        scores = judge_scores_for(key, {"r": report_path})
+        assert scores["item-01"]["factual_correctness"] == 4
+
+    def test_a_generous_judge_shows_as_bias_with_ranking_intact(self):
+        human = {f"i{n}": {a: n for a in RUBRIC_AXES} for n in range(1, 5)}
+        judge = {f"i{n}": {a: n + 1 for a in RUBRIC_AXES} for n in range(1, 5)}
+        result = agreement(human, judge)["factual_correctness"]
+        assert result["pearson"] == pytest.approx(1.0)
+        assert result["bias"] == pytest.approx(1.0)
+        assert result["exact"] == 0.0
+        assert result["within_one"] == 1.0
+
+    def test_only_items_both_scored_are_compared(self):
+        human = {f"i{n}": {a: 3 for a in RUBRIC_AXES} for n in range(5)}
+        judge = {f"i{n}": {a: 3 for a in RUBRIC_AXES} for n in range(3)}
+        assert agreement(human, judge)["clarity"]["n"] == 3

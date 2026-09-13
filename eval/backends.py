@@ -15,10 +15,28 @@ of the model's reply for :func:`eval.judge.parse_verdict` to handle.
 
 from __future__ import annotations
 
+import os
+import re
+import time
+
 # Sensible default judge models per provider. Flagships, because grading reliability
 # matters more than cost here (a judge call is a fraction of a cent) — see eval/README.md.
 DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-8"
-DEFAULT_GEMINI_MODEL = "gemini-2.5-pro"
+# Model availability depends on how new the API key's project is: 2.5-pro and 2.5-flash are
+# both "no longer available to new users", and the 3.1-pro line is paid-only (a free-tier
+# key reports `limit: 0` on it). 3.6-flash is what a project created in late 2026 can reach
+# on the free tier, and it is a newer model than the 2.5-flash it replaces.
+#
+# GEMINI_MODEL overrides this. If a run uses a judge materially weaker than the primary one,
+# say so in any write-up rather than implying a peer-level check.
+DEFAULT_GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+
+# Enough to ride out the free tier's per-minute window a few times over.
+GEMINI_MAX_RETRIES = 6
+
+
+class GeminiDailyQuotaExhausted(RuntimeError):
+    """The daily free-tier cap is spent — waiting will not help before tomorrow."""
 
 _dotenv_loaded = False
 
@@ -98,17 +116,45 @@ def gemini_backend(messages: list[dict], model: str | None = None) -> str:
 
     _load_dotenv()
     system, turns = _split_system(messages)
-    client = genai.Client()
-    response = client.models.generate_content(
-        model=model or DEFAULT_GEMINI_MODEL,
-        contents="\n\n".join(m["content"] for m in turns),
-        config=genai.types.GenerateContentConfig(
-            system_instruction=system,
-            temperature=0.0,
-            response_mime_type="application/json",
-        ),
+    # Pass the key explicitly. The SDK prefers GOOGLE_API_KEY when both are set, so a
+    # stale one left over in a shell silently shadows the key in .env — which presents
+    # as a confusing auth or 404 error against the wrong project.
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    client = genai.Client(api_key=api_key) if api_key else genai.Client()
+    config = genai.types.GenerateContentConfig(
+        system_instruction=system,
+        temperature=0.0,
+        response_mime_type="application/json",
     )
-    return response.text.strip()
+    contents = "\n\n".join(m["content"] for m in turns)
+
+    # The free tier allows 5 requests a minute, and a judged run is dozens of calls. A 429
+    # is a "wait" not a failure, so honour the server's own retryDelay rather than losing
+    # an hour of engine work to it.
+    for attempt in range(GEMINI_MAX_RETRIES):
+        try:
+            return client.models.generate_content(
+                model=model or DEFAULT_GEMINI_MODEL, contents=contents, config=config
+            ).text.strip()
+        except Exception as exc:  # noqa: BLE001 - re-raised below unless it is a 429
+            message = str(exc)
+            if "429" not in message or attempt == GEMINI_MAX_RETRIES - 1:
+                raise
+            if "PerDay" in message:
+                # A per-minute limit is a wait; a per-day limit is a wall. Retrying it
+                # just burns the remaining attempts and hides the real reason for hours.
+                raise GeminiDailyQuotaExhausted(
+                    "Gemini free-tier daily request quota is exhausted. The run cannot "
+                    "continue today; resume tomorrow or use a paid key."
+                ) from exc
+            time.sleep(_retry_delay(message))
+    raise RuntimeError("unreachable")  # pragma: no cover
+
+
+def _retry_delay(message: str, default: float = 20.0) -> float:
+    """Seconds to wait, taken from the API's own ``retryDelay`` when it gives one."""
+    match = re.search(r"'retryDelay':\s*'(\d+(?:\.\d+)?)s'", message)
+    return float(match.group(1)) + 1.0 if match else default
 
 
 # The offline, dependency-free default so tests and CI never need a network or a key.
