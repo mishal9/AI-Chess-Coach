@@ -1,173 +1,136 @@
-# Chess Coaching AI — Project Plan
+# Plan — one goal at a time
 
-## Context
+Rewritten 2026-09-13. The original Phase 0–6 roadmap (Chroma, Qwen2.5-3B, a hosted public site)
+is in git history. It served its purpose, and most of it was either built or deliberately
+dropped. This version replaces it with two finishable goals, done **one after the other**.
 
-**Goal:** Build a production AI system that analyzes a user's chess games, explains
-their mistakes in plain language, coaches them to improve, and gets more
-personalized over time. Host it online for others to use. Secondary goal: **learn
-AI engineering end-to-end** by building this. Start with a *small* model and only
-scale parameters if we genuinely can't extract more performance.
+## Where the project stands
 
-**Key constraint / environment (verified on this machine):**
-- MacBook Pro **M1 Pro, 16GB RAM** — good for local dev + serving small *quantized*
-  models; **not** for training 3B+ models. Training happens on **Google Colab** (free T4).
-- `ollama` and `mlx` already installed; `docker`, `git`, `node`, `brew` present.
-- **Stockfish not installed yet** (`brew install stockfish`).
-- ⚠️ System Python is **3.14** — PyTorch/transformers/trl have no 3.14 wheels yet.
-  All ML work must run in a pinned **Python 3.12** virtual env.
-- Project home (currently empty): `~/Work/chess_analyzer`.
-- Data: **public datasets** (Lichess open database, Kaggle, Lichess puzzles).
+**Built and working**
 
-## The core architecture decision (read this first)
+| Layer | What it does |
+|---|---|
+| `engine/` | Stockfish analysis at a fixed depth; move quality from win-probability loss; keeps the engine's line |
+| `coach/` | a strictly grounded facts block and prompt; Ollama client; the `qwen-coach-8b-v2` fine-tune or `qwen3:8b` |
+| `memory/` | SQLite history of your games; tags hung material, dropped pawns, missed captures, forks, back-rank; profile with a noise-aware trend |
+| `api/` | sync chess.com → dashboard → game list → game page with mistakes → "coach this game", with a grounding note |
+| `eval/`, `training/` | held-out set, grounding metric plus its audit, claim checkers, LLM judge, distillation, QLoRA, equivalence testing |
 
-LLMs are unreliable chess players — they hallucinate moves and evals. So we split
-responsibilities:
+Your data: 53 `mshah509` games (25 Jun – 6 Sep 2026). Tagged mistakes so far: hanging material
+55, dropped pawns 47, missed captures 35, forks 25.
 
-```
-PGN game
-   │
-   ▼
-[Stockfish engine]  ── objective truth: per-move eval, centipawn loss,
-   │                    blunder/mistake/inaccuracy tags, best move, missed tactics
-   ▼
-[Fine-tuned small LLM = "the Coach"]  ── turns engine facts into natural-language
-   │                                       explanation + lessons, in a coaching voice
-   ▼
-[RAG / Memory layer]  ── stores every analyzed game & mistake per user in a vector DB;
-   │                       retrieves the player's recurring weaknesses to personalize
-   ▼
-[FastAPI + web UI]  ── upload/paste a game or connect a username → get coaching
-```
+**What the research found** (details in `docs/experiments/`)
 
-- **"Gets smarter with every game"** = the RAG/memory layer accumulating the player's
-  history + a *periodic* (e.g. monthly) fine-tune refresh on aggregated coaching data.
-  **Not** per-game retraining (impractical and unnecessary).
-- This keeps the LLM's job narrow and learnable, which is exactly why a *small* model
-  can succeed at it.
+1. The deterministic grounding metric was wrong in both directions. It was saturated (18/29 games
+   at the ceiling) and blind to inverted claims, yet over-fired on square names in prose
+   (84–94% of all flags). Correcting it reversed two earlier conclusions.
+2. Claim checkers that replay the game: 0/467 false positives on teacher rows. Every flagged
+   held-out game was judged factual 2/5. Recall is low.
+3. Distillation reproduced its base model's judged quality (factual 3.72 vs 3.72) and improved
+   citation hygiene. It did not exceed the base model. The teacher scores 4.97, so the headroom is real.
 
-## Recommended stack
+**Not finished**
 
-| Concern | Choice | Why |
-|---|---|---|
-| Engine | **Stockfish** + `python-chess` | Free, superhuman, scriptable |
-| Base model | **Qwen2.5-3B-Instruct** (fallback: Llama-3.2-1B/3B) | Strong small instruct model; QLoRA-friendly on a T4 |
-| Fine-tuning | **QLoRA** via `trl`/`peft` on **Colab**; MLX-LM as a local alt | Fits free T4; LoRA adapters are tiny |
-| Local serving/dev | **Ollama** (GGUF) on the M1 | One command, runs a Q4 3B in ~2-3GB |
-| Vector DB | **Chroma** (local, embedded) | Zero-infra to start; swap later if needed |
-| Embeddings | `sentence-transformers` (e.g. `bge-small`) | Runs locally, free |
-| Backend | **FastAPI** | Standard, async, easy to containerize |
-| Hosting | Start free: **HF Spaces / Fly.io / Render**; serverless GPU only if required | Keep cost ~$0 until there's real usage |
+- Paper: no draft yet. The cross-judge check (Gate 3) has not run. The human-rating sheet was
+  built today with 0 ratings. The paper's code is on `paper/grounding-audit`, which has no PR.
+  The sprint's TMLR date (14 Sep) cannot be met.
+- App: you can read about a game, but you can't see the board. Coaching covers one game at a
+  time, never your habits across games, and nothing makes you practise.
 
-Whole stack can run at **$0** to start.
+## The rule
 
-## Phased plan (each phase is a learning milestone + a working artifact)
+**One goal active at a time.** Each goal has a finish line, and a list of what it is *not*
+doing. Anything new goes on the "later" list, not into the current goal. Everything that slipped
+on this project slipped by adding "one more thing worth auditing".
 
-### Phase 0 — Foundations & data (no ML)
-- Init repo at `~/Work/chess_analyzer`, git, README, structure (see below).
-- Create **Python 3.12 venv** (`brew install python@3.12`; manage with `uv`).
-  Do NOT use system Python 3.14.
-- `brew install stockfish`; `pip install python-chess`.
-- Acquire public data: a slice of the **Lichess open database** (monthly PGN dumps,
-  many games already carry `%eval` computer annotations → saves engine time) and the
-  **Lichess puzzle database** (great for tactics). Optionally a Kaggle chess dataset.
-- **Deliverable:** scripted download + a PGN loader that prints games.
-
-### Phase 1 — Engine analysis pipeline (still no ML)
-- For each game: walk moves with `chess.engine.SimpleEngine`, capture eval before/after,
-  compute **centipawn loss**, classify each move (blunder / mistake / inaccuracy / good),
-  detect missed tactics, tag opening (ECO) & game phase.
-- Output a structured JSON "analysis report" per game.
-- **Deliverable:** a CLI that takes a PGN and emits an objective mistake report. This is
-  already useful on its own — validate it before adding any LLM.
-
-### Phase 2 — LLM coaching baseline (prompt engineering, no fine-tuning yet)
-- Feed the Phase-1 JSON into a base instruct model (run **Qwen2.5-3B via Ollama locally**)
-  with a carefully designed coaching prompt → natural-language explanations.
-- This establishes a **baseline** and teaches prompt engineering. Critical: it's the
-  thing fine-tuning must *beat* to justify itself.
-- **Deliverable:** end-to-end "PGN in → coaching text out" using only prompting.
-
-### Phase 3 — Build the fine-tuning dataset
-- Generate `(position + engine analysis) → (coaching explanation)` pairs.
-- Sourcing: **distillation** from a strong model (have a large model write high-quality
-  coaching for many analyzed positions) + curated human annotations where available.
-  Teacher = `claude-opus-4-8` (via `training.distill`); grounding-self-checked so no teacher
-  hallucination reaches the student.
-- Define a consistent coaching style/schema. This dataset *is* the project's moat.
-- **Deliverable:** a versioned train/val/test dataset (JSONL).
-- **Dataset versions — deliberately staged so we can *measure* the gain from richer data:**
-  - **v1 — one row per game (current).** One coaching paragraph per whole game. Simplest;
-    gets a first fine-tune + eval loop working end-to-end. ~93-game corpus → ~93 rows.
-  - **v2 — one row per critical position (revisit for a second fine-tune).** Emit a separate
-    coaching example for each flagged mistake/moment in a game, multiplying the same corpus
-    into hundreds of rows. This is where the leakage-safe *per-game* split (`assign_split`,
-    already built) becomes load-bearing — all positions from one game must stay in one split.
-  - **Comparison is the point:** fine-tune on v1, then on v2, and report the `eval.run` delta
-    on the *same* held-out set (overall / factual / grounding). Quantifies how much per-position
-    data volume buys us — a concrete result to show, not just "we made it bigger."
-
-### Phase 4 — Fine-tune the small model (Colab)
-- **QLoRA** fine-tune Qwen2.5-3B on Colab (start even smaller, Llama-3.2-1B, as a cheap
-  sanity baseline). Export LoRA → merge → **GGUF** → run via Ollama on the M1.
-- **Evaluate vs. the Phase-2 baseline** (see eval harness below). Only move to a larger
-  model if the gap to "good" can't be closed with data/prompt/training improvements.
-- **Deliverable:** a fine-tuned coach model + an eval report showing it beats baseline.
-
-### Phase 5 — Memory / RAG / "gets smarter" loop
-- Per user: store each analyzed game, its mistakes, and recurring **themes** in **Chroma**.
-- At coaching time, retrieve the player's history ("you keep hanging pieces in the
-  middlegame") to personalize and track progress over time.
-- Define the continuous-improvement loop: new game → analysis → stored → informs future
-  coaching now, and feeds the **periodic fine-tune refresh** later.
-- **Deliverable:** personalized coaching that references the user's past patterns.
-
-### Phase 6 — Serving & hosting (the production artifact)
-- **FastAPI** wrapping the full pipeline; endpoints: submit game (PGN / paste / username),
-  get report, get coaching, get progress.
-- Minimal web UI (upload/paste a game; show board + annotated mistakes + coaching).
-- Containerize (Docker). Deploy app on a free/cheap tier; keep model inference on Ollama
-  (small VPS) and reach for serverless GPU only when load demands it.
-- **Deliverable:** a public URL where someone can paste a game and get coached.
-
-## Proposed repo structure
-```
-chess_analyzer/
-├── data/            # downloaded PGNs, puzzles, generated datasets (gitignored)
-├── engine/          # Stockfish wrapper, centipawn-loss + mistake classification
-├── coach/           # prompts, LLM client (Ollama), coaching generation
-├── training/        # dataset builders + Colab QLoRA notebooks
-├── memory/          # Chroma store, embeddings, RAG retrieval
-├── api/             # FastAPI app
-├── web/             # minimal UI
-├── eval/            # eval harness + rubrics + reports
-└── README.md
+```mermaid
+flowchart LR
+    C[Cleanup PR] --> P1
+    subgraph G1["Goal 1 - publish by Mon 12 Oct"]
+      P1[Land paper code] --> P2[Second judge] --> P3[Human ratings] --> P4[Evidence freeze] --> P5[Figures] --> P6[Write] --> P7[Submit]
+    end
+    P7 --> A1
+    subgraph G2["Goal 2 - a coach you use weekly"]
+      A1[See the board] --> A2[Coach my habits] --> A3[Drill my mistakes] --> A4[One-command start]
+    end
 ```
 
-## Evaluation harness (how we decide "small model is enough")
-- Held-out test games with known engine analysis.
-- A coaching-quality rubric: factual correctness (matches engine), clarity,
-  actionability, correct identification of the *key* mistake.
-- Compare: prompted baseline vs. fine-tuned vs. (only if needed) larger model.
-- This is what enforces your "extract all performance from the small model first" rule.
+**Recommended order: paper first, time-boxed to four weeks, then the app.** The paper is mostly
+evidence already collected, and it gets harder to verify over time. Gemini 2.5 already refuses
+new keys, and the Opus judge behind every number may be next. The app has no deadline, and it
+already runs. If you would rather use a coach this month, swap the order. Pick one either way;
+don't run both.
 
-## Verification (end-to-end checkpoints)
-1. **Phase 0:** `stockfish` runs; loader prints a known game's moves.
-2. **Phase 1:** run the analyzer on a famous game (e.g. a known blunder) and confirm it
-   flags the blunder with correct centipawn loss.
-3. **Phase 2 & 4:** run the eval harness; fine-tuned model scores higher than baseline on
-   the rubric over the held-out set.
-4. **Phase 5:** submit two games from the same user; confirm the second coaching session
-   references a pattern from the first (RAG working).
-5. **Phase 6:** hit the deployed URL, paste a PGN, receive a board + mistake report +
-   personalized coaching.
+**Freeze while the paper is open:** `SYSTEM_PROMPT`, `format_report_facts` and `eval/`. They
+define the numbers in the paper. New app prompts go in new functions.
 
-## Open decisions to revisit later (not blocking)
-- Exact base model (Qwen2.5-3B vs Llama-3.2-3B) — pick empirically in Phase 4.
-- Hosting provider for public launch — decide when the app actually works (Phase 6).
-- Whether to add user accounts/auth — only when going truly public.
+---
 
-## First concrete steps once approved
-1. `brew install stockfish python@3.12`
-2. Scaffold `~/Work/chess_analyzer` repo + 3.12 venv (via `uv`) + `python-chess`.
-3. Download a small Lichess PGN slice and build the Phase-1 engine analyzer.
-4. Validate the analyzer on a known game before any LLM work.
+## Goal 1 — Publish the research
+
+**Finish line:** arXiv preprint (cs.CL) and TMLR submission, with the repo tagged `paper-v1`.
+Target **Mon 12 Oct 2026**.
+
+**Paper:** *Grounded in What? Auditing Deterministic Grounding Metrics for Free-Form Chess
+Coaching*. The audit (§4) leads, the claim checkers (§5) follow, and the distillation result
+(§6) is the second act. Outline: `docs/experiments/2026-08-30-paper-outline.md` on the paper
+branch.
+
+| # | Step | Done when | By |
+|---|---|---|---|
+| P1 | Land the paper code: rebase `paper/grounding-audit` on master and open a PR (`equivalence`, `rejudge`, `human_rating`, outline, gap analysis) | merged; bare `pytest` green | Tue 15 Sep |
+| P2 | **Gate 3, second judge.** `eval.rejudge` over stored coaching for both arms; per-axis agreement with Opus; rerun `eval.equivalence` under the second judge. Disclose that `gemini-3.6-flash` is weaker than Opus | `docs/experiments/…-gate3-cross-judge.md` committed | Fri 18 Sep |
+| P3 | **Human ratings.** You plus one chess-playing rater, 20 blinded items (`eval/human/round1`). If no second rater by Fri 18 Sep, ship with one rater and state it as a limitation | `ratings.csv` filled; human ↔ judge agreement computed | Sun 20 Sep |
+| P4 | **Evidence freeze.** Tag `evidence-freeze`. From here: no new experiments, no expanding the held-out set (n=29 with the stated bound) | tag pushed | Sun 20 Sep |
+| P5 | Figures and tables as committed scripts under `eval/figures/`: F2 ceiling pile-up, F3 grounding vs factual, F4 TOST forest plot, T1 corrected scoreboard, T2 checker precision, T3 ablation | each regenerates from committed reports | Sun 27 Sep |
+| P6 | Write, in this order: §4 audit → §5 checkers → §6 distillation → §7 threats → §3 setup → §2 related work → §1 intro → abstract last | full draft in `paper/` | Sun 4 Oct |
+| P7 | Hostile read (write the three reviews you fear, answer each in the text); fresh-clone reproduction with `paper/REPRODUCE.md`; tag `paper-v1`; submit | submitted | Mon 12 Oct |
+
+**Not in this goal:** a v3 dataset, another fine-tune, held-out expansion, positional motifs,
+new audits, app features.
+
+**Budget:** P2 costs little or nothing on the Gemini key. P1–P7 need no Anthropic spend, because
+every Opus score is already stored.
+
+---
+
+## Goal 2 — A coach you actually use
+
+**Finish line:** once a week you open the app. It pulls your new games, shows you the one habit
+costing you most with board positions from your own games, coaches you on it, and drills you on
+positions you got wrong before. Local, single-user.
+
+Each step is one small PR, branched from master.
+
+| # | Step | Why | Size |
+|---|---|---|---|
+| A1 | **See the board.** Render `fen_before` of every mistake as SVG with `chess.svg`, server-side, still zero JS. Arrows show the move you played and the engine's move | coaching in notation alone isn't usable | S |
+| A2 | **"Coach my habits" page.** For your top 1–3 recurring motifs, take 3–5 example positions from your own games. The coach explains the pattern using those examples, and the checker's allowed moves are exactly those examples' moves. Store it with its facts, like per-game coaching | the actual ask: coaching on *past mistakes*, not one game | M |
+| A3 | **Drill your own mistakes.** Show a past `fen_before`; you type a move (a plain form); Stockfish grades it by win-probability loss; spaced repetition in a `drills` table | turns being coached into improving; deterministic, no LLM | M |
+| A4 | **One-command start.** `make app` checks Stockfish, Ollama and the model, starts the server, and syncs new games when the dashboard opens | removes the eight-step setup | S |
+| A5 | **Decide the coach model** (below), then make it a setting | quality ceiling | S |
+
+**Decision needed before A2: which model coaches you?**
+- Local `qwen-coach-8b-v2` or `qwen3:8b`: free, private, judged factual **3.72/5**.
+- Claude over the API: the teacher scored **4.97/5** on the same rubric, at roughly cents per
+  game. `eval.backends` already talks to it.
+
+**Not in this goal:** hosting, accounts, other users, Lichess, vector search, periodic
+re-fine-tuning, positional motifs. 161 of your 299 stored mistakes (54%) carry no motif tag;
+revisit that only after you have used A1–A3 for a month.
+
+---
+
+## Later (parked, not forgotten)
+
+- Positional motifs from Stockfish's per-piece NNUE output (split measurement from classification first).
+- Position embeddings for "find past positions like this one" (ChessCLIP).
+- A v1 amplification check for the class-C finding. It's free, but it's a new experiment, so it waits for after the paper.
+- Hosting for other players.
+
+## Housekeeping (needs your OK)
+
+- 43 remote branches on GitHub are old PR heads (42 already merged). Delete them, keeping `master`
+  and `paper/grounding-audit`, along with the 43 matching local branches.
+- `models/` holds local symlinks to GGUFs in `~/Downloads` (ablation arms), and `data/distill/`
+  holds intermediate chunk files. All are gitignored and safe to remove once the paper is submitted.
