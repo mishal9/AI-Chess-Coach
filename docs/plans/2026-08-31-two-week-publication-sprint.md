@@ -1,5 +1,9 @@
 # Two-week publication sprint — TMLR, submit Mon 14 Sep 2026
 
+> **Superseded 2026-09-13 by `PLAN.md` (Goal 1).** The sprint slipped: Gate 3 never ran, no
+> draft was written, and the human ratings were not collected. The venue reasoning below still
+> holds; the dates do not. New target: arXiv + TMLR on Mon 12 Oct 2026.
+
 Date: 2026-08-31. Companion to `docs/experiments/2026-08-30-paper-outline.md`.
 Tracked in Todoist under **Chess Analyzer → AI Eng**, sections `TMLR Sprint · *`.
 
