@@ -60,10 +60,6 @@ def load_report(path: str | Path) -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def load_games(path: str | Path) -> list[dict]:
-    return load_report(path)["games"]
-
-
 def metric_versions(report: dict) -> dict[str, int]:
     """The semantics behind this report's deterministic scores."""
     return report.get("metric_versions") or dict(LEGACY_METRIC_VERSIONS)

@@ -147,10 +147,9 @@ def test_main_writes_games_and_extends_manifest(tmp_path, monkeypatch):
 def test_lichess_fetch_perf_passes_perf_type(monkeypatch):
     captured = {}
 
-    def fake_fetch(user, max_games, out, perf_type=None):
+    def fake_fetch(user, max_games, perf_type=None):
         captured["perf_type"] = perf_type
-        out.write_text('[Event "x"]\n\n1. e4 e5 1-0\n')
-        return 1
+        return '[Event "x"]\n\n1. e4 e5 1-0\n'
 
     monkeypatch.setattr("engine.fetch_data.fetch_lichess_games", fake_fetch)
     text = ex._lichess_fetch_perf("rapid,classical")("someone", 5)

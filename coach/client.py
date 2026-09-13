@@ -19,12 +19,10 @@ import ollama
 # --model explicitly, so nothing caught that the default had gone stale until the web UI
 # used it and produced coaching with five invented moves out of nine.
 #
-# Override with COACH_MODEL for a machine that has something else pulled.
+# Override with COACH_MODEL for a machine that has something else pulled. `qwen3:8b` is
+# the un-fine-tuned base: same judged quality, slightly worse citation hygiene, but it is
+# `ollama pull`-able, whereas the fine-tune has to be built from the training notebook.
 DEFAULT_MODEL = os.environ.get("COACH_MODEL", "qwen-coach-8b-v2")
-
-# The un-fine-tuned base. Same judged quality, slightly worse citation hygiene, but it is
-# `ollama pull`-able, whereas the fine-tune has to be built from the Phase-4 notebook.
-FALLBACK_MODEL = "qwen3:8b"
 
 # Low but non-zero: we want faithful, grounded coaching, not creative variation, while
 # still avoiding the robotic repetition of temperature 0.

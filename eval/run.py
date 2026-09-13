@@ -94,7 +94,7 @@ def analyze_case(case: EvalCase, depth: int) -> dict:
     """Run Stockfish over a case's game and return the report dict (imported lazily so
     the rest of the module needs no engine)."""
     from engine.analyzer import analyze_game
-    from engine.report import load_game
+    from engine.pgn import load_game
 
     game = load_game(case.pgn, case.game_index)
     if game is None:

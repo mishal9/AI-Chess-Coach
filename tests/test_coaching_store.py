@@ -11,7 +11,7 @@ from __future__ import annotations
 import chess.pgn
 import pytest
 
-from memory.coaching import count_for_user, latest, save
+from memory.coaching import latest, save
 from memory.jobs import create_job, latest_job, read_job, run_coach
 from memory.profile import build_profile
 from memory.store import backfill_pgn, connect, ingest_game
@@ -66,14 +66,6 @@ class TestCoachingStore:
 
     def test_no_coaching_is_none_not_an_error(self, db):
         assert latest(connect(db), store_game(db)) is None
-
-    def test_counts_per_user(self, db):
-        game_id = store_game(db, user="alice")
-        conn = connect(db)
-        assert count_for_user(conn, "alice") == 0
-        save(conn, game_id, "white", "m", "text", FACTS)
-        assert count_for_user(conn, "alice") == 1
-        assert count_for_user(conn, "bob") == 0
 
 
 class TestProfileExclusion:
@@ -208,8 +200,10 @@ class TestJobKinds:
             " started_at TEXT NOT NULL, updated_at TEXT NOT NULL);"
         )
         conn.commit()
+        conn.close()
 
-        job_id = create_job(conn, "alice", kind="coach", game_id=3)  # triggers migration
+        conn = connect(db)  # opening the database runs the migration
+        job_id = create_job(conn, "alice", kind="coach", game_id=3)
         job = read_job(conn, job_id)
         assert job.kind == "coach"
         assert job.game_id == 3

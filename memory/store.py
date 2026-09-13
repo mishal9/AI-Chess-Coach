@@ -1,7 +1,8 @@
 """Persistent record of what a player keeps getting wrong.
 
-One SQLite file per player-history. Three tables — games, their flagged mistakes, and the
-motifs tagged on each mistake — because the questions this has to answer are aggregations
+One SQLite file per player-history. Three core tables — games, their flagged mistakes, and
+the motifs tagged on each mistake — plus the app's generated coaching and background jobs,
+all created and migrated here so there is one schema to read. Relational because the questions this has to answer are aggregations
 ("which mistake costs me the most?", "am I improving?", "is this the fourth time?") and
 those are ``GROUP BY``, not similarity search.
 
@@ -17,23 +18,16 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import io
 import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-import chess.pgn
-
-from coach.prompts import choose_coached_side
+from coach.prompts import MISTAKE_QUALITIES, choose_coached_side
+from engine.pgn import game_key, movetext_hash, read_game, split_pgn
 from memory.motifs import game_phase, tag_report
-from training.corpus import movetext_hash
 
 DEFAULT_DB = Path(__file__).resolve().parent.parent / "data" / "memory.db"
-
-# Qualities worth remembering. Mirrors coach.prompts._MISTAKE_QUALITIES — a "good" move
-# has nothing to teach and would drown the profile in rows.
-_MISTAKE_QUALITIES = ("blunder", "mistake", "inaccuracy")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS games (
@@ -77,15 +71,48 @@ CREATE TABLE IF NOT EXISTS motifs (
     detail         TEXT NOT NULL
 );
 
+-- Generated coaching, stored with the exact facts block it was generated from (see
+-- memory.coaching for why that matters).
+CREATE TABLE IF NOT EXISTS coaching (
+    id            INTEGER PRIMARY KEY,
+    game_id       INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+    coached_side  TEXT NOT NULL CHECK (coached_side IN ('white', 'black')),
+    model         TEXT NOT NULL,
+    text          TEXT NOT NULL,
+    facts         TEXT NOT NULL,
+    used_profile  INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL
+);
+
+-- Background syncs and coaching runs, so a web page can watch them (see memory.jobs).
+CREATE TABLE IF NOT EXISTS jobs (
+    id          INTEGER PRIMARY KEY,
+    user_name   TEXT NOT NULL,
+    status      TEXT NOT NULL CHECK (status IN ('running', 'done', 'failed')),
+    total       INTEGER NOT NULL DEFAULT 0,
+    done        INTEGER NOT NULL DEFAULT 0,
+    added       INTEGER NOT NULL DEFAULT 0,
+    message     TEXT NOT NULL DEFAULT '',
+    started_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    kind        TEXT NOT NULL DEFAULT 'sync',
+    game_id     INTEGER
+);
+
 CREATE INDEX IF NOT EXISTS idx_games_user ON games(user_name);
 CREATE INDEX IF NOT EXISTS idx_mistakes_game ON mistakes(game_id);
 CREATE INDEX IF NOT EXISTS idx_motifs_mistake ON motifs(mistake_id);
+CREATE INDEX IF NOT EXISTS idx_coaching_game ON coaching(game_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_name, id DESC);
 """
 
 
 # Columns added after the schema shipped. `CREATE TABLE IF NOT EXISTS` cannot add a column
 # to a database that already has the table, and real databases already do.
-_ADDED_COLUMNS = {"games": {"pgn": "TEXT"}}
+_ADDED_COLUMNS = {
+    "games": {"pgn": "TEXT"},
+    "jobs": {"kind": "TEXT NOT NULL DEFAULT 'sync'", "game_id": "INTEGER"},
+}
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
@@ -120,7 +147,7 @@ def _played_at(pgn: str) -> str | None:
     Read through ``chess.pgn`` rather than a private regex so unusual-but-valid headers
     are somebody else's problem.
     """
-    game = chess.pgn.read_game(io.StringIO(pgn))
+    game = read_game(pgn)
     if game is None:
         return None
     headers = game.headers
@@ -138,7 +165,7 @@ def _side_counts(report: dict, side: str) -> dict[str, int]:
     The report's own summary counts *both* players together, which would make a profile
     of your mistakes include your opponent's.
     """
-    counts = dict.fromkeys(_MISTAKE_QUALITIES, 0)
+    counts = dict.fromkeys(MISTAKE_QUALITIES, 0)
     for move in report.get("moves", []):
         if move["side"] == side and move["quality"] in counts:
             counts[move["quality"]] += 1
@@ -199,8 +226,6 @@ def ingest_game(
     Returns the new game's row id, or ``None`` if the game was already stored — callers
     can treat that as "nothing to do", which is what makes re-running a fetch safe.
     """
-    from training.corpus import game_key  # local: only needed at ingest
-
     if already_stored(conn, pgn):
         backfill_pgn(conn, pgn)
         return None
@@ -266,6 +291,38 @@ def ingest_game(
                 [(mistake_cursor.lastrowid, t.motif, t.detail) for t in tags],
             )
     return game_id
+
+
+def unstored_games(conn: sqlite3.Connection, pgn_text: str) -> tuple[list[str], list[str]]:
+    """Split fetched PGN text into ``(every game, games not stored yet)``.
+
+    Every fetched game is also a chance to fill in text an earlier version didn't store —
+    and this is the only moment we hold the PGN of a game we are about to skip.
+    """
+    games = split_pgn(pgn_text)
+    for pgn in games:
+        backfill_pgn(conn, pgn)
+    return games, [g for g in games if not already_stored(conn, g)]
+
+
+def analyze_and_ingest(
+    conn: sqlite3.Connection,
+    pgn: str,
+    user: str,
+    analyze_fn,
+    *,
+    side: str | None = None,
+    depth: int | None = None,
+) -> bool:
+    """Analyze one game and store it. ``False`` if it has no moves or was already stored.
+
+    ``analyze_fn`` maps a parsed game to a report dict, so the caller picks the engine
+    depth and tests can skip Stockfish entirely.
+    """
+    game = read_game(pgn)
+    if game is None or not game.mainline_moves():
+        return False
+    return ingest_game(conn, pgn, analyze_fn(game), user, side=side, depth=depth) is not None
 
 
 def list_games(
@@ -371,7 +428,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="which side is the student (default: the worse-playing side, per game)",
     )
     parser.add_argument("--depth", type=int, default=12, help="Stockfish search depth")
-    parser.add_argument("--max", type=int, help="stop after this many games")
+    parser.add_argument("--max", type=int, help="analyze at most this many new games")
     parser.add_argument(
         "--stats", action="store_true", help="just report what is already stored"
     )
@@ -402,29 +459,25 @@ def main(argv: list[str] | None = None) -> int:
 
     # Imported here so --stats stays instant and engine-free.
     from engine.analyzer import analyze_game
-    from training.corpus import split_pgn
 
-    games = split_pgn(path.read_text(encoding="utf-8"))
+    def analyze(game):
+        return analyze_game(game, depth=args.depth).to_dict()
+
+    games, fresh = unstored_games(conn, path.read_text(encoding="utf-8"))
     if args.max:
-        games = games[: args.max]
+        fresh = fresh[: args.max]
 
-    stored = skipped = 0
-    for i, pgn in enumerate(games, 1):
-        if already_stored(conn, pgn):
-            skipped += 1
-            continue
-        game = chess.pgn.read_game(io.StringIO(pgn))
-        if game is None or not game.mainline_moves():
-            skipped += 1
-            continue
-        print(f"[{i}/{len(games)}] analyzing...", end="\r", file=sys.stderr, flush=True)
-        report = analyze_game(game, depth=args.depth).to_dict()
-        if ingest_game(conn, pgn, report, args.user, side=args.side, depth=args.depth):
+    stored = 0
+    for i, pgn in enumerate(fresh, 1):
+        print(f"[{i}/{len(fresh)}] analyzing...", end="\r", file=sys.stderr, flush=True)
+        if analyze_and_ingest(
+            conn, pgn, args.user, analyze, side=args.side, depth=args.depth
+        ):
             stored += 1
 
     info = stats(conn, args.user)
     print(
-        f"Stored {stored} new game(s), skipped {skipped} already-known. "
+        f"Stored {stored} new game(s) of {len(games)} in the file. "
         f"{args.user} now has {info['games']} games and {info['motif_tags']} motif tags."
     )
     return 0

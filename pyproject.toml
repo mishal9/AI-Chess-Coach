@@ -1,17 +1,15 @@
 [project]
 name = "chess-analyzer"
 version = "0.1.0"
-description = "AI chess coach: Stockfish analysis + LLM coaching with memory/RAG"
+description = "AI chess coach: Stockfish analysis + LLM coaching over a player's game history"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "python-chess>=1.11",
     "requests>=2.32",
-    "zstandard>=0.23",   # decompress Lichess .pgn.zst dumps
-    "tqdm>=4.66",
 ]
 
 [project.optional-dependencies]
-# Phase 2+ (LLM coaching, RAG) — installed later
+# LLM coaching via a local Ollama model
 coach = [
     "ollama>=0.3",
 ]

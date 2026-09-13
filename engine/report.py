@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 from engine.analyzer import DEFAULT_DEPTH, GameReport, MoveAnalysis, analyze_game
-from engine.loader import iter_games
+from engine.pgn import load_game
 from engine.scoring import MoveQuality
 
 # Moves worth surfacing in the "notable mistakes" list, worst first.
@@ -78,14 +78,6 @@ def format_summary(report: GameReport, depth: int, top: int) -> str:
     return "\n".join(lines)
 
 
-def load_game(pgn_path: Path, game_index: int):
-    """Return the game at ``game_index`` (0-based) in ``pgn_path``, or ``None``."""
-    for i, game in enumerate(iter_games(pgn_path)):
-        if i == game_index:
-            return game
-    return None
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Analyze a PGN game and emit an objective mistake report."
@@ -110,7 +102,6 @@ def main(argv: list[str] | None = None) -> int:
     path = Path(args.pgn)
     if not path.exists():
         print(f"File not found: {path}", file=sys.stderr)
-        print("Tip: run `python -m engine.fetch_data --sample` first.", file=sys.stderr)
         return 1
 
     game = load_game(path, args.game_index)

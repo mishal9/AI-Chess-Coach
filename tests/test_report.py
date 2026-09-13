@@ -13,8 +13,8 @@ from pathlib import Path
 import pytest
 
 from engine.analyzer import analyze_game
-from engine.loader import iter_games
-from engine.report import format_summary, load_game
+from engine.pgn import iter_games, load_game
+from engine.report import format_summary
 from engine.scoring import MATE_CP, MoveQuality
 
 requires_stockfish = pytest.mark.skipif(

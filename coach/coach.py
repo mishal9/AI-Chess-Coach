@@ -29,7 +29,7 @@ def report_from_pgn(pgn_path: Path, game_index: int, depth: int) -> dict:
     """Analyze a game from a PGN file and return the report dict."""
     # Imported lazily so `--from-json` works without a Stockfish install.
     from engine.analyzer import analyze_game
-    from engine.report import load_game
+    from engine.pgn import load_game
 
     game = load_game(pgn_path, game_index)
     if game is None:
@@ -171,7 +171,7 @@ def remember(args: argparse.Namespace, report: dict, coached_side: str) -> None:
         return
 
     from memory.store import DEFAULT_DB, connect, ingest_game
-    from training.corpus import split_pgn
+    from engine.pgn import split_pgn
 
     games = split_pgn(Path(args.pgn).read_text(encoding="utf-8"))
     if args.game_index >= len(games):  # pragma: no cover - load_report already checked

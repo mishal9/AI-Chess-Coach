@@ -22,12 +22,15 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sys
 from pathlib import Path
 from typing import Callable
+
+from engine import fetch_data
+from engine.pgn import game_key, movetext_hash, split_pgn
+from engine.pgn import normalized_movetext as _normalized_movetext
 
 HELDOUT_DIR = Path(__file__).resolve().parent.parent / "eval" / "heldout"
 DEFAULT_OUT_DIR = Path(__file__).resolve().parent.parent / "data" / "games"
@@ -43,58 +46,8 @@ DEFAULT_USERS = [
     "DrNykterstein",  # Magnus Carlsen (super-GM) — near-clean reference games
 ]
 
-# A game record in a PGN begins with its [Event ...] tag.
-_EVENT_RE = re.compile(r"(?=^\[Event )", re.MULTILINE)
-_GAMEID_RE = re.compile(r'^\[GameId\s+"([^"]+)"\]', re.MULTILINE)
-_SITE_RE = re.compile(r'^\[Site\s+"([^"]+)"\]', re.MULTILINE)
-_TAG_LINE_RE = re.compile(r"^\[.*\]\s*$", re.MULTILINE)
-_COMMENT_RE = re.compile(r"\{[^}]*\}")  # inline PGN comments, e.g. Lichess { [%eval ...] }
-
 # A fetcher takes (user, max_games) and returns the raw multi-game PGN text.
 FetchFn = Callable[[str, int], str]
-
-
-def split_pgn(text: str) -> list[str]:
-    """Split a multi-game PGN blob into individual game strings (each with its tags)."""
-    return [g.strip() for g in _EVENT_RE.split(text) if g.strip()]
-
-
-def _normalized_movetext(pgn: str) -> str:
-    """Movetext with tags and comments stripped and whitespace collapsed.
-
-    Gives two exports of the *same* game one identity even if one carries ``%eval``
-    comments or a different tag set than the other.
-    """
-    body = _TAG_LINE_RE.sub("", pgn)
-    body = _COMMENT_RE.sub(" ", body)
-    return " ".join(body.split())
-
-
-def movetext_hash(pgn: str) -> str:
-    """Source-independent identity for a game: a digest of its moves alone.
-
-    Unlike :func:`game_key` this never prefers a site id, so the *same* game exported
-    twice with different tags hashes the same both times. That is what makes it safe as
-    a deduplication key for anything that counts games.
-    """
-    return hashlib.sha256(_normalized_movetext(pgn).encode("utf-8")).hexdigest()[:16]
-
-
-def game_key(pgn: str) -> str:
-    """A stable identity for one game, preferring its Lichess id, else a movetext hash.
-
-    Returned keys are namespaced (``id:`` / ``moves:``) so an id and a hash never collide.
-    """
-    m = _GAMEID_RE.search(pgn)
-    if not m:
-        site = _SITE_RE.search(pgn)
-        if site and "lichess.org/" in site.group(1):
-            m_id = site.group(1).rstrip("/").rsplit("/", 1)[-1]
-            if m_id:
-                return f"id:{m_id}"
-    if m:
-        return f"id:{m.group(1)}"
-    return f"moves:{movetext_hash(pgn)}"
 
 
 def heldout_fingerprints(heldout_dir: Path = HELDOUT_DIR) -> set[str]:
@@ -166,14 +119,8 @@ def write_corpus(games: list[str], out_dir: Path) -> Path:
 
 
 def _lichess_fetch(user: str, max_games: int) -> str:
-    """Default fetcher: pull a user's games as PGN via Lichess (reuses engine.fetch_data)."""
-    import tempfile
-
-    from engine.fetch_data import fetch_lichess_games
-
-    with tempfile.NamedTemporaryFile("r", suffix=".pgn", delete=True) as tmp:
-        fetch_lichess_games(user, max_games, Path(tmp.name))
-        return Path(tmp.name).read_text(encoding="utf-8")
+    """Default fetcher: pull a user's games as PGN via Lichess."""
+    return fetch_data.fetch_lichess_games(user, max_games)
 
 
 def build_parser() -> argparse.ArgumentParser:

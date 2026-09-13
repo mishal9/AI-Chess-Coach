@@ -48,7 +48,7 @@ def analyze_manifest(manifest_path: Path, depth: int) -> list[dict]:
     is imported lazily so importing this module needs no Stockfish.
     """
     from engine.analyzer import analyze_game
-    from engine.report import load_game
+    from engine.pgn import load_game
 
     entries = json.loads(manifest_path.read_text(encoding="utf-8"))
     base = manifest_path.parent

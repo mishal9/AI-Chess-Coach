@@ -20,7 +20,7 @@ _QUALITY_SYMBOL = {
 }
 
 # Qualities worth coaching on, worst first.
-_MISTAKE_QUALITIES = ("blunder", "mistake", "inaccuracy")
+MISTAKE_QUALITIES = ("blunder", "mistake", "inaccuracy")
 
 # Average centipawn loss at/below which a game with no flagged mistakes is "clean".
 _CLEAN_ACPL = 20.0
@@ -122,7 +122,7 @@ def coachable_mistakes(report: dict, coached_side: str) -> list[dict]:
     mistakes = [
         m
         for m in report.get("moves", [])
-        if m["side"] == coached_side and m["quality"] in _MISTAKE_QUALITIES
+        if m["side"] == coached_side and m["quality"] in MISTAKE_QUALITIES
     ]
     mistakes.sort(key=lambda m: m["win_prob_loss"], reverse=True)
     return mistakes

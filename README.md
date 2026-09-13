@@ -1,93 +1,70 @@
 # Chess Analyzer — AI Chess Coach
 
-Analyzes your chess games, explains your mistakes in plain language, and coaches you
-to improve. See [`PLAN.md`](./PLAN.md) for the full roadmap and architecture, and
-[`docs/experiments/`](./docs/experiments/) for paper-grade records of the fine-tuning
-experiments and their results.
+Syncs your chess.com games, finds the mistakes you keep making, and coaches you on them.
+Stockfish decides what is true; a local LLM explains it; a SQLite memory of your past games
+lets the coach say "this is the fourth time" and mean it.
 
-**Core idea:** Stockfish does the objective analysis (blunders, centipawn loss, best
-moves); a small fine-tuned LLM is the *coach* that explains them; a RAG/memory layer
-makes it personalized and "smarter every game."
+The project has two outputs, planned in [`PLAN.md`](./PLAN.md):
 
-## Status: Phase 2 — LLM coaching baseline (prompting)
-
-## Setup
-
-Requires Python 3.12 (system Python 3.14 has no ML wheels yet) and Stockfish.
-
-```bash
-brew install stockfish          # already done if `stockfish --version` works
-uv venv --python 3.12           # creates .venv
-uv pip install -e .             # installs python-chess etc.
-
-# For the Phase-2 coach, also install the LLM client and pull the local model:
-uv pip install -e '.[coach]'
-ollama pull qwen2.5:3b-instruct   # ~1.9GB; run `ollama serve` if not already up
-```
+1. **The app** — a personal coach over your own game history (`engine/`, `coach/`, `memory/`, `api/`).
+2. **The research** — a fine-tuning and evaluation study of grounded coaching (`eval/`, `training/`,
+   write-ups in [`docs/experiments/`](./docs/experiments/)).
 
 ## Layout
 
 ```
-engine/    Stockfish wrapper, centipawn-loss + mistake classification
-coach/     prompts, LLM client (Ollama), coaching generation        (Phase 2+)
-training/  dataset builders + Colab QLoRA notebooks                 (Phase 3+)
-memory/    Chroma store, embeddings, RAG retrieval                  (Phase 5+)
-api/       FastAPI app                                              (Phase 6)
-web/       minimal UI                                               (Phase 6)
-eval/      eval harness + rubrics + reports
-data/      downloaded PGNs + generated datasets (gitignored)
+engine/    Stockfish analysis, win-probability move scoring, PGN handling, game fetching
+coach/     the facts block + grounded prompt, and the Ollama client
+memory/    SQLite store of your games, motif tagging, profile/trends, background jobs
+api/       FastAPI + server-rendered pages (no JavaScript, no build step)
+eval/      research: grounding metric, claim checkers, LLM judge, held-out set, reports
+training/  research: corpus assembly, distillation from a teacher model, QLoRA notebook
 ```
 
-## Quickstart (Phase 0)
+The product packages (`engine`, `coach`, `memory`, `api`) never import `training`, and use
+`eval` for one thing only: the move extractor in `eval.grounding`, which checks that stored
+coaching cited real moves.
+
+## Setup
+
+Requires Python 3.12 (system Python 3.14 has no ML wheels), Stockfish and Ollama.
 
 ```bash
-# Download a tiny public PGN sample (Lichess)
-python -m engine.fetch_data --sample
+brew install stockfish
+uv venv --python 3.12
+uv pip install -e '.[coach,api,dev]'
 
-# ...or pull your most recent games from chess.com (standard games only)
-python -m engine.fetch_data --source chesscom --user hikaru --max 20
-
-# Print a parsed game to confirm the loader works
-python -m engine.loader data/raw/sample.pgn
+# The coach model. The fine-tune is built from training/qlora_8b_runpod.ipynb; without it,
+# use the un-fine-tuned base, which scores the same judged quality:
+ollama pull qwen3:8b
+export COACH_MODEL=qwen3:8b
 ```
 
-## Quickstart (Phase 1 — analysis report)
+## Run the app
 
 ```bash
-# Analyze a game → readable mistake summary (ACPL, blunders, worst move, top mistakes)
-python -m engine.report data/raw/sample.pgn --depth 16
-
-# Also write the full structured JSON report (per-move eval, cp-loss, win-prob, quality)
-python -m engine.report data/raw/sample.pgn --json report.json
-
-# Pick a specific game in a multi-game file; send JSON to stdout for piping
-python -m engine.report games.pgn --game-index 2 --json - | jq .summary
+uvicorn api.app:app --reload     # then open http://127.0.0.1:8000 and enter a chess.com username
 ```
 
-Move quality is judged by the drop in the mover's **win probability** (a sigmoid over the
-centipawn eval), so already-decided positions and forced mates don't produce false blunders,
-and a move matching the engine's own top choice always scores as best.
+Sync fetches and analyzes your recent games in the background; the dashboard shows your recurring
+mistakes, where in the game they happen, and whether you are improving; each game page lists its
+mistakes and can generate coaching, with a note on whether every move it cited was real.
 
-## Quickstart (Phase 2 — coaching baseline)
-
-Turns the Phase-1 engine report into natural-language coaching using a *prompted* local
-model (Qwen2.5-3B via Ollama). No fine-tuning yet — this is the baseline a fine-tuned
-model must beat.
+## Command line
 
 ```bash
-# PGN in → coaching text out (coaches the side that played worse by default)
-python -m coach.coach data/raw/sample.pgn --depth 15
-
-# Coach a specific side; reuse a saved report to skip re-running Stockfish
-python -m coach.coach games.pgn --side black
-python -m engine.report game.pgn --json report.json
-python -m coach.coach --from-json report.json --side white
-
-# Inspect exactly what facts are sent to the model (no LLM call)
-python -m coach.coach game.pgn --show-facts
+python -m engine.fetch_data --user mshah509 --max 40          # chess.com games → data/raw/mshah509.pgn
+python -m memory.store --user mshah509 data/raw/mshah509.pgn   # analyze + remember them
+python -m memory.profile --user mshah509                       # what you keep getting wrong
+python -m coach.coach game.pgn --user mshah509                 # coach one game against your history
+python -m engine.report game.pgn --json report.json            # the raw engine report
 ```
 
-The coaching prompt is strictly grounded in the engine facts (see `coach/prompts.py`).
-Known baseline limitation: when the engine flags **no** concrete mistake for the coached
-side (e.g. a slowly-lost game), the 3B model still tends to confabulate specifics despite
-the grounding rules — motivating the Phase-3/4 dataset + fine-tune and the eval harness.
+Move quality is judged by the drop in the mover's **win probability**, so already-decided
+positions and forced mates don't produce false blunders, and playing the engine's own top choice
+always scores as best.
+
+## Tests
+
+CI runs bare `pytest` (not `python -m pytest`). Engine tests skip when Stockfish is missing, and
+the live-model test skips when Ollama is not running.

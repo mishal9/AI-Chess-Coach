@@ -37,9 +37,6 @@ from eval import grounding
 from training import teacher as teacher_mod
 from training.schema import DistillRecord
 
-# quality strings that count as a coachable mistake (mirrors coach.prompts).
-_MISTAKE_QUALITIES = ("blunder", "mistake", "inaccuracy")
-
 AnalyzeFn = Callable[["SourceGame", int], dict]
 
 
@@ -66,7 +63,7 @@ def load_sources(path: Path) -> list[SourceGame]:
         )
 
     if resolved.is_dir():
-        from engine.report import load_game
+        from engine.pgn import load_game
 
         sources: list[SourceGame] = []
         for pgn in sorted(resolved.glob("*.pgn")):
@@ -105,7 +102,7 @@ def _difficulty(report: dict, coached_side: str) -> dict:
     n_mistakes = sum(
         1
         for m in report.get("moves", [])
-        if m["side"] == coached_side and m["quality"] in _MISTAKE_QUALITIES
+        if m["side"] == coached_side and m["quality"] in prompts.MISTAKE_QUALITIES
     )
     return {
         "num_mistakes": n_mistakes,
