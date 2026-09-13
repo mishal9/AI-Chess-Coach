@@ -46,11 +46,11 @@ on this project slipped by adding "one more thing worth auditing".
 ```mermaid
 flowchart LR
     C[Cleanup PR] --> P1
-    subgraph Goal 1: publish, by Mon 12 Oct
+    subgraph G1["Goal 1 - publish by Mon 12 Oct"]
       P1[Land paper code] --> P2[Second judge] --> P3[Human ratings] --> P4[Evidence freeze] --> P5[Figures] --> P6[Write] --> P7[Submit]
     end
     P7 --> A1
-    subgraph Goal 2: a coach you use weekly
+    subgraph G2["Goal 2 - a coach you use weekly"]
       A1[See the board] --> A2[Coach my habits] --> A3[Drill my mistakes] --> A4[One-command start]
     end
 ```
