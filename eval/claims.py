@@ -402,12 +402,6 @@ def _merge(*results: ClaimResult) -> ClaimResult:
     return merged
 
 
-def check_claims(coaching_text: str, facts_text: str) -> ClaimResult:
-    """Role checking from text alone — the form the distillation gate can use, where the
-    facts block is at hand but the analyzed report may not be."""
-    return check_roles(coaching_text, facts_text)
-
-
 def check_claims_from_report(
     coaching_text: str,
     report: dict,

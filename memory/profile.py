@@ -138,10 +138,6 @@ class Trend:
         return round(self.later_mistakes_per_game - self.earlier_mistakes_per_game, 2)
 
     @property
-    def acpl_delta(self) -> float:
-        return round(self.later_acpl - self.earlier_acpl, 1)
-
-    @property
     def damage_delta(self) -> float:
         """Change in win probability thrown away per game. Negative is improvement.
 

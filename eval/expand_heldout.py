@@ -203,14 +203,10 @@ def _default_analyze(depth: int) -> AnalyzeFn:
 
 def _lichess_fetch_perf(perf_type: str) -> FetchFn:
     """A fetcher that restricts to given Lichess speeds (e.g. ``rapid,classical``)."""
-    import tempfile
-
-    from engine.fetch_data import fetch_lichess_games
+    from engine import fetch_data
 
     def fetch(user: str, max_games: int) -> str:
-        with tempfile.NamedTemporaryFile("r", suffix=".pgn", delete=True) as tmp:
-            fetch_lichess_games(user, max_games, Path(tmp.name), perf_type=perf_type)
-            return Path(tmp.name).read_text(encoding="utf-8")
+        return fetch_data.fetch_lichess_games(user, max_games, perf_type=perf_type)
 
     return fetch
 

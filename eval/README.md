@@ -1,56 +1,48 @@
-# Eval harness
+# Eval harness (research)
 
-**Why this exists (and why it's built before any fine-tuning):** it is the instrument
-that lets us put a *number* on coaching quality. Phase 3/4 (dataset + QLoRA fine-tune)
-only makes sense if the fine-tuned model beats the Phase-2 prompted baseline *on this
-harness*. It is the highest-signal piece of the project.
+Measures coaching quality on a fixed held-out set, so a change of model, prompt or training
+data can be compared on a number rather than an impression. The experiments it ran, and what
+they found, are written up in [`docs/experiments/`](../docs/experiments/); this file only says
+what each piece is.
 
-## What we measure
+## Instruments
 
-Coaching quality along two kinds of axis:
+| Module | Measures | Cost |
+|---|---|---|
+| `grounding.py` | fraction of moves cited in the coaching that appear in the facts block the model was given | free, deterministic |
+| `claims.py` | role inversion ("you played" the engine's move), invented castling, and piece placement the game never had — by replaying the PGN | free, deterministic |
+| `rubric.py` + `judge.py` | 1–5 LLM-judge scores: factual correctness, clarity, actionability, identifies key mistake | ~$0.40 per 29-game run |
+| `backends.py` | pluggable judge/teacher: Ollama, Anthropic, Gemini (keys from a gitignored `.env`) | — |
 
-1. **Grounding (deterministic, no LLM).** Did the coach only talk about moves that were
-   actually in the engine facts it was given? This directly measures the Phase-2 finding
-   that a small model confabulates moves when the facts are sparse. Cheap, fast, runs in
-   CI. → `eval/grounding.py`.
-2. **Rubric quality (LLM-as-judge).** The subjective axes an engine can't score:
-   *factual correctness vs. the engine, clarity, actionability, and whether the coach
-   identifies the single key mistake.* → `eval/rubric.py` + judge (PR2).
+## Workflow
 
-## Build roadmap (gradual PRs)
+```bash
+python -m eval.run --coach-model qwen-coach-8b-v2 --judge anthropic   # coach + score the held-out set
+python -m eval.run --coach-model qwen3:8b --no-judge                  # grounding + claims only, free
+python -m eval.compare eval/reports/A.json eval/reports/B.json        # paired, per-bucket diff
+```
 
-- **PR1 — grounding metric.** `eval/grounding.py`: extract the SAN moves a coaching text
-  cites, diff against the moves present in the facts block, report hallucinated moves and
-  a grounding score. Deterministic; unit-tested; no model required. **(merged)**
-- **PR2 — rubric + LLM-as-judge.** `eval/rubric.py` (axes, 1-5 scale, validated
-  `RubricScore`) + `eval/judge.py` (judge prompt, defensive JSON parsing, `judge_coaching`).
-  Scores the subjective axes with a structured, parseable verdict. Judging is
-  **provider-pluggable** via `eval/backends.py`: local Ollama by default (offline, the CI
-  default), or a frontier judge (`anthropic_backend` / `gemini_backend`, behind the `eval`
-  extra) with a one-argument swap — `judge_coaching(..., backend=...)`. **(this PR)**
-- **PR3 — held-out set + runner.** `eval/heldout/` (6 fixed Lichess games with varied
-  mistake profiles + `manifest.json`) and `eval/run.py` (`python -m eval.run`): coaches
-  each game, scores grounding + rubric, aggregates into a baseline report (JSON under
-  `eval/reports/` + readable summary). Coach and judge models are both selectable
-  (`--coach-model`, `--judge {ollama,anthropic,gemini}`); `--max-judge-calls` is a spend
-  guard; `--no-judge` runs grounding only (free/offline). **(this PR)**
+`eval.compare` refuses to diff reports scored under different metric versions or judges, and
+names the command that repairs them (`eval.rescore` for grounding, `eval.recheck` for claims).
 
-## Baseline (as of 2026-07-04)
+## The held-out set
 
-Phase-2 prompted coach (`qwen2.5:3b-instruct`) judged by `claude-opus-4-8` over the 6
-held-out games — the number Phase 3/4 must beat (`eval/reports/baseline_2026-07-04.json`):
+`heldout/` holds 29 Lichess CC0 games in six mistake-profile buckets (`clean_draw`, `slow_loss`,
+`inaccuracies`, `two_mistakes`, `one_blunder`, `multi_blunder`), built by `expand_heldout.py`
+and guaranteed disjoint from the training corpus by game id **and** movetext hash. Never tune a
+prompt against it.
 
-- Grounding mean **0.76**, fully grounded **50%**, worst move identified **67%**
-- Rubric (1-5): factual **2.33**, clarity **3.50**, actionability **2.50**,
-  identifies-key-mistake **3.83**, **overall 3.04**
+## Where things stand
 
-Low factual-correctness is the hallucination problem quantified — the primary target.
+Headline results (29 games, `claude-opus-4-8` judge), from
+[`2026-08-14-prompted-8b-control.md`](../docs/experiments/2026-08-14-prompted-8b-control.md):
 
-## Design notes
+| Coach | grounding | judged factual | overall |
+|---|---|---|---|
+| prompted `qwen3:8b` | 0.923 | 3.72 | 4.17 |
+| `qwen-coach-8b-v2` (QLoRA on distilled rows) | 0.965 | 3.72 | 4.14 |
+| teacher (`claude-opus-4-8`, corpus games) | — | 4.97 | 4.85 |
 
-- The held-out set is **fixed and versioned** so scores are comparable across model
-  changes. Never tune prompts against the held-out set — that's the whole point of holding
-  it out.
-- Grounding is computed against the *exact facts string* the model received (from
-  `coach.prompts.format_report_facts`), not the raw report — grounding means "stayed within
-  what it was told," so the allowed-move set is what was actually in the prompt.
+Fine-tuning bought citation hygiene, not judged quality. The grounding metric itself was audited
+and found wrong in both directions — see
+[`2026-08-11-grounding-metric-audit.md`](../docs/experiments/2026-08-11-grounding-metric-audit.md).

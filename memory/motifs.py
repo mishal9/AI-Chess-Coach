@@ -47,10 +47,6 @@ _MATERIAL_MISTAKE_CP = 200
 # ~100cp loss would hide every dropped pawn there is.
 _PAWN_MISTAKE_CP = 80
 
-MOTIFS = ("hangs_material", "drops_pawn", "missed_capture", "allows_fork", "back_rank")
-
-PHASES = ("opening", "middlegame", "endgame")
-
 # Non-king material on the board (both sides, centipawns) marking the phase boundaries.
 _ENDGAME_MATERIAL = 2400
 _OPENING_MATERIAL = 6000

@@ -22,7 +22,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from memory.store import already_stored, backfill_pgn, connect, ingest_game
+from engine.fetch_data import fetch_chesscom_games
+from engine.pgn import read_game
+from memory.coaching import save
+from memory.profile import build_profile, format_profile
+from memory.store import analyze_and_ingest, connect, game_row, unstored_games
 
 # chess.com handles: letters, digits, underscore and hyphen. Validated because the name is
 # interpolated into an API URL, and because a typo should fail here with a clear message
@@ -31,23 +35,6 @@ USERNAME_RE = re.compile(r"^[A-Za-z0-9_-]{3,25}$")
 
 # A running job that hasn't reported progress for this long is presumed dead.
 STALE_AFTER = timedelta(minutes=10)
-
-JOBS_SCHEMA = """
-CREATE TABLE IF NOT EXISTS jobs (
-    id          INTEGER PRIMARY KEY,
-    user_name   TEXT NOT NULL,
-    status      TEXT NOT NULL CHECK (status IN ('running', 'done', 'failed')),
-    total       INTEGER NOT NULL DEFAULT 0,
-    done        INTEGER NOT NULL DEFAULT 0,
-    added       INTEGER NOT NULL DEFAULT 0,
-    message     TEXT NOT NULL DEFAULT '',
-    started_at  TEXT NOT NULL,
-    updated_at  TEXT NOT NULL,
-    kind        TEXT NOT NULL DEFAULT 'sync',
-    game_id     INTEGER
-);
-CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_name, id DESC);
-"""
 
 
 @dataclass(frozen=True)
@@ -80,24 +67,6 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-# Columns added after the jobs table shipped. `CREATE TABLE IF NOT EXISTS` will not add a
-# column to a database that already has the table, and real databases already do.
-_ADDED_COLUMNS = {
-    "kind": "TEXT NOT NULL DEFAULT 'sync'",
-    "game_id": "INTEGER",
-}
-
-
-def ensure_schema(conn: sqlite3.Connection) -> None:
-    """Create the jobs table if absent, and add any columns a later version introduced."""
-    conn.executescript(JOBS_SCHEMA)
-    existing = {row["name"] for row in conn.execute("PRAGMA table_info(jobs)")}
-    for column, definition in _ADDED_COLUMNS.items():
-        if column not in existing:
-            with conn:
-                conn.execute(f"ALTER TABLE jobs ADD COLUMN {column} {definition}")
-
-
 def create_job(
     conn: sqlite3.Connection,
     user: str,
@@ -105,7 +74,6 @@ def create_job(
     game_id: int | None = None,
     message: str = "Fetching games…",
 ) -> int:
-    ensure_schema(conn)
     with conn:
         cursor = conn.execute(
             """
@@ -151,7 +119,6 @@ def _row_to_job(row: sqlite3.Row) -> Job:
 
 
 def read_job(conn: sqlite3.Connection, job_id: int) -> Job | None:
-    ensure_schema(conn)
     row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
     return _row_to_job(row) if row else None
 
@@ -167,7 +134,6 @@ def latest_job(
     ``kind``/``game_id`` narrow it, so a running sync is not mistaken for a running coach
     job — they appear on different pages and must not drive each other's spinners.
     """
-    ensure_schema(conn)
     sql = "SELECT * FROM jobs WHERE user_name = ?"
     params: list = [user]
     if kind is not None:
@@ -191,17 +157,6 @@ def active_job(
     return job if job and job.is_active else None
 
 
-def _default_fetch(user: str, max_games: int) -> str:
-    """Fetch a chess.com user's recent games as PGN text."""
-    import tempfile
-
-    from engine.fetch_data import fetch_chesscom_games
-
-    with tempfile.NamedTemporaryFile("r", suffix=".pgn") as tmp:
-        fetch_chesscom_games(user, max_games, Path(tmp.name))
-        return Path(tmp.name).read_text(encoding="utf-8")
-
-
 def run_sync(
     db_path: Path | str,
     user: str,
@@ -209,7 +164,7 @@ def run_sync(
     *,
     max_games: int = 20,
     depth: int = 12,
-    fetch_fn=_default_fetch,
+    fetch_fn=fetch_chesscom_games,
     analyze_fn=None,
 ) -> None:
     """Fetch, analyze and store a player's new games, reporting progress as it goes.
@@ -224,26 +179,11 @@ def run_sync(
         def analyze_fn(game):
             return analyze_game(game, depth=depth).to_dict()
 
-    import io
-
-    import chess.pgn
-
-    from training.corpus import split_pgn
-
     conn = connect(db_path)
     try:
-        pgn_text = fetch_fn(user, max_games)
-        games = split_pgn(pgn_text)
-
-        # Every fetched game is an opportunity to fill in text we didn't store on an
-        # earlier version — cheap, and it happens before the filter below discards the
-        # games we already have, which is the only time we hold their PGN.
-        for pgn in games:
-            backfill_pgn(conn, pgn)
-
         # Only the games we haven't already analyzed — this is what makes re-syncing
         # cheap, and it is why an interrupted sync can simply be run again.
-        fresh = [g for g in games if not already_stored(conn, g)]
+        games, fresh = unstored_games(conn, fetch_fn(user, max_games))
         update_job(
             conn,
             job_id,
@@ -257,12 +197,7 @@ def run_sync(
 
         added = 0
         for i, pgn in enumerate(fresh, 1):
-            game = chess.pgn.read_game(io.StringIO(pgn))
-            if game is None or not game.mainline_moves():
-                update_job(conn, job_id, done=i)
-                continue
-            report = analyze_fn(game)
-            if ingest_game(conn, pgn, report, user, depth=depth):
+            if analyze_and_ingest(conn, pgn, user, analyze_fn, depth=depth):
                 added += 1
             update_job(
                 conn, job_id, done=i, added=added,
@@ -327,14 +262,7 @@ def run_coach(
     The player profile deliberately **excludes this game**, so "the fourth time" counts
     four *previous* occurrences rather than including the one being discussed.
     """
-    import io
-
-    import chess.pgn
-
-    from coach import client, prompts
-    from memory.coaching import save
-    from memory.profile import build_profile, format_profile
-    from memory.store import game_row
+    from coach import client, prompts  # lazily: needs the optional `ollama` package
 
     if chat_fn is None:
         chat_fn = client.chat
@@ -357,7 +285,7 @@ def run_coach(
             return
 
         update_job(conn, job_id, total=2, done=0, message="Re-analyzing the position…")
-        game = chess.pgn.read_game(io.StringIO(row["pgn"]))
+        game = read_game(row["pgn"])
         if game is None:
             update_job(conn, job_id, status="failed", message="Could not read the game.")
             return

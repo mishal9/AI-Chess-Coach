@@ -12,7 +12,9 @@ move that created it and the move that follows.
 
 from __future__ import annotations
 
+import os
 import re
+import shutil
 from dataclasses import dataclass, field
 
 import chess
@@ -28,9 +30,19 @@ from engine.scoring import (
     mate_to_cp,
     win_prob_loss,
 )
-from engine.stockfish import find_stockfish
 
 DEFAULT_DEPTH = 15
+
+
+def find_stockfish() -> str:
+    """Return a path to the Stockfish binary or raise a helpful error."""
+    path = os.environ.get("STOCKFISH_PATH") or shutil.which("stockfish")
+    if not path:
+        raise FileNotFoundError(
+            "Stockfish not found. Install it (`brew install stockfish`) or set "
+            "STOCKFISH_PATH to the binary."
+        )
+    return path
 
 # chess.com names openings only in an ECOUrl, whose slug often carries the defining
 # variation as a move suffix: ".../Petrovs-Defense-3.d3-Nc6". Everything from the first

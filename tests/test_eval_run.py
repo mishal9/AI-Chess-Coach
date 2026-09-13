@@ -27,7 +27,7 @@ def _fake_judge(coaching, report, coached_side):
 # --- held-out set integrity --------------------------------------------------------
 
 def test_manifest_loads_and_pgns_parse():
-    from engine.report import load_game
+    from engine.pgn import load_game
 
     cases = run.load_cases()
     assert len(cases) >= 5  # a real, varied held-out set

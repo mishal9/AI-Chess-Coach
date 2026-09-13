@@ -17,20 +17,6 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS coaching (
-    id            INTEGER PRIMARY KEY,
-    game_id       INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
-    coached_side  TEXT NOT NULL CHECK (coached_side IN ('white', 'black')),
-    model         TEXT NOT NULL,
-    text          TEXT NOT NULL,
-    facts         TEXT NOT NULL,
-    used_profile  INTEGER NOT NULL DEFAULT 0,
-    created_at    TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_coaching_game ON coaching(game_id, id DESC);
-"""
-
 
 @dataclass(frozen=True)
 class Coaching:
@@ -54,10 +40,6 @@ class Coaching:
         return score_grounding(self.text, self.facts)
 
 
-def ensure_schema(conn: sqlite3.Connection) -> None:
-    conn.executescript(SCHEMA)
-
-
 def save(
     conn: sqlite3.Connection,
     game_id: int,
@@ -68,7 +50,6 @@ def save(
     used_profile: bool = False,
 ) -> int:
     """Store one generated coaching text. Returns its row id."""
-    ensure_schema(conn)
     with conn:
         cursor = conn.execute(
             """
@@ -95,7 +76,6 @@ def latest(conn: sqlite3.Connection, game_id: int) -> Coaching | None:
     Most recent rather than only: regenerating keeps the old rows, so a change in model or
     prompt can be compared against what it replaced instead of overwriting the evidence.
     """
-    ensure_schema(conn)
     row = conn.execute(
         "SELECT * FROM coaching WHERE game_id = ? ORDER BY id DESC LIMIT 1", (game_id,)
     ).fetchone()
@@ -104,16 +84,3 @@ def latest(conn: sqlite3.Connection, game_id: int) -> Coaching | None:
     fields = dict(row)
     fields["used_profile"] = bool(fields["used_profile"])
     return Coaching(**fields)
-
-
-def count_for_user(conn: sqlite3.Connection, user: str) -> int:
-    """How many of a player's games have coaching stored."""
-    ensure_schema(conn)
-    return conn.execute(
-        """
-        SELECT COUNT(DISTINCT coaching.game_id) FROM coaching
-        JOIN games ON games.id = coaching.game_id
-        WHERE games.user_name = ?
-        """,
-        (user,),
-    ).fetchone()[0]
