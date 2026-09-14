@@ -15,7 +15,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 
 import chess
 import chess.engine
@@ -27,7 +27,6 @@ from engine.scoring import (
     capped_centipawn_loss,
     centipawn_loss,
     classify,
-    mate_to_cp,
     win_prob_loss,
 )
 
@@ -74,19 +73,9 @@ class MoveAnalysis:
 
     def to_dict(self) -> dict:
         """JSON-serialisable view (enum → its string value)."""
-        return {
-            "ply": self.ply,
-            "move_number": self.move_number,
-            "side": self.side,
-            "san": self.san,
-            "best_san": self.best_san,
-            "eval_before": self.eval_before,
-            "eval_after": self.eval_after,
-            "cp_loss": self.cp_loss,
+        return asdict(self) | {
             "win_prob_loss": round(self.win_prob_loss, 4),
             "quality": self.quality.value,
-            "fen_before": self.fen_before,
-            "pv": self.pv,
         }
 
 
@@ -174,9 +163,7 @@ def evaluate_position(
         return 0, []  # stalemate / insufficient material / draw
 
     info = engine.analyse(board, limit)
-    pov = info["score"].white()  # normalize to White's perspective
-    mate = pov.mate()
-    cp = mate_to_cp(mate) if mate is not None else pov.score()
+    cp = info["score"].white().score(mate_score=MATE_CP)  # mate in N → ±(MATE_CP - N)
     return cp, list(info.get("pv") or [])[:MAX_PV_PLIES]
 
 

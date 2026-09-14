@@ -22,9 +22,10 @@ from __future__ import annotations
 import math
 from enum import Enum
 
-# A forced mate is worth more than any material count. We map "mate in N" onto a large
-# centipawn value (closer mates score slightly higher) so all the arithmetic below works
-# on plain integers. 10000cp = 100 pawns, unreachable by normal material.
+# A forced mate is worth more than any material count. The analyzer maps "mate in N" onto
+# ``MATE_CP - N`` (python-chess's ``Score.score(mate_score=MATE_CP)``, so closer mates score
+# slightly higher) and all the arithmetic below works on plain integers. 10000cp = 100
+# pawns, unreachable by normal material.
 MATE_CP = 10_000
 
 
@@ -61,19 +62,6 @@ WIN_PROB_K = 0.00368208
 # For *average* centipawn loss (ACPL) we cap each eval before differencing so a decided
 # position (huge eval) doesn't dominate the average. Conventional bound: ±10 pawns.
 EVAL_CAP = 1000
-
-
-def mate_to_cp(mate_in: int) -> int:
-    """Convert a 'mate in N' count into a capped centipawn value (White POV sign).
-
-    ``mate_in`` follows python-chess semantics: positive = side-to-evaluate mates,
-    negative = gets mated. We shrink the magnitude slightly as N grows so a mate-in-1
-    scores above a mate-in-5, while staying far beyond any material eval.
-    """
-    if mate_in == 0:  # already checkmate on the board
-        return MATE_CP if mate_in >= 0 else -MATE_CP
-    magnitude = MATE_CP - min(abs(mate_in), 99)
-    return magnitude if mate_in > 0 else -magnitude
 
 
 def centipawn_loss(
