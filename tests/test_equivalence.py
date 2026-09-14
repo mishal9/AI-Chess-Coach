@@ -16,8 +16,11 @@ pytest.importorskip("scipy", reason="needs the `eval` extra")
 
 from eval.compare import load_report  # noqa: E402
 from eval.equivalence import (  # noqa: E402
+    agreement_problems,
     compare_reports,
     assess_axis,
+    judge_agreement,
+    main,
     paired_scores,
     rubric_comparability_problems,
 )
@@ -150,3 +153,54 @@ class TestComparability:
             report([game()], grounding_version=2),
         )
         assert problems == []
+
+
+def judged(text, factual):
+    g = game(factual_correctness=factual, clarity=factual)
+    g["coaching"] = text
+    return g
+
+
+class TestJudgeAgreement:
+    def texts(self):
+        return [f"coaching {i}" for i in range(5)]
+
+    def test_identical_scores_agree_perfectly(self):
+        a = report([judged(t, s) for t, s in zip(self.texts(), [1, 2, 3, 4, 5])])
+        b = report([judged(t, s) for t, s in zip(self.texts(), [1, 2, 3, 4, 5])],
+                   judge="gemini-3.1-pro-preview")
+        factual = {r.axis: r for r in judge_agreement(a, b)}["factual_correctness"]
+        assert factual.pearson == 1.0 and factual.exact_match == 1.0 and factual.bias == 0
+
+    def test_a_uniformly_harsher_judge_shows_as_bias_not_disagreement(self):
+        a = report([judged(t, s) for t, s in zip(self.texts(), [2, 3, 4, 5, 5])])
+        b = report([judged(t, s) for t, s in zip(self.texts(), [1, 2, 3, 4, 4])],
+                   judge="gemini-3.1-pro-preview")
+        factual = {r.axis: r for r in judge_agreement(a, b)}["factual_correctness"]
+        assert factual.pearson == 1.0
+        assert factual.bias == -1.0
+        assert factual.exact_match == 0.0 and factual.within_one == 1.0
+
+    def test_different_coaching_text_is_refused(self):
+        a = report([judged("one", 3), judged("two", 3)])
+        b = report([judged("one", 3), judged("CHANGED", 3)],
+                   judge="gemini-3.1-pro-preview")
+        problems = agreement_problems(a, b)
+        assert problems and "not the same texts" in problems[0]
+
+    def test_the_same_judge_twice_is_refused(self):
+        a = report([judged("one", 3)])
+        assert "no second judge" in agreement_problems(a, a)[0]
+
+    def test_cli_prints_agreement(self, tmp_path, capsys):
+        import json
+
+        a = report([judged(t, s) for t, s in zip(self.texts(), [1, 2, 3, 4, 5])])
+        b = report([judged(t, s) for t, s in zip(self.texts(), [1, 3, 3, 4, 5])],
+                   judge="gemini-3.1-pro-preview")
+        pa, pb = tmp_path / "a.json", tmp_path / "b.json"
+        pa.write_text(json.dumps(a))
+        pb.write_text(json.dumps(b))
+        assert main(["--agreement", str(pa), str(pb)]) == 0
+        out = capsys.readouterr().out
+        assert "Cross-judge agreement" in out and "gemini-3.1-pro-preview" in out
