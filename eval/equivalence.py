@@ -22,6 +22,10 @@ Usage:
     python -m eval.equivalence eval/reports/prompted_8b_2026-08-14.json \\
                                eval/reports/8b_v2_2026-08-10.json
     python -m eval.equivalence a.json b.json --delta 0.30 --alpha 0.05
+
+    # cross-judge agreement: the same stored coaching, scored by two judges
+    python -m eval.equivalence --agreement eval/reports/8b_v2_2026-08-10.json \\
+                               eval/reports/8b_v2_2026-08-10__gemini31pro.json
 """
 
 from __future__ import annotations
@@ -287,6 +291,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--alpha", type=float, default=DEFAULT_ALPHA)
     parser.add_argument(
+        "--agreement",
+        action="store_true",
+        help="instead of testing equivalence, correlate two judges' scores over the "
+        "same stored coaching (e.g. a report and its eval.rejudge copy)",
+    )
+    parser.add_argument(
         "--allow-judge-mismatch",
         action="store_true",
         help="compare anyway when the two runs were scored by different judges",
@@ -297,6 +307,21 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     base, cand = load_report(args.baseline), load_report(args.candidate)
+
+    if args.agreement:
+        problems = agreement_problems(base, cand)
+        if problems:
+            print("These reports cannot measure judge agreement:\n", file=sys.stderr)
+            for problem in problems:
+                print(f"  - {problem}", file=sys.stderr)
+            return 1
+        results = judge_agreement(base, cand)
+        if not results:
+            print("Too few commonly scored games to correlate.", file=sys.stderr)
+            return 1
+        print(render_agreement(results, base.get("judge_model") or Path(args.baseline).stem,
+                               cand.get("judge_model") or Path(args.candidate).stem))
+        return 0
 
     problems = rubric_comparability_problems(base, cand)
     if problems and not args.allow_judge_mismatch:
@@ -316,9 +341,6 @@ def main(argv: list[str] | None = None) -> int:
     print(render(results, Path(args.baseline).stem, Path(args.candidate).stem))
     return 0
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())
 
 
 # --- cross-judge agreement -------------------------------------------------------------
@@ -389,6 +411,33 @@ def judge_agreement(
     return results
 
 
+def agreement_problems(report_a: dict, report_b: dict) -> list[str]:
+    """Reasons two reports cannot measure judge-to-judge agreement.
+
+    The inverse of :func:`rubric_comparability_problems`: here the judges *must* differ,
+    and the coaching must not. If the texts differ, a score gap mixes the judge with the
+    coach, and the correlation stops meaning agreement.
+    """
+    problems = []
+    judge_a, judge_b = report_a.get("judge_model"), report_b.get("judge_model")
+    if judge_a and judge_a == judge_b:
+        problems.append(f"both reports were scored by {judge_a} — there is no second judge.")
+    games_a, games_b = report_a["games"], report_b["games"]
+    if len(games_a) != len(games_b):
+        problems.append(f"different numbers of games: {len(games_a)} vs {len(games_b)}")
+        return problems
+    differing = [
+        i for i, (a, b) in enumerate(zip(games_a, games_b))
+        if a.get("coaching") != b.get("coaching")
+    ]
+    if differing:
+        problems.append(
+            f"coaching text differs in {len(differing)} game(s) (first: game "
+            f"{differing[0]}) — these are not the same texts re-judged."
+        )
+    return problems
+
+
 def render_agreement(results: list[AgreementResult], name_a: str, name_b: str) -> str:
     lines = [
         f"Cross-judge agreement on identical texts: {name_a} vs {name_b}",
@@ -403,3 +452,7 @@ def render_agreement(results: list[AgreementResult], name_a: str, name_b: str) -
             f"{r.mean_b:>9.2f} {r.bias:>+7.2f} {r.exact_match:>7.0%} {r.within_one:>7.0%}"
         )
     return "\n".join(lines)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
