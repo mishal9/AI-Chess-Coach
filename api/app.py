@@ -1,9 +1,9 @@
-"""A read-only dashboard over the player's stored memory.
+"""The web app: sync a chess.com account, see your habits, open a game, get it coached.
 
-Phase 6, first milestone: render what :mod:`memory.profile` already computes. There is no
-upload, no analysis-on-request and no auth here, deliberately — this is a *view*, so it
-cannot corrupt the pipeline that feeds it, and every number on the page is the same number
-the CLI prints.
+Server-rendered pages over the player's stored memory. The two slow things — a sync and a
+coaching run — are started here but run as background jobs (:mod:`memory.jobs`), and the
+pages poll the job row. There is no auth: it is a local app for one person's games. Every
+number on the page is the same number the CLI prints.
 
 It renders the :class:`~memory.profile.PlayerProfile` **dataclass**, not the text from
 :func:`memory.profile.format_profile`. That text is model-facing: pipe-delimited rows sized

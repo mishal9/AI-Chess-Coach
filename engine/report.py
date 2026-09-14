@@ -1,8 +1,11 @@
-"""CLI: analyze a PGN game and emit an objective mistake report.
+"""Reading an engine report: which moves were mistakes, and whose game to coach.
 
-This is the Phase-1 deliverable — a command-line tool that takes a PGN and produces
-the structured "what went wrong" report (JSON) plus a human-readable summary, entirely
-from engine analysis (no LLM yet).
+A report is the plain dict from :meth:`engine.analyzer.GameReport.to_dict`. The helpers
+here are the one definition of "a mistake worth coaching" that the coach's prompts, the
+motif tagger and the memory store all share.
+
+Run as a CLI, it analyzes a PGN and prints the report as JSON and/or a readable summary,
+entirely from engine analysis.
 
 Usage:
     python -m engine.report game.pgn                     # readable summary
@@ -20,25 +23,59 @@ from pathlib import Path
 
 from engine.analyzer import DEFAULT_DEPTH, GameReport, MoveAnalysis, analyze_game
 from engine.pgn import load_game
-from engine.scoring import MoveQuality
 
-# Moves worth surfacing in the "notable mistakes" list, worst first.
-_MISTAKE_QUALITIES = {
-    MoveQuality.INACCURACY,
-    MoveQuality.MISTAKE,
-    MoveQuality.BLUNDER,
-}
+# Qualities worth coaching on, worst first.
+MISTAKE_QUALITIES = ("blunder", "mistake", "inaccuracy")
 
 
-def _move_label(m: MoveAnalysis) -> str:
-    """Chess-notation move number, e.g. '12.' for White or '12...' for Black."""
-    return f"{m.move_number}." if m.side == "white" else f"{m.move_number}..."
+def move_label(move_number: int, side: str) -> str:
+    """'17.' for a White move, '17...' for a Black move."""
+    return f"{move_number}." if side == "white" else f"{move_number}..."
+
+
+def opponent_of(side: str) -> str:
+    return "black" if side == "white" else "white"
+
+
+def choose_coached_side(report: dict) -> str:
+    """Pick which side to coach when the caller doesn't specify.
+
+    Defaults to the side that played *worse* (higher average centipawn loss) — that's
+    who has the most to learn. Ties break toward the side that lost the game, else White.
+    """
+    summary = report["summary"]
+    acpl_white = summary["acpl_white"]
+    acpl_black = summary["acpl_black"]
+    if acpl_white != acpl_black:
+        return "white" if acpl_white > acpl_black else "black"
+    # Equal ACPL: coach whoever lost, if anyone.
+    result = report.get("result", "*")
+    if result == "0-1":
+        return "white"
+    if result == "1-0":
+        return "black"
+    return "white"
+
+
+def coachable_mistakes(report: dict, coached_side: str) -> list[dict]:
+    """The coached side's flagged mistakes, worst (highest win-prob loss) first.
+
+    The single source of the "critical positions" ordering, shared by the whole-game
+    facts block, the per-position distillation rows and the motif tagger.
+    """
+    mistakes = [
+        m
+        for m in report.get("moves", [])
+        if m["side"] == coached_side and m["quality"] in MISTAKE_QUALITIES
+    ]
+    mistakes.sort(key=lambda m: m["win_prob_loss"], reverse=True)
+    return mistakes
 
 
 def _format_move_line(m: MoveAnalysis) -> str:
     best = f", best {m.best_san}" if m.best_san and m.best_san != m.san else ""
     return (
-        f"  {_move_label(m)} {m.san}{m.quality.symbol}"
+        f"  {move_label(m.move_number, m.side)} {m.san}{m.quality.symbol}"
         f"  ({m.side}, {m.quality.value})  "
         f"cp -{m.cp_loss}, win% -{m.win_prob_loss * 100:.0f}{best}"
     )
@@ -66,7 +103,7 @@ def format_summary(report: GameReport, depth: int, top: int) -> str:
         )
 
     notable = sorted(
-        (m for m in report.moves if m.quality in _MISTAKE_QUALITIES),
+        (m for m in report.moves if m.quality in MISTAKE_QUALITIES),
         key=lambda m: m.win_prob_loss,
         reverse=True,
     )[:top]

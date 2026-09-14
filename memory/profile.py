@@ -24,7 +24,7 @@ import argparse
 import sqlite3
 import sys
 from dataclasses import dataclass, field
-from math import sqrt
+from math import fsum, sqrt
 from statistics import variance
 
 from memory.store import DEFAULT_DB, connect
@@ -295,69 +295,50 @@ def _opening_stats(conn: sqlite3.Connection, ids: list[int]) -> list[OpeningStat
     ]
 
 
-def _per_game_counts(conn: sqlite3.Connection, ids: list[int]) -> list[int]:
-    """Flagged-mistake count for each game, individually.
+def _per_game(conn: sqlite3.Connection, ids: list[int]) -> dict[int, sqlite3.Row]:
+    """Each game's flagged-mistake count, ACPL and win probability thrown away, by id.
 
-    The per-game spread is what makes a noise floor computable; a mean alone cannot say
-    how much two halves would differ by chance.
+    Per game rather than pre-aggregated: the trend needs the spread across games to compute
+    its noise floor, and every total is a plain sum or mean of these rows.
     """
     rows = conn.execute(
         f"""
-        SELECT blunders + mistakes + inaccuracies AS total
-        FROM games WHERE id IN ({_placeholders(ids)})
+        SELECT games.id,
+               games.blunders + games.mistakes + games.inaccuracies AS total,
+               games.acpl,
+               COALESCE(SUM(m.win_prob_loss), 0) AS damage
+        FROM games LEFT JOIN mistakes AS m ON m.game_id = games.id
+        WHERE games.id IN ({_placeholders(ids)})
+        GROUP BY games.id
         """,
         ids,
     ).fetchall()
-    return [row["total"] for row in rows]
+    return {row["id"]: row for row in rows}
 
 
-def _half_stats(
-    conn: sqlite3.Connection, ids: list[int]
-) -> tuple[float, float, float, list[int]]:
-    """``(mistakes_per_game, acpl, damage_per_game, per_game_counts)`` for a set of games."""
-    row = conn.execute(
-        f"""
-        SELECT COUNT(*) AS games,
-               COALESCE(SUM(blunders + mistakes + inaccuracies), 0) AS total,
-               AVG(acpl) AS acpl
-        FROM games WHERE id IN ({_placeholders(ids)})
-        """,
-        ids,
-    ).fetchone()
-    damage = conn.execute(
-        f"""
-        SELECT COALESCE(SUM(win_prob_loss), 0) AS damage
-        FROM mistakes WHERE game_id IN ({_placeholders(ids)})
-        """,
-        ids,
-    ).fetchone()["damage"]
-    games = row["games"] or 1
-    return (
-        round(row["total"] / games, 2),
-        round(row["acpl"] or 0.0, 1),
-        round(damage / games, 3),
-        _per_game_counts(conn, ids),
-    )
+def _mean(values, digits: int) -> float:
+    """Rounded mean ignoring missing values; 0.0 when there are none (as SQL ``AVG`` + ``or 0``)."""
+    present = [v for v in values if v is not None]
+    return round(fsum(present) / len(present), digits) if present else 0.0
 
 
-def _trend(conn: sqlite3.Connection, ids: list[int]) -> Trend | None:
-    if len(ids) < MIN_GAMES_FOR_TREND:
+def _trend(rows: list[sqlite3.Row]) -> Trend | None:
+    """Compare the older half of the window with the newer half. ``rows`` oldest first."""
+    if len(rows) < MIN_GAMES_FOR_TREND:
         return None
-    midpoint = len(ids) // 2
-    earlier, later = ids[:midpoint], ids[midpoint:]
-    earlier_rate, earlier_acpl, earlier_damage, earlier_counts = _half_stats(conn, earlier)
-    later_rate, later_acpl, later_damage, later_counts = _half_stats(conn, later)
+    midpoint = len(rows) // 2
+    earlier, later = rows[:midpoint], rows[midpoint:]
     return Trend(
         earlier_games=len(earlier),
         later_games=len(later),
-        earlier_mistakes_per_game=earlier_rate,
-        later_mistakes_per_game=later_rate,
-        earlier_acpl=earlier_acpl,
-        later_acpl=later_acpl,
-        earlier_damage_per_game=earlier_damage,
-        later_damage_per_game=later_damage,
-        earlier_counts=tuple(earlier_counts),
-        later_counts=tuple(later_counts),
+        earlier_mistakes_per_game=_mean((r["total"] for r in earlier), 2),
+        later_mistakes_per_game=_mean((r["total"] for r in later), 2),
+        earlier_acpl=_mean((r["acpl"] for r in earlier), 1),
+        later_acpl=_mean((r["acpl"] for r in later), 1),
+        earlier_damage_per_game=_mean((r["damage"] for r in earlier), 3),
+        later_damage_per_game=_mean((r["damage"] for r in later), 3),
+        earlier_counts=tuple(r["total"] for r in earlier),
+        later_counts=tuple(r["total"] for r in later),
     )
 
 
@@ -377,25 +358,33 @@ def build_profile(
     if not ids:
         return PlayerProfile(user=user, games=0, mistakes=0, acpl=0.0)
 
-    totals = conn.execute(
-        f"""
-        SELECT COALESCE(SUM(blunders + mistakes + inaccuracies), 0) AS mistakes,
-               AVG(acpl) AS acpl
-        FROM games WHERE id IN ({_placeholders(ids)})
-        """,
-        ids,
-    ).fetchone()
-
+    by_id = _per_game(conn, ids)
+    rows = [by_id[game_id] for game_id in ids]
     return PlayerProfile(
         user=user,
         games=len(ids),
-        mistakes=totals["mistakes"],
-        acpl=round(totals["acpl"] or 0.0, 1),
+        mistakes=sum(r["total"] for r in rows),
+        acpl=_mean((r["acpl"] for r in rows), 1),
         motifs=_motif_stats(conn, ids),
         phases=_phase_stats(conn, ids),
         openings=_opening_stats(conn, ids),
-        trend=_trend(conn, ids),
+        trend=_trend(rows),
     )
+
+
+def profile_text(
+    conn: sqlite3.Connection,
+    user: str,
+    last_n: int | None = None,
+    exclude_game_id: int | None = None,
+) -> str | None:
+    """The profile as prompt text, or ``None`` when there is nothing to say.
+
+    A player with no stored games gets no history section rather than an empty one — an
+    empty section invites the model to fill the silence.
+    """
+    profile = build_profile(conn, user, last_n, exclude_game_id)
+    return None if profile.is_empty else format_profile(profile)
 
 
 def _table(header: str, rows: list[tuple]) -> list[str]:
