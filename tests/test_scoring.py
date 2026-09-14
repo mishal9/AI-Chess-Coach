@@ -2,6 +2,8 @@
 
 import math
 
+from chess.engine import Mate
+
 from engine.scoring import (
     BLUNDER_WP,
     INACCURACY_WP,
@@ -11,10 +13,14 @@ from engine.scoring import (
     capped_centipawn_loss,
     centipawn_loss,
     classify,
-    mate_to_cp,
     win_prob,
     win_prob_loss,
 )
+
+
+def mate_to_cp(mate_in: int) -> int:
+    """How the analyzer scores 'mate in N' (python-chess, White POV)."""
+    return Mate(mate_in).score(mate_score=MATE_CP)
 
 
 class TestClassify:

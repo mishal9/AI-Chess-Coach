@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import io
 import re
+from itertools import islice
 from pathlib import Path
 from typing import Iterator
 
@@ -43,10 +44,7 @@ def iter_games(pgn_path: Path) -> Iterator[chess.pgn.Game]:
 
 def load_game(pgn_path: Path, game_index: int) -> chess.pgn.Game | None:
     """Return the game at ``game_index`` (0-based) in ``pgn_path``, or ``None``."""
-    for i, game in enumerate(iter_games(pgn_path)):
-        if i == game_index:
-            return game
-    return None
+    return next(islice(iter_games(pgn_path), game_index, None), None)
 
 
 def normalized_movetext(pgn: str) -> str:
