@@ -1,0 +1,1327 @@
+{
+  "coach_model": "qwen3:8b",
+  "coach_temperature": 0.0,
+  "judge": "anthropic",
+  "judge_model": "gemini-3.1-pro-preview",
+  "depth": 15,
+  "metric_versions": {
+    "grounding": 2,
+    "claims": 1
+  },
+  "date": "2026-08-14",
+  "aggregate": {
+    "games": 29,
+    "grounding_mean": 0.923,
+    "grounded_rate": 0.793,
+    "worst_move_identified_rate": 0.724,
+    "claims_mean": 0.989,
+    "claims_ok_rate": 0.966,
+    "rubric_axis_means": {
+      "factual_correctness": 3.72,
+      "clarity": 4.41,
+      "actionability": 3.72,
+      "identifies_key_mistake": 4.83
+    },
+    "rubric_overall_mean": 4.17,
+    "rubric_factual_correctness": 2.862,
+    "rubric_clarity": 4.517,
+    "rubric_actionability": 3.034,
+    "rubric_identifies_key_mistake": 5.0,
+    "rubric_overall": 3.853
+  },
+  "games": [
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 0,
+      "coached_side": "white",
+      "note": "near-clean game (both sides low ACPL, nothing flagged) \u2014 the coach must recognize a clean game, not invent errors",
+      "coaching": "Your game was a model of precision\u2014clean, balanced, and without a single error. The near-equal centipawn loss (8.9 vs. 9.0) shows both sides played with near-perfect accuracy, and the draw likely stemmed from a well-fought, equal position rather than any miscalculation.  \n\nSince there were no tactical or strategic missteps, focus on refining your **endgame technique** and **positional patience**. In such balanced openings, small details (like pawn structure or king safety) often decide outcomes. Practice converting slight advantages into wins, and study how to handle drawn positions with precision. Keep trusting your preparation\u2014this kind of play is rare and deserves pride! \ud83c\udfaf",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "The coaching accurately reflects the engine facts, correctly noting the flawless play and exact ACPL scores. The advice is clear and appropriately focuses on general improvement areas like endgame technique since there were no specific mistakes to address."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 0,
+      "coached_side": "black",
+      "note": "gradual loss: high ACPL but no discrete blunder (Opera-like) \u2014 the case where a small model tends to hallucinate",
+      "coaching": "Your most critical error was **23...Kh7?** \u2014 moving your king to h7 was a severe misstep. This move unnecessarily exposed your king to attack and weakened your position without meaningful gain. The engine\u2019s preferred **Bc5** would have developed a piece, controlled key squares, and kept your king safe. This single move cost you ~21% of your winning chances, which is a huge swing in a critical phase of the game.  \n\nThe other notable inaccuracy was **21...Nxd5?!**, which allowed White to recapture with a pawn and maintain central control. The engine suggested **Qxe4** as a sharper, more active option, which would have disrupted White\u2019s structure and kept your pieces coordinated. Both errors reflect a pattern of **missing opportunities to develop pieces effectively** and **underestimating the value of king safety**.  \n\nTo improve:  \n1. **Prioritize piece development** early, especially in the opening. Avoid moving your king prematurely \u2014 it should stay behind pawns or in the center.  \n2. **Study tactical patterns** like capturing with the queen instead of a knight, and always check if a move leaves your king vulnerable.  \n\nFocus on these two areas, and your positional play will become more solid. You\u2019re on the right track \u2014 just refine your decision-making under pressure!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc5",
+          "Kh7",
+          "Nxd5",
+          "Qxe4"
+        ],
+        "allowed": [
+          "Bc5",
+          "Kh7",
+          "Nxd5",
+          "Qxe4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 5,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.5,
+        "rationale": "The coaching correctly identifies the key mistake and the inaccuracy, matching the engine facts perfectly on the moves and win probability costs. However, it fabricates board state details not provided in the facts (e.g., White recapturing with a pawn, disrupting White's structure). Furthermore, the actionable advice is poor: it suggests focusing on early opening development when the mistakes occurred on moves 21 and 23, and advises keeping the king in the center, which is generally terrible advice for the middlegame."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 0,
+      "coached_side": "white",
+      "note": "a single clear blunder plus high ACPL",
+      "coaching": "Your most critical error was **13.Bc4?**, which let Black seize a pawn and gain a decisive edge. By playing Bc4, you weakened your king\u2019s safety and missed a chance to capture the c6 pawn (dxc6), which would have equalized or even given you an advantage. The engine\u2019s preferred move, **dxc6**, would have kept your pieces active and avoided the subsequent losses.  \n\nThe other inaccuracies\u2014**16.Rxe3?** and **28.Qg7?**\u2014show a pattern of missing tactical opportunities. At 16.Rxe3, you allowed Black to recapture with the queen, which improved their piece activity and control. At 28.Qg7, you overextended without securing a clear threat, letting Black consolidate. These moves highlight a tendency to prioritize long-term plans over immediate tactical precision.  \n\n**Actionable steps:**  \n1. Study the **Winawer Variation** of the French Defense to understand how to handle Black\u2019s counterplay.  \n2. Practice identifying tactical threats (e.g., pins, forks) in the middle game\u2014especially when pieces are centralized.  \n3. Focus on **king safety** and **piece coordination** in the opening and early middlegame.  \n\nYou\u2019re playing solidly overall, but refining your tactical awareness and decision-making in critical moments will elevate your results. Keep up the good work!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc4",
+          "Qg7",
+          "Rxe3",
+          "dxc6"
+        ],
+        "allowed": [
+          "Bc4",
+          "Nc3",
+          "Qg7",
+          "Qxe3",
+          "Rxe3",
+          "dxc6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.5,
+        "rationale": "The coaching correctly identifies the key mistake (13.Bc4) and the engine's preferred alternatives. However, it fabricates explanations not found in the engine facts, such as claiming 13.Bc4 'let Black seize a pawn'. It also completely misunderstands 16.Rxe3, claiming it 'allowed Black to recapture with the queen' when Qxe3 was White's own alternative. The actionable advice is clear but somewhat generic."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 0,
+      "coached_side": "black",
+      "note": "multiple blunders in one game (2 blunders + a mistake)",
+      "coaching": "Your most critical error was **59...Kf7??**, a blunder that cost you over 68% of your winning chances. By moving your king to f7, you exposed it to immediate threats and missed a critical tactical opportunity. The engine\u2019s preferred **Bc5+** would have attacked your queen (if it was on d5) or forced a decisive exchange, tightening your position. This move highlights a recurring pattern: **poor king safety** and **neglecting tactical threats** in the endgame.  \n\nOther inaccuracies like **35...Qd5?** and **42...Bf6?!** show you occasionally mishandled piece activity, often prioritizing short-term gains over long-term structure. For example, **30...Qb3?!** weakened your queenside and allowed White to dominate the center. These errors suggest you need to **double-check for tactical traps** and **balance piece activity with king safety**.  \n\n**Actionable steps:**  \n1. Study endgame king safety patterns (e.g., avoiding exposed kings in the final stages).  \n2. Practice identifying tactical threats (e.g., pins, forks) in your openings and middlegames.  \n3. Revisit the Queen\u2019s Indian: focus on solid development and avoiding premature pawn advances.  \n\nYou\u2019re playing solidly overall, but refining these habits will elevate your results. Keep up the good work!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc5",
+          "Bf6",
+          "Kf7",
+          "Qb3",
+          "Qd5"
+        ],
+        "allowed": [
+          "Bb2",
+          "Bc5",
+          "Bf6",
+          "Kf7",
+          "Nd5",
+          "Qb3",
+          "Qd5",
+          "Qd7",
+          "Rc8",
+          "Rd8"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 1,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.25,
+        "rationale": "The coaching correctly identifies the most critical mistake (59...Kf7??). However, it completely fabricates tactical and positional explanations not found in the engine facts. For example, it bizarrely claims that Black's preferred move Bc5+ would attack Black's own queen, and invents specific positional consequences for 30...Qb3?!. The actionable advice is clear but generic and based on these hallucinations."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 0,
+      "coached_side": "black",
+      "note": "death by many small inaccuracies; no blunder or mistake",
+      "coaching": "Your most critical mistake was **38...Ng2?** \u2014 a wild move that allowed White to seize control of the center and launch a decisive attack. The engine preferred **Qd7**, which would have maintained balance and avoided this loss of 19% win probability. This move was a clear misstep in a critical phase of the game.  \n\nOther inaccuracies like **21...Bxb5?**, **17...Nf6?**, and **31...cxb4?** show a pattern of poor piece coordination and missed opportunities to solidify your position. For example, 21...Bxb5 weakened your structure and gave White a tempo, while 17...Nf6 failed to support your king\u2019s safety. These errors suggest you occasionally prioritized short-term gains over long-term positional stability.  \n\n**Actionable steps:**  \n1. Study the King\u2019s Indian Defense\u2019s main lines to improve your understanding of piece placement and pawn structures.  \n2. Practice tactical patterns like forks and pins, especially in the middlegame, to avoid missing key threats.  \n\nFocus on balancing aggression with solid development \u2014 your game is full of potential, but consistency in decision-making will make the difference.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bxb5",
+          "Nf6",
+          "Ng2",
+          "Qd7",
+          "cxb4"
+        ],
+        "allowed": [
+          "Bxb5",
+          "Nf6",
+          "Ng2",
+          "Nxd5",
+          "Qd7",
+          "cxb4",
+          "f3",
+          "h6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.25,
+        "rationale": "The coaching correctly identifies the most costly move (38...Ng2) and lists the other inaccuracies accurately. However, it fabricates specific positional consequences (e.g., 'seize control of the center', 'weakened your structure', 'gave White a tempo') that are not supported by the provided engine facts. Furthermore, the actionable advice is highly generic and not clearly linked to the specific errors made in the game."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 0,
+      "coached_side": "white",
+      "note": "a couple of mistakes, no blunder",
+      "coaching": "Your most critical error was **16.Qc5?**, which weakened your king\u2019s position and allowed Black to seize the initiative. By moving the queen to c5, you created a target for Black\u2019s pieces, costing you ~25% win probability. The engine suggested **g4** instead, which would have maintained better piece activity and control over the center.  \n\nOther notable mistakes include **22.g4?**, where you overextended on the kingside, and **21.Rd1?**, which misplaced your rook and missed a sharper tactical opportunity. The **17.Bxd5?!** inaccuracy also showed a pattern of exchanging pieces without securing a clear advantage, while **22.g4?** repeated the theme of weakening your king\u2019s flank.  \n\nTo improve:  \n1. **Prioritize king safety** in the opening and middlegame\u2014avoid moves that expose your king or create targets.  \n2. **Evaluate exchanges carefully**: ask if a capture improves your position or creates weaknesses.  \n3. **Study the Dragon Variation** to recognize key tactical motifs and avoid common pitfalls.  \n\nFocus on these patterns, and your play will become more resilient. You\u2019re on the right track\u2014just refine your decision-making under pressure!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bxd5",
+          "Qc5",
+          "Rd1",
+          "g4"
+        ],
+        "allowed": [
+          "Bxd5",
+          "Nb5",
+          "Qc5",
+          "Rd1",
+          "Rd2",
+          "g3",
+          "g4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching correctly identifies the key mistakes, their evaluations, and the engine's preferred alternatives. However, it fabricates the positional explanations for these moves (e.g., claiming the pawn move g4 controls the center, or that Qc5 weakened king safety), which lowers factual correctness. The advice is clear and well-organized, but the actionable takeaways are somewhat generic. It successfully highlights 16.Qc5? as the primary error."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 1,
+      "coached_side": "white",
+      "note": "auto-curated into 'slow_loss' (coached side: white)",
+      "coaching": "You didn\u2019t make any single critical error, but your gradual centipawn loss (47.2) suggests you steadily weakened your position through small, consistent misjudgments. While the opponent\u2019s minimal loss (6.5) shows they capitalized efficiently, your errors likely allowed them to slowly gain control without dramatic blunders. This pattern indicates you may have underestimated positional risks or missed subtle opportunities to maintain equality.  \n\nTo improve, focus on two things:  \n1. **Review your games for recurring positional errors**\u2014even small inaccuracies in the middlegame can snowball. Look for moments where you traded pieces or weakened your structure without clear compensation.  \n2. **Strengthen your opening repertoire** (like the Indian Defense) to avoid gradual losses. Practice recognizing key pawn structures and piece activity to maintain a solid position.  \n\nConsistency in decision-making will help you avoid letting small errors compound into a lost game.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "The coaching accurately reflects the engine facts, correctly noting the lack of a single blunder and the gradual loss of evaluation. The advice is clear and gives reasonable general guidance for improving positional play, though it is slightly generic due to the lack of specific game details."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 2,
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Your most critical error was **13...a6?** \u2014 a passive move that failed to support central control or develop your pieces. The engine preferred **13...f5**, which would have strengthened your pawn structure, improved piece activity, and kept the center dynamic. This move cost you around 19% of your winning chances, making it the pivotal moment where the game shifted in White\u2019s favor.  \n\nWhile there were no other mistakes, your average centipawn loss (54) suggests some positional weaknesses throughout the game. However, since the analysis highlights only one inaccuracy, focus on **development and central control** in the opening. Avoid passive moves like **a6** in the French Defense; instead, prioritize advancing the f-pawn (e.g., **f5**) to maintain tension and activity.  \n\n**Actionable steps:**  \n1. Study the French Defense\u2019s main lines to recognize key developmental ideas (e.g., **f5**, **e6**, **c5**).  \n2. Practice positions where central control and piece activity are critical \u2014 avoid letting your pieces lag behind.  \n\nThis single inaccuracy was costly, but with targeted study, you can avoid similar pitfalls in the future. Keep up the good work!",
+      "grounding": {
+        "score": 0.5,
+        "grounded": false,
+        "hallucinated": [
+          "c5",
+          "e6"
+        ],
+        "cited": [
+          "a6",
+          "c5",
+          "e6",
+          "f5"
+        ],
+        "allowed": [
+          "a6",
+          "f5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "The coaching accurately reflects the engine facts, correctly identifying the single inaccuracy of the game and its cost. The advice is clear and provides relevant, actionable steps for improving in the French Defense."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 3,
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "You played a solid game without any blunders or mistakes, but your gradual centipawn loss (72.2) suggests you steadily lost small advantages\u2014like slight positional imbalances or minor tempo gains\u2014that added up over time. While there were no single \"errors,\" the cumulative effect of these small missteps allowed White to steadily improve their position. For example, you might have occasionally missed subtle opportunities to reposition pieces or control key squares, letting White consolidate their advantage incrementally.  \n\nTo improve, focus on **maintaining precise piece coordination** and **avoiding passive moves** that let your opponent gain momentum. Even small errors in timing or piece activity can snowball in the middlegame. Practice evaluating positions for hidden tactical chances or long-term strategic advantages. Finally, study games where players gradually outplay opponents through consistent, precise play\u2014this will help you recognize when small adjustments matter most.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.5,
+        "rationale": "The coaching accurately reflects the engine facts, correctly noting the lack of blunders and the high average centipawn loss indicating a gradual decline. It avoids fabricating specific moves or evaluations. The writing is clear and easy to follow. The actionability is somewhat generic (e.g., 'avoid passive moves', 'maintain precise piece coordination'), which is understandable given the lack of specific tactical examples in the prompt, but it could be slightly more concrete in its study recommendations."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 4,
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Your most costly move was **11...g6** \u2014 this weakened your position by allowing White to develop their pieces more freely and control key squares. The engine preferred **11...e5**, which would have maintained better tension and kept your pieces active. This single inaccuracy cost you around 11% of your winning chances, which is significant in a sharp opening like the Rat Defense.  \n\nWhile there were no other mistakes, your overall centipawn loss (38.3) suggests there\u2019s room to improve your opening preparation. Focus on **studying the Rat Defense** to understand how to handle White\u2019s pawn structure and avoid similar inaccuracy. Also, practice **developing pieces quickly** and avoiding moves that weaken your position. Try analyzing the game again from the position after **11...e5** to see how the flow would have changed. Small adjustments in the opening can have big impacts in sharp lines!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "e5",
+          "g6"
+        ],
+        "allowed": [
+          "e5",
+          "g6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "The coaching perfectly aligns with the engine facts, correctly identifying the only inaccuracy of the game (11...g6) and the preferred alternative (11...e5). The text is clear and easy to read. The advice to analyze the position after 11...e5 is highly actionable, though the generic tip to 'develop pieces quickly' feels slightly disconnected since both the played and preferred moves were pawn moves."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 1,
+      "coached_side": "black",
+      "note": "auto-curated into 'inaccuracies' (coached side: black)",
+      "coaching": "Your most costly move was **12...Rb8?** \u2014 this weakened your position by blocking your rook and allowing White to gain space. The engine preferred **Bc6**, which would have maintained flexibility and pressure. This inaccuracy cost you ~16% of your winning chances.  \n\nThe next key mistake was **13...Bc6?** \u2014 moving the bishop to a passive square. The engine suggested **Rc8**, which would have supported your queen and kept your pieces coordinated. This cost ~14% of your win probability.  \n\nEarlier, **10...a6?** was also suboptimal. The engine preferred **dxc3**, which would have captured a pawn and disrupted White\u2019s structure. This inaccuracy cost ~11% of your chances.  \n\n**Patterns:** These moves show a tendency to make passive, uncoordinated moves that weaken your position. Focus on developing pieces actively and avoiding moves that block your own pieces or give your opponent space.  \n\n**Actionable steps:**  \n1. Study the Sicilian Defense\u2019s early middlegame structures to avoid similar pitfalls.  \n2. Analyze the positions around moves 10\u201313 to understand why the engine preferred different options.  \n3. Practice calculating variations where your pieces are blocked or misplaced.  \n\nYou\u2019re playing solidly overall, but refining your piece coordination will sharpen your results. Keep up the good work!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc6",
+          "Rb8",
+          "Rc8",
+          "a6",
+          "dxc3"
+        ],
+        "allowed": [
+          "Bc6",
+          "Rb8",
+          "Rc8",
+          "a6",
+          "dxc3"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching correctly identifies the key inaccuracies, alternatives, and win probability drops provided in the engine facts. However, it hallucinates board state details to explain the moves (e.g., claiming the rook move 12...Rb8 'blocks your rook', which is nonsensical). The actionable steps are somewhat generic and rely on the hallucinated 'blocked pieces' theme. Clarity is excellent and the key mistake is correctly prioritized."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 2,
+      "coached_side": "white",
+      "note": "auto-curated into 'inaccuracies' (coached side: white)",
+      "coaching": "Your most costly move was **10.Qd2?**, which allowed Black to gain a significant advantage by missing a better development option. The engine suggested **Qe2** instead, which would have maintained control of the center and kept your queen more active. This inaccuracy cost you about 18% of your winning chances.  \n\nThe second key error was **12.Nxe4?**, where you traded a knight for a pawn without securing a clear advantage. The engine preferred **Qe1**, which likely would have pressured Black\u2019s position or supported your own development. Both inaccuracies stem from overcommitting to material gains without considering positional balance.  \n\n**Actionable steps:**  \n1. Study the **Scandinavian Defense** to recognize critical development patterns and avoid premature pawn advances.  \n2. Prioritize **queen activity** in the opening\u2014keep your queen central or on a file where it can influence the game.  \n3. Practice **slow, deliberate moves** in the opening to avoid rushed decisions.  \n\nFocus on these areas, and your play will become more resilient in the middle game.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nxe4",
+          "Qd2",
+          "Qe1",
+          "Qe2"
+        ],
+        "allowed": [
+          "Nxe4",
+          "Qd2",
+          "Qe1",
+          "Qe2"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "The coaching correctly identifies the key inaccuracies and their engine alternatives. However, it fabricates board state details not present in the facts, such as claiming 12.Nxe4 'traded a knight for a pawn' and inventing a narrative about 'overcommitting to material gains'. The actionable advice is also somewhat generic."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'inaccuracies' (coached side: white)",
+      "coaching": "Your most costly move was **12.Nf5?!**, which allowed Black to seize the initiative and shift the balance of the game. Instead of developing your knight actively (like 12.Ne4 or 12.Nd5), you weakened your center and gave Black a strong\u53cd\u51fb (counterplay). The engine\u2019s preferred 12.d4 would have maintained control of the center and kept your pieces more coordinated.  \n\nThe second key inaccuracy was **7.d3?!**. While d3 isn\u2019t inherently bad, it\u2019s less optimal here than **c3**, which supports your knight\u2019s development and maintains central tension. D3 slightly weakens your control over the center and reduces your options for counterplay.  \n\n**Pattern**: Both moves reflect a tendency to prioritize pawn structure over active piece development. In the Italian Game, central control and piece activity are critical.  \n\n**Actionable steps**:  \n1. Study the Italian Game\u2019s main lines (e.g., 5...Nc6, 6.Bc4) to understand how to develop your pieces dynamically.  \n2. Practice positions where d3 vs. c3 is a choice\u2014focus on how each affects your knight\u2019s mobility and central control.  \n\nSmall adjustments in development can make a big difference! \ud83c\udfc6",
+      "grounding": {
+        "score": 0.5,
+        "grounded": false,
+        "hallucinated": [
+          "Bc4",
+          "Nc6",
+          "Nd5",
+          "Ne4"
+        ],
+        "cited": [
+          "Bc4",
+          "Nc6",
+          "Nd5",
+          "Ne4",
+          "Nf5",
+          "c3",
+          "d3",
+          "d4"
+        ],
+        "allowed": [
+          "Nf5",
+          "c3",
+          "d3",
+          "d4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 3,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.25,
+        "rationale": "The coaching correctly identifies the two inaccuracies and the engine's preferred moves. However, it fabricates alternative moves (12.Ne4, 12.Nd5) not in the facts. Furthermore, the logic is contradictory: it claims the player prioritized pawn structure over piece development, yet the worst move (12.Nf5) was a piece move and the engine preferred a pawn move (12.d4). The inclusion of random Chinese characters also detracts from clarity."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 4,
+      "coached_side": "black",
+      "note": "auto-curated into 'inaccuracies' (coached side: black)",
+      "coaching": "Your most costly move was **11...O-O**. By castling early, you weakened your king\u2019s safety and allowed White to dominate the center. The engine suggested **Bf8** instead, which develops the bishop to a more active square and prepares a pawn break like ...c5, threatening to disrupt White\u2019s structure. This move would have kept your pieces coordinated and maintained better counterplay.  \n\nOther key errors include **17...Nb6** (instead of Bc6) and **3...Nc6** (instead of cxd4). These moves show a pattern of passive piece placement: your knights and bishop were often misplaced, failing to control key squares or support your pawn structure. For example, **3...cxd4** would have immediately challenged White\u2019s center and forced a more dynamic game, while **Bc6** at move 17 would have better supported your queenside and countered White\u2019s central pressure.  \n\nTo improve:  \n1. **Prioritize active development**\u2014avoid moving knights to isolated squares like b6. Instead, use knights to control central squares (e.g., f6 or d5) and ensure your bishop is placed to influence the game.  \n2. **Study the Sicilian Defense**\u2014focus on setups like the Najdorf or Dragon, where piece activity and central tension are critical. Practice recognizing when to capture pawns (like on d4) versus developing pieces.  \n\nYour game shows potential, but refining your development choices will make a big difference. Keep working on these ideas!",
+      "grounding": {
+        "score": 0.7,
+        "grounded": false,
+        "hallucinated": [
+          "b6",
+          "d5",
+          "f6"
+        ],
+        "cited": [
+          "Bc6",
+          "Bf8",
+          "Nb6",
+          "Nc6",
+          "O-O",
+          "b6",
+          "c5",
+          "cxd4",
+          "d5",
+          "f6"
+        ],
+        "allowed": [
+          "Bc5",
+          "Bc6",
+          "Bf8",
+          "Nb6",
+          "Nc6",
+          "O-O",
+          "c5",
+          "cxd4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching correctly identifies the key mistakes and follows the engine facts for moves and evaluations. However, it hallucinates the positional justification for 11...Bf8, calling a retreat to the starting square 'developing the bishop to a more active square' (especially since the bishop was just on c5). The advice is clear but slightly generic, suggesting unrelated Sicilian setups (Najdorf/Dragon) when the player played the Franco-Sicilian."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 1,
+      "coached_side": "black",
+      "note": "auto-curated into 'two_mistakes' (coached side: black)",
+      "coaching": "Your most critical error was **14...b4?**, which cost you over 24% of your winning chances. This move weakens your pawn structure and gives White a strong central foothold. By advancing the b-pawn, you created a target for White\u2019s pieces, allowing them to dominate the center and launch a decisive attack. The engine\u2019s preferred **d6** would have maintained a solid structure and kept your pieces coordinated.  \n\nThe second mistake, **19...Nc3?**, repeated the pattern of poor knight placement. Moving the knight to c3 in this phase was a misstep\u2014your knight was already overextended, and this move further weakened your position. The engine\u2019s **d6** would have kept your knight active while avoiding unnecessary tension.  \n\nThe inaccuracy at **38...Nc5?!** (instead of **Rc8**) shows a lapse in tactical awareness. The knight\u2019s move here was passive and allowed White to consolidate their advantage.  \n\n**Actionable steps:**  \n1. Study the **Cozio Defense** (Ruy Lopez, Exchange Variation) to understand how to handle White\u2019s central control and avoid pawn weaknesses.  \n2. Focus on **piece coordination**\u2014ensure your knights and bishops are placed to support each other, not isolated.  \n3. Practice **tactical patterns** like forks and pins, especially in endgames, to avoid missing key threats.  \n\nYou\u2019re on the right track, but refining your middle-game decisions and tactical awareness will make a big difference. Keep analyzing your games for recurring patterns!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nc3",
+          "Nc5",
+          "Rc8",
+          "b4",
+          "d6"
+        ],
+        "allowed": [
+          "Nc3",
+          "Nc5",
+          "Rc8",
+          "b4",
+          "d6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "The coaching correctly identifies the key mistakes and their alternatives from the engine facts. However, it hallucinates some details, such as implying d6 is a knight move ('d6 would have kept your knight active') and incorrectly classifying the Cozio Defense as the Exchange Variation. The actionable steps are also quite generic. Clarity is good and the primary mistake is correctly prioritized."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 2,
+      "coached_side": "black",
+      "note": "auto-curated into 'two_mistakes' (coached side: black)",
+      "coaching": "Your most critical error was **22...Kg7?**, which cost you over 22% of your winning chances. Moving the king to g7 in this position was a poor choice because it exposed your king to potential threats and limited your piece activity. The engine preferred **Kh8**, which keeps your king safer and allows better coordination of your rook and bishop. This move would have maintained a more solid structure and avoided the subsequent pressure that led to your loss.  \n\nThe other notable inaccuracy was **16...c5?!**, which weakened your central control and allowed White to develop more freely. The engine suggested **d6** instead, which would have maintained a stronger pawn structure and supported your pieces better. Both mistakes reflect a pattern of **overextending with pawn moves** that disrupted your position\u2019s balance.  \n\n**Actionable steps:**  \n1. **Prioritize king safety** in the middlegame\u2014avoid moving your king prematurely unless it\u2019s part of a clear plan.  \n2. **Study central pawn structures** and how to maintain control without weakening your position.  \n3. Practice recognizing when a pawn push is tactical versus strategic.  \n\nFocus on these areas, and your middlegame resilience will improve!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Kg7",
+          "Kh8",
+          "c5",
+          "d6"
+        ],
+        "allowed": [
+          "Kg7",
+          "Kh8",
+          "c5",
+          "d6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 3,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.5,
+        "rationale": "The coaching correctly identifies the key mistakes and the engine's preferred alternatives. However, it contains a glaring logical contradiction by claiming that both mistakes (one of which is a King move) reflect a pattern of 'overextending with pawn moves.' The actionable advice is clear but somewhat generic."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'two_mistakes' (coached side: white)",
+      "coaching": "Your most critical error was **46.Kf6??**, a blunder that handed Black a decisive advantage. By moving your king to f6, you exposed it to immediate threats and allowed Black to seize control of the center. The engine\u2019s preferred move, **Kd4**, would have kept your king safe while maintaining structural balance. This mistake alone cost you ~37% of your winning chances \u2014 a huge swing in a drawn position.  \n\nOther inaccuracies like **15.Bxb7?**, **3.c4?**, and **11.Ne5?** show a pattern of overextending or neglecting piece coordination. For example, **15.Bxb7** weakened your pawn structure and gave Black a tempo, while **3.c4** delayed development. These choices, though not as costly as the blunder, reflect a tendency to prioritize short-term gains over long-term positioning.  \n\n**Actionable steps:**  \n1. Study the **Scandinavian Defense** to understand how to handle Black\u2019s early pawn advances. Focus on developing pieces harmoniously rather than forcing early captures.  \n2. Practice **king safety** in endgames \u2014 avoid moving your king into exposed positions unless you have clear counterplay.  \n3. Analyze critical positions from your games to spot patterns in your decision-making. Small errors compound, so precision in key moments matters.  \n\nYou\u2019re playing solid chess overall, but refining these habits will help you convert advantages and avoid costly blunders. Keep up the good work!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bxb7",
+          "Kd4",
+          "Kf6",
+          "Ne5",
+          "c4"
+        ],
+        "allowed": [
+          "Bxb7",
+          "Kd4",
+          "Kf6",
+          "Nc3",
+          "Ne5",
+          "O-O",
+          "c4",
+          "c5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "The coaching correctly identifies the key mistake and the inaccuracies, but it fabricates the specific chess reasons why the moves were bad (e.g., claiming 15.Bxb7 weakened the pawn structure or 46.Kf6 allowed Black to seize the center in an endgame). The advice is clear and well-organized, though the actionable steps are somewhat generic."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 4,
+      "coached_side": "white",
+      "note": "auto-curated into 'two_mistakes' (coached side: white)",
+      "coaching": "Your most critical error was **5.Qf3?**, which cost you 25% of your winning chances. This move prematurely exposed your queen to capture or harassment, and the engine\u2019s preferred **d3** would have developed your bishop more flexibly while keeping your queen safe. Let\u2019s fix this: in the Sicilian, prioritize solid development over flashy moves\u2014**d3** is a key setup for the Dragon variation, giving you better control of the center and safer piece placement.  \n\nThe other inaccuracies (**4.Ng5?!** and **6.d4?!**) show a pattern of overextending. **Ng5** is too aggressive early on, and **d4** weakens your center without clear compensation. Both moves could have been avoided by focusing on king safety and central control. For example, **c3** (engine\u2019s preference at 4.) would have supported your d4 later and kept your pieces coordinated.  \n\n**Actionable steps:**  \n1. Study the Sicilian\u2019s main variations (e.g., Dragon, Najdorf) to recognize key developmental choices.  \n2. Avoid moving the queen too early; let her develop via the kingside (e.g., Qd2 or Qe2) instead.  \n3. Practice calculating threats to your king\u2014especially after early pawn advances.  \n\nSmall adjustments in development and patience can make a big difference in this sharp opening. Keep working on these!",
+      "grounding": {
+        "score": 0.714,
+        "grounded": false,
+        "hallucinated": [
+          "Qd2",
+          "Qe2"
+        ],
+        "cited": [
+          "Ng5",
+          "Qd2",
+          "Qe2",
+          "Qf3",
+          "c3",
+          "d3",
+          "d4"
+        ],
+        "allowed": [
+          "Ng5",
+          "O-O",
+          "Qf3",
+          "c3",
+          "d3",
+          "d4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 4,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.5,
+        "rationale": "The coaching correctly identifies the key mistake (5.Qf3?) and accurately references the engine's preferred moves and win probability drops. However, it brings in irrelevant opening variations (Dragon, Najdorf) since the game was an Old Sicilian, which slightly detracts from the relevance of the advice. The general advice to avoid early queen moves is solid and actionable."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 1,
+      "coached_side": "black",
+      "note": "auto-curated into 'one_blunder' (coached side: black)",
+      "coaching": "Your most critical error was **9...Bxc2??**, a blunder that handed White a massive advantage. By capturing the knight with your bishop, you allowed White to seize control of the center and develop their pieces with precision. The engine\u2019s preferred **Nxc2** would have maintained balance by capturing the bishop instead, avoiding the trap. This mistake cost you over 33% of your winning chances and set the tone for the rest of the game.  \n\nThe other inaccuracies\u2014**10...Nxa2**, **11...Qf5**, and **8...Nb4**\u2014show a pattern of overextending with your knight. While aggressive, these moves missed safer, more flexible options (like **a5** or **Bh3**). For example, **8...Nb4** weakened your king\u2019s position and invited White to exploit the weakened structure.  \n\n**Actionable steps:**  \n1. **Analyze the critical positions** around your blunder (e.g., after 9...Bxc2) to understand why the engine\u2019s alternative was better.  \n2. **Study opening theory** for the Hungarian Opening (A00) to avoid similar traps and improve piece placement.  \n3. **Pause before capturing**\u2014ask yourself if the move truly improves your position or risks exposing weaknesses.  \n\nFocus on precision in the opening and avoid overcommitting with your knight. Small adjustments can make a big difference!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bh3",
+          "Bxc2",
+          "Nb4",
+          "Nxa2",
+          "Nxc2",
+          "Qf5",
+          "a5"
+        ],
+        "allowed": [
+          "Bh3",
+          "Bxb3",
+          "Bxc2",
+          "Nb4",
+          "Nxa2",
+          "Nxc2",
+          "Qf5",
+          "a5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 1,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.25,
+        "rationale": "The coaching correctly identifies the key mistake (9...Bxc2) but fabricates several details not present in the engine facts. It invents what pieces were captured on c2, incorrectly implies Qf5 is a knight move, and hallucinates that 8...Nb4 weakened the king's position. The advice is somewhat generic but clearly presented."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 2,
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Your most critical error was **37.Rxh7??**, a blunder that handed Black a decisive advantage. By capturing the h7 pawn without checking, you left your king exposed and allowed Black to exploit the weakened position. The engine\u2019s preferred move, **Rg7+**, would have maintained control of the center and kept your king safe. This single mistake cost you roughly **50% of your win chances**\u2014a massive swing in the game\u2019s outcome.  \n\nOther inaccuracies, like **15.cxd5?!** and **26.Rf1?!**, show missed opportunities to develop actively. For example, **15.cxd5** weakened your center and let Black consolidate, while **26.Rf1** delayed your rook\u2019s involvement in the fight. These moves, though less costly than the blunder, contributed to a gradual erosion of your position.  \n\n**Actionable steps:**  \n1. **Review the endgame** (moves 30\u201337) to understand how a single blunder can flip the game. Practice scenarios where your king is vulnerable and focus on avoiding pawn captures that expose it.  \n2. **Studying tactical patterns** like pins and forks in the opening/middle game. The engine\u2019s suggestions (e.g., **Be5** at 15) often point to more dynamic development.  \n\nStay focused on accuracy, especially in critical moments\u2014your game is full of potential, but small errors can snowball. Keep working on those! \ud83c\udfc6",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Be5",
+          "Rf1",
+          "Rg7",
+          "Rxh7",
+          "cxd5"
+        ],
+        "allowed": [
+          "Be5",
+          "Kg1",
+          "R1f2",
+          "Re1",
+          "Rf1",
+          "Rg7",
+          "Rxh7",
+          "cxd5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 3,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "The coaching correctly identifies the key mistake (37.Rxh7??) and the other inaccuracies. However, it fabricates chess logic, such as claiming Rg7+ 'maintained control of the center' (g7 is on the flank/7th rank) and suggesting the player study 'pins and forks' without any evidence from the engine facts that these tactics were relevant. The actionable steps are a bit generic as a result."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Your most critical mistake was **28.Qe4+??**, a blunder that cost you over 38% of your winning chances. By moving your queen to e4, you left it vulnerable to immediate capture (Black likely recaptured with a piece, gaining a strong advantage). The engine suggested **Qf5+** instead, which would have forced Black to defend their king or lose material\u2014this move could have dramatically shifted the game in your favor.  \n\nThe other inaccuracies\u2014**13.Qd2?!** and **14.Nd5?!**\u2014were less costly but still important. At 13, the engine preferred **Nd5**, which would have developed your knight actively and supported central control. At 14, **Nd1** was better than **Nd5**, as the latter might have weakened your king\u2019s safety or disrupted your piece coordination. These moves suggest a pattern of missing tactical opportunities, especially in the middle game.  \n\n**Actionable steps:**  \n1. **Practice tactical patterns** like forks, pins, and forced captures\u2014especially in positions where your queen is exposed.  \n2. **Focus on piece coordination** and king safety during the middle game. Ask yourself: *\u201cIs every move supporting my overall plan?\u201d*  \n\nYou\u2019re playing solidly overall, but sharpening your tactical awareness and decision-making in critical moments will help you convert advantages into wins.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nd1",
+          "Nd5",
+          "Qd2",
+          "Qe4",
+          "Qf5"
+        ],
+        "allowed": [
+          "Nd1",
+          "Nd5",
+          "Qd2",
+          "Qe4",
+          "Qf5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "The coaching correctly identifies the key mistake and is clearly written. However, it fabricates board states and tactical explanations not present in the engine facts (e.g., claiming the queen was left vulnerable to immediate capture on move 28, or that Nd5 weakened king safety). The actionable advice is also somewhat generic."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 4,
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Your most critical error was **21.Nd2??**, a blunder that cost you over 79% of your winning chances. This move left your knight exposed and allowed Black to seize the initiative. The engine suggested **g3** instead, which would have better controlled the center and prepared for a pawn break like e5, keeping your pieces active.  \n\nThe next biggest mistake was **6.Nxf7?**, a tactical lapse. Capturing on f7 without securing the king\u2019s safety (Black\u2019s rook on f8 was still active) was risky. The engine preferred **Be2**, which develops your bishop and keeps your pieces coordinated.  \n\nYour inaccuracy at **5.Ne5?!** missed a sharper option: **Bb5+**, which would have attacked Black\u2019s knight and forced a more dynamic response.  \n\n**Actionable steps:**  \n1. **Avoid premature pawn moves** (like 21.Nd2) that weaken your structure or expose pieces. Focus on developing knights to natural squares (e.g., f3 or g5) instead of rushing.  \n2. **Double-check tactical threats** after each move\u2014especially when your pieces are centralized. Practice identifying forks, pins, and skewers in puzzles to sharpen your calculation.  \n\nYou\u2019re making solid moves overall, but refining your decision-making in critical moments will elevate your results. Keep working on those! \ud83c\udfc6",
+      "grounding": {
+        "score": 0.667,
+        "grounded": false,
+        "hallucinated": [
+          "e5",
+          "f3",
+          "g5"
+        ],
+        "cited": [
+          "Bb5",
+          "Be2",
+          "Nd2",
+          "Ne5",
+          "Nxf7",
+          "e5",
+          "f3",
+          "g3",
+          "g5"
+        ],
+        "allowed": [
+          "Bb5",
+          "Be2",
+          "Nd2",
+          "Ne5",
+          "Nxf7",
+          "g3"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 1,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.0,
+        "rationale": "The coaching correctly identifies the key mistakes and engine alternatives. However, it fabricates board states (claiming Black's rook is on f8 at move 6, which is impossible in the French Defense) and bizarrely refers to the knight move 21.Nd2 as a 'premature pawn move'. This severely impacts factual correctness and makes the actionable advice confusing."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 1,
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Your biggest issue was **19.Bc5??**, a blunder that cost you over 49% of your winning chances. By moving the bishop to c5, you allowed Black to capture your knight on d4 (or take the bishop with a pawn), which was a critical mistake. The engine suggested **Qxc4** instead, which would have protected your knight and kept the game balanced. This move was a turning point\u2014Black capitalized on your error to dominate the center and launch a decisive attack.  \n\nOther critical errors include **3.Nxe5??**, where you blundered by capturing a pawn instead of playing **d4** to control the center. This early mistake weakened your structure and gave Black a strong initiative. Later, **18.Qe2?** and **23.Rae1?** were missed opportunities to exchange pieces or create threats, while **24.R1e4?** allowed Black to exploit your king\u2019s position. These mistakes show a pattern of **missing tactical chances** and **poor piece coordination**.  \n\nTo improve:  \n1. **Study the Philidor Defense** to understand how Black can counter your openings, especially after 3.Nxe5.  \n2. **Practice calculating variations** in the opening and middlegame\u2014focus on recognizing when a move is a blunder versus a mistake.  \n3. **Avoid hanging pieces** by always checking if your moves protect your own pieces.  \n\nYou\u2019re making solid moves most of the time, but refining your decision-making in critical moments will elevate your results.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc5",
+          "Nxe5",
+          "Qe2",
+          "Qxc4",
+          "R1e4",
+          "Rae1",
+          "d4"
+        ],
+        "allowed": [
+          "Bc5",
+          "Bxb2",
+          "Nxe5",
+          "Qd1",
+          "Qe2",
+          "Qxc4",
+          "Qxd4",
+          "R1e4",
+          "Rae1",
+          "Rg8",
+          "d4",
+          "exf6"
+        ]
+      },
+      "claims": {
+        "score": 0.667,
+        "ok": false,
+        "checked": 3,
+        "violations": [
+          {
+            "kind": "invented_placement",
+            "move": "",
+            "claimed": "your knight on d4",
+            "actual": "no knight ever stood on d4",
+            "excerpt": "e bishop to c5, you allowed Black to capture your knight on d4 (or take the bishop with a pawn), which was"
+          }
+        ]
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 4,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.5,
+        "rationale": "The coaching correctly identifies the most costly mistakes and the engine's preferred alternatives. However, it fabricates specific board details not present in the facts, such as a knight on d4, a pawn capturing the bishop, and Black launching a decisive attack. The actionable advice is clear but somewhat generic."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 2,
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Your most critical mistake was **29.Kh1??**, a blunder that cost you over 40% of your winning chances. By moving your king to h1, you weakened your position unnecessarily\u2014your king was already safe, and this move allowed Black to exploit your lack of coordination. The engine suggested **Rf2**, which would have maintained pressure on Black\u2019s king and kept your pieces active. This was a pivotal moment where a single move decided the game.  \n\nOther key errors include **30.Rb1??** (another blunder) and **12.Bc4??** (a blunder that cost 32% win probability). These show a pattern of poor piece placement and failing to control the center. For example, 12.Bc4? allowed Black to develop comfortably while you wasted time with a passive bishop. Similarly, 30.Rb1?? ignored Black\u2019s threats and left your rook stranded.  \n\nYou also made inaccuracies like **10.f3??** and **11.Bb5?**, which hinted at a lack of central control. The best move in those positions was **b5**, which would have strengthened your pawn structure and limited Black\u2019s options.  \n\n**Actionable steps:**  \n1. Study king safety: Avoid moving your king prematurely and ensure it\u2019s protected by pawns or pieces.  \n2. Focus on central control: Prioritize developing pieces to d4/e4 or c3/d3 to dominate the center.  \n3. Practice tactical patterns: Work on recognizing threats to your pieces (e.g., hanging knights) and avoid blunders in critical positions.  \n\nYou\u2019re playing solid chess overall, but refining these areas will help you convert advantages and avoid costly errors.",
+      "grounding": {
+        "score": 0.7,
+        "grounded": false,
+        "hallucinated": [
+          "c3",
+          "d3",
+          "e4"
+        ],
+        "cited": [
+          "Bb5",
+          "Bc4",
+          "Kh1",
+          "Rb1",
+          "Rf2",
+          "b5",
+          "c3",
+          "d3",
+          "e4",
+          "f3"
+        ],
+        "allowed": [
+          "Bb5",
+          "Bc4",
+          "Bxc6",
+          "Kg1",
+          "Kh1",
+          "Rb1",
+          "Rb2",
+          "Rbe1",
+          "Rf2",
+          "b5",
+          "f3"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.25,
+        "rationale": "The coaching correctly identifies the key mistakes, their alternatives, and win probability drops. However, it fabricates numerous positional details not present in the facts (e.g., 'pressure on Black's king', 'passive bishop', 'hanging knights'). The actionable advice is highly generic and relies on these hallucinated board states."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 3,
+      "coached_side": "black",
+      "note": "auto-curated into 'multi_blunder' (coached side: black)",
+      "coaching": "Your game had two critical blunders that drastically shifted the outcome. The most damaging was **40...Ra4??**, which allowed White to seize a decisive advantage. Instead of playing **Ka7** (the engine\u2019s recommendation), you sacrificed a pawn and weakened your king\u2019s safety. This move cost you nearly 50% of your winning chances. The second blunder, **41...a2??**, was equally reckless\u2014capturing a pawn without purpose and letting White consolidate their position. These errors highlight a pattern of poor decision-making in the endgame, where you prioritized short-term gains over long-term structure.  \n\nOther inaccuracies, like **28...Nxc4?** and **31...Rc5?**, suggest you occasionally traded pieces without securing positional advantages. The engine preferred more flexible moves (e.g., **Ne4** or **c6**) that maintained control of the center. Your **12...Bb4?** also missed a key developmental idea (**Nf5**) that could have strengthened your pawn structure.  \n\nTo improve:  \n1. **Study the Scandinavian Defense**\u2014focus on key moves like **12...Nf5** and **28...Ne4** to avoid similar pitfalls.  \n2. **Practice endgame technique**\u2014avoid unnecessary pawn moves and prioritize king safety.  \n3. **Review tactical patterns**\u2014look for opportunities to recapture material or reposition pieces without weakening your position.  \n\nSmall adjustments in critical moments can turn the tide. Keep working on these!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb4",
+          "Ka7",
+          "Ne4",
+          "Nf5",
+          "Nxc4",
+          "Ra4",
+          "Rc5",
+          "a2",
+          "c6"
+        ],
+        "allowed": [
+          "Bb4",
+          "Ka7",
+          "Ne4",
+          "Nf5",
+          "Nxc4",
+          "Ra4",
+          "Rc4",
+          "Rc5",
+          "a2",
+          "b5",
+          "c5",
+          "c6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.25,
+        "rationale": "The coaching correctly identifies the most critical blunders and is clearly structured. However, it fabricates details not present in the engine facts, such as claiming 40...Ra4 sacrificed a pawn, 41...a2 was a capture, and 31...Rc5 traded pieces. The actionable advice is also flawed, bizarrely suggesting that move 28 is part of studying the Scandinavian Defense opening theory."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 4,
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Your most critical mistake was **12.Kxh2??**, a blunder that handed Black a massive advantage. By capturing the pawn on h2, you allowed Black to develop their queen to h5 (a key square) and launch a devastating attack. The engine\u2019s preferred move, **Qh5**, would have preserved your position and avoided this disaster. This single error cost you over 35% of your winning chances.  \n\nThe second blunder, **14.Kf3??**, was equally costly. Instead of developing a piece or improving your position, you moved your king to the center, weakening your structure and giving Black a clear path to dominate. The engine suggested **Bg5**, which would have developed your bishop and kept your pieces active. Both errors show a pattern of **poor piece activity and king safety**\u2014critical in the opening.  \n\n**Actionable steps:**  \n1. **Study tactical patterns**: Focus on positions where capturing pawns leads to immediate threats (like the h2 pawn). Practice recognizing when a pawn grab is a blunder.  \n2. **Improve king safety**: Avoid moving your king to the center early. Instead, prioritize castling and developing pieces around your king.  \n3. **Review the game**: Analyze the positions at moves 12 and 14 to understand why Black\u2019s queen on h5 was so dangerous.  \n\nYou\u2019re making progress, but these errors are avoidable with focused practice. Keep working on tactical awareness and piece coordination!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bg5",
+          "Kf3",
+          "Kxh2",
+          "Qh5"
+        ],
+        "allowed": [
+          "Bg5",
+          "Kf3",
+          "Kxh2",
+          "Qh5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "The coaching correctly identifies the key mistakes and engine alternatives, but fabricates board details not present in the facts (e.g., assuming h2 was a pawn rather than a piece like a bishop, and inventing that Black's queen went to h5). The writing is clear, but the actionable advice is slightly tainted by these hallucinations."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 1,
+      "coached_side": "white",
+      "note": "auto-curated into 'clean_draw' (coached side: white)",
+      "coaching": "Your game was a model of precision\u2014no errors, no inaccuracies, and a clean, solid execution of the Ruy Lopez Exchange Variation. The opponent\u2019s lower centipawn loss (4.2 vs. your 13.0) suggests they had a slight edge in tactical sharpness, but your play was consistently sound.  \n\nSince there were no flagged mistakes, focus on refining your endgame technique. The Exchange Variation often leads to simplified positions where small details matter\u2014practice converting advantages into wins with precise king activity and pawn structure. Also, consider studying how to maximize your space advantage in the opening, as that can subtly influence the middlegame.  \n\nKeep up the strong play! Your foundation is solid\u2014now aim to deepen your understanding of how to maintain and exploit positional advantages in the endgame.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "The coaching accurately reflects the engine facts, correctly noting the flawless game and the specific ACPL difference. Since there were no mistakes to analyze, the coach correctly recognizes this and pivots to general thematic advice for the opening played (Ruy Lopez Exchange endgames). The advice is clear and reasonably actionable given the lack of specific errors to critique."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 2,
+      "coached_side": "black",
+      "note": "auto-curated into 'clean_draw' (coached side: black)",
+      "coaching": "Your most costly move was **9...d4?** \u2014 a critical inaccuracy that weakened your position. By advancing the d-pawn, you allowed White to gain control of the center and limit your piece activity. The engine\u2019s preferred **Bb7** would have developed your bishop, supported the center, and kept your pieces flexible, avoiding the 13% win probability loss.  \n\nThis inaccuracy reflects a recurring pattern: prioritizing pawn advances over piece development. While 9...d4 isn\u2019t a blunder, it created a structural weakness that White exploited.  \n\n**Actionable steps:**  \n1. **Prioritize development** over pawn advances in the opening. Aim to connect your rooks and develop your minor pieces (bishops, knights) before committing pawns to the center.  \n2. **Avoid weakening your center** unless you have a clear plan to exploit it. A solid structure is key to maintaining control.  \n\nFocus on balanced development, and you\u2019ll reduce the risk of similar inaccuracy costs. Keep up the good work!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb7",
+          "d4"
+        ],
+        "allowed": [
+          "Bb7",
+          "d4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "The coaching accurately identifies the only inaccuracy of the game, correctly cites the engine's preferred move and win probability loss, and provides clear, actionable advice on prioritizing development over premature pawn advances."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'clean_draw' (coached side: white)",
+      "coaching": "Your game was a clean, error-free display of solid play! The 16.0 centipawn loss indicates you maintained a slight edge throughout, and the opponent\u2019s 0.0 suggests they didn\u2019t lose any pawns\u2014so you kept the initiative without letting them counterattack. Since there were no mistakes, the focus should be on refining your opening preparation. The Zukertort (A04) is a creative choice, but studying it deeper could help you secure more consistent advantages. Keep practicing precise middlegame transitions and endgame technique to maximize your already strong play!",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 2,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.25,
+        "rationale": "The coach correctly recognizes that there were no mistakes in the game. However, it completely fabricates the meaning of Average Centipawn Loss (ACPL), incorrectly claiming that 16.0 means maintaining a slight edge and 0.0 means the opponent didn't lose any pawns. Furthermore, the advice provided is extremely generic and lacks concrete steps for improvement."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    }
+  ],
+  "rejudged_from": "claude-opus-4-8"
+}
