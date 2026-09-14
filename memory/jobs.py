@@ -18,6 +18,7 @@ import re
 import sqlite3
 import threading
 import traceback
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -25,8 +26,15 @@ from pathlib import Path
 from engine.fetch_data import fetch_chesscom_games
 from engine.pgn import read_game
 from memory.coaching import save
-from memory.profile import build_profile, format_profile
-from memory.store import analyze_and_ingest, connect, game_row, unstored_games
+from memory.profile import profile_text
+from memory.store import (
+    SYNC_DEPTH,
+    analyze,
+    analyze_and_ingest,
+    connect,
+    game_row,
+    unstored_games,
+)
 
 # chess.com handles: letters, digits, underscore and hyphen. Validated because the name is
 # interpolated into an API URL, and because a typo should fail here with a clear message
@@ -157,30 +165,53 @@ def active_job(
     return job if job and job.is_active else None
 
 
+@contextmanager
+def _worker_job(db_path: Path | str, job_id: int):
+    """A connection for a worker thread, and a job that fails loudly.
+
+    The worker opens its own connection because a SQLite connection belongs to the thread
+    that made it. Any exception is written onto the job row rather than raised: nobody is
+    waiting on the thread, so the page is the only place a failure can be seen.
+    """
+    conn = connect(db_path)
+    try:
+        yield conn
+    except Exception as exc:  # noqa: BLE001 - the failure must reach the page, not a log
+        update_job(conn, job_id, status="failed", message=f"{type(exc).__name__}: {exc}")
+        traceback.print_exc()
+    finally:
+        conn.close()
+
+
+def _start(db_path: Path | str, user: str, run, *run_args, job: dict, **run_kwargs) -> int:
+    """Create a job row, then run ``run(db_path, user, job_id, *run_args)`` on a daemon thread."""
+    with closing(connect(db_path)) as conn:
+        job_id = create_job(conn, user, **job)
+    threading.Thread(
+        target=run,
+        args=(db_path, user, job_id, *run_args),
+        kwargs=run_kwargs,
+        daemon=True,
+    ).start()
+    return job_id
+
+
 def run_sync(
     db_path: Path | str,
     user: str,
     job_id: int,
     *,
     max_games: int = 20,
-    depth: int = 12,
+    depth: int = SYNC_DEPTH,
     fetch_fn=fetch_chesscom_games,
     analyze_fn=None,
 ) -> None:
     """Fetch, analyze and store a player's new games, reporting progress as it goes.
 
-    Opens its own connection: this runs on a worker thread, and a SQLite connection
-    belongs to the thread that made it. Both callables are injectable so the whole loop
-    is testable with neither network nor engine.
+    ``fetch_fn`` and ``analyze_fn`` are injectable so the whole loop is testable with
+    neither network nor engine.
     """
-    if analyze_fn is None:  # imported lazily — the engine is not needed to define a job
-        from engine.analyzer import analyze_game
-
-        def analyze_fn(game):
-            return analyze_game(game, depth=depth).to_dict()
-
-    conn = connect(db_path)
-    try:
+    with _worker_job(db_path, job_id) as conn:
         # Only the games we haven't already analyzed — this is what makes re-syncing
         # cheap, and it is why an interrupted sync can simply be run again.
         games, fresh = unstored_games(conn, fetch_fn(user, max_games))
@@ -197,7 +228,7 @@ def run_sync(
 
         added = 0
         for i, pgn in enumerate(fresh, 1):
-            if analyze_and_ingest(conn, pgn, user, analyze_fn, depth=depth):
+            if analyze_and_ingest(conn, pgn, user, depth=depth, analyze_fn=analyze_fn):
                 added += 1
             update_job(
                 conn, job_id, done=i, added=added,
@@ -216,30 +247,11 @@ def run_sync(
                 else "Already up to date — nothing new to analyze."
             ),
         )
-    except Exception as exc:  # noqa: BLE001 - the failure must reach the page, not a log
-        update_job(
-            conn,
-            job_id,
-            status="failed",
-            message=f"{type(exc).__name__}: {exc}",
-        )
-        traceback.print_exc()
-    finally:
-        conn.close()
 
 
 def start_sync(db_path: Path | str, user: str, **kwargs) -> int:
-    """Create a job and run it on a daemon thread. Returns the job id."""
-    conn = connect(db_path)
-    try:
-        job_id = create_job(conn, user)
-    finally:
-        conn.close()
-    thread = threading.Thread(
-        target=run_sync, args=(db_path, user, job_id), kwargs=kwargs, daemon=True
-    )
-    thread.start()
-    return job_id
+    """Create a sync job and run it on a daemon thread. Returns the job id."""
+    return _start(db_path, user, run_sync, job={}, **kwargs)
 
 
 def run_coach(
@@ -264,12 +276,10 @@ def run_coach(
     """
     from coach import client, prompts  # lazily: needs the optional `ollama` package
 
-    if chat_fn is None:
-        chat_fn = client.chat
+    chat_fn = chat_fn or client.chat
     model = model or client.DEFAULT_MODEL
 
-    conn = connect(db_path)
-    try:
+    with _worker_job(db_path, job_id) as conn:
         row = game_row(conn, game_id, user)
         if row is None:
             update_job(conn, job_id, status="failed", message="No such game.")
@@ -289,47 +299,21 @@ def run_coach(
         if game is None:
             update_job(conn, job_id, status="failed", message="Could not read the game.")
             return
-
-        if analyze_fn is None:
-            from engine.analyzer import analyze_game
-
-            report = analyze_game(game, depth=row["depth"] or 12).to_dict()
-        else:
-            report = analyze_fn(game)
+        report = analyze_fn(game) if analyze_fn else analyze(game, row["depth"] or SYNC_DEPTH)
 
         side = row["user_side"]
-        profile = build_profile(conn, user, exclude_game_id=game_id)
-        profile_text = None if profile.is_empty else format_profile(profile)
-
-        facts = prompts.format_report_facts(report, side, profile=profile_text)
-        messages = prompts.build_messages(report, side, profile=profile_text)
+        profile = profile_text(conn, user, exclude_game_id=game_id)
+        facts = prompts.format_report_facts(report, side, profile=profile)
+        messages = prompts.build_messages(report, side, profile=profile)
 
         update_job(conn, job_id, done=1, message=f"Asking {model} for coaching…")
         text = chat_fn(messages, model=model)
 
-        save(conn, game_id, side, model, text, facts, used_profile=profile_text is not None)
+        save(conn, game_id, side, model, text, facts, used_profile=profile is not None)
         update_job(conn, job_id, status="done", done=2, message="Coaching ready.")
-    except Exception as exc:  # noqa: BLE001 - the failure must reach the page
-        update_job(conn, job_id, status="failed", message=f"{type(exc).__name__}: {exc}")
-        traceback.print_exc()
-    finally:
-        conn.close()
 
 
 def start_coach(db_path: Path | str, user: str, game_id: int, **kwargs) -> int:
     """Create a coaching job and run it on a daemon thread. Returns the job id."""
-    conn = connect(db_path)
-    try:
-        job_id = create_job(
-            conn, user, kind="coach", game_id=game_id, message="Starting…"
-        )
-    finally:
-        conn.close()
-    thread = threading.Thread(
-        target=run_coach,
-        args=(db_path, user, job_id, game_id),
-        kwargs=kwargs,
-        daemon=True,
-    )
-    thread.start()
-    return job_id
+    job = {"kind": "coach", "game_id": game_id, "message": "Starting…"}
+    return _start(db_path, user, run_coach, game_id, job=job, **kwargs)

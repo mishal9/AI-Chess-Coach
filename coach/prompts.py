@@ -2,25 +2,21 @@
 
 The engine report (a plain dict from :meth:`engine.analyzer.GameReport.to_dict`) is
 turned into a compact, deterministic *facts* block and paired with a system prompt that
-constrains the model to those facts. Everything here is pure and dependency-free so it
-can be unit-tested without an engine or a model, and so the coach can run from a saved
-JSON report just as well as from a live analysis.
+constrains the model to those facts. Everything here is pure — no Stockfish, no model — so
+it can be unit-tested directly, and so the coach can run from a saved JSON report just as
+well as from a live analysis.
 """
 
 from __future__ import annotations
 
-# Move-quality string (as stored in the report dict) → chess annotation symbol.
-# Kept local so this module needs nothing from the engine package.
-_QUALITY_SYMBOL = {
-    "blunder": "??",
-    "mistake": "?",
-    "inaccuracy": "?!",
-    "good": "",
-    "best": "",
-}
-
-# Qualities worth coaching on, worst first.
-MISTAKE_QUALITIES = ("blunder", "mistake", "inaccuracy")
+from engine.report import (  # noqa: F401 - re-exported; eval/ and training/ read them here
+    MISTAKE_QUALITIES,
+    choose_coached_side,
+    coachable_mistakes,
+    move_label,
+    opponent_of,
+)
+from engine.scoring import MoveQuality
 
 # Average centipawn loss at/below which a game with no flagged mistakes is "clean".
 _CLEAN_ACPL = 20.0
@@ -88,49 +84,9 @@ move achieves instead — the reusable idea behind it, not a restatement of the 
 - Do not summarize the rest of the game; stay on this moment."""
 
 
-def _move_label(move_number: int, side: str) -> str:
-    """'17.' for a White move, '17...' for a Black move."""
-    return f"{move_number}." if side == "white" else f"{move_number}..."
-
-
-def choose_coached_side(report: dict) -> str:
-    """Pick which side to coach when the caller doesn't specify.
-
-    Defaults to the side that played *worse* (higher average centipawn loss) — that's
-    who has the most to learn. Ties break toward the side that lost the game, else White.
-    """
-    summary = report["summary"]
-    acpl_white = summary["acpl_white"]
-    acpl_black = summary["acpl_black"]
-    if acpl_white != acpl_black:
-        return "white" if acpl_white > acpl_black else "black"
-    # Equal ACPL: coach whoever lost, if anyone.
-    result = report.get("result", "*")
-    if result == "0-1":
-        return "white"
-    if result == "1-0":
-        return "black"
-    return "white"
-
-
-def coachable_mistakes(report: dict, coached_side: str) -> list[dict]:
-    """The coached side's flagged mistakes, worst (highest win-prob loss) first.
-
-    The single source of the "critical positions" ordering, shared by the whole-game
-    facts block and the per-position distillation rows.
-    """
-    mistakes = [
-        m
-        for m in report.get("moves", [])
-        if m["side"] == coached_side and m["quality"] in MISTAKE_QUALITIES
-    ]
-    mistakes.sort(key=lambda m: m["win_prob_loss"], reverse=True)
-    return mistakes
-
-
 def _mistake_line(m: dict) -> str:
-    label = _move_label(m["move_number"], m["side"])
-    symbol = _QUALITY_SYMBOL.get(m["quality"], "")
+    label = move_label(m["move_number"], m["side"])
+    symbol = MoveQuality(m["quality"]).symbol
     best = ""
     if m.get("best_san") and m["best_san"] != m["san"]:
         best = f" the engine preferred {m['best_san']};"
@@ -157,7 +113,7 @@ def format_report_facts(
     existing reports and eval baselines stay comparable.
     """
     summary = report["summary"]
-    opponent = "black" if coached_side == "white" else "white"
+    opponent = opponent_of(coached_side)
     player_name = report.get(coached_side, "?")
     opponent_name = report.get(opponent, "?")
 
@@ -244,7 +200,7 @@ def format_position_facts(report: dict, coached_side: str, move: dict) -> str:
     :func:`coachable_mistakes`). Deliberately mentions only two moves — the one played
     and the engine's preference — so a perfectly grounded answer has nowhere to wander.
     """
-    opponent = "black" if coached_side == "white" else "white"
+    opponent = opponent_of(coached_side)
     return "\n".join(
         [
             f"Game context: White ({report.get('white', '?')}) vs "

@@ -1,8 +1,8 @@
-"""CLI: turn a game into natural-language coaching (Phase 2 deliverable).
+"""CLI: turn a game into natural-language coaching.
 
-End-to-end "PGN in -> coaching text out", using only prompting of a local base model.
-Can also coach from a JSON report already produced by ``python -m engine.report --json``,
-which skips re-running Stockfish.
+End-to-end "PGN in -> coaching text out" with the local Ollama coach model. Can also coach
+from a JSON report already produced by ``python -m engine.report --json``, which skips
+re-running Stockfish.
 
 Usage:
     python -m coach.coach game.pgn                       # analyze + coach (auto side)
@@ -12,7 +12,7 @@ Usage:
     python -m coach.coach game.pgn --show-facts          # print the facts block only
 
     # coach against the player's stored history, then remember this game too
-    python -m coach.coach game.pgn --user mishal9 --remember
+    python -m coach.coach game.pgn --user mshah509 --remember
 """
 
 from __future__ import annotations
@@ -23,14 +23,15 @@ import sys
 from pathlib import Path
 
 from coach import client, prompts
+from engine.analyzer import DEFAULT_DEPTH, analyze_game
+from engine.pgn import load_game
 
 
 def report_from_pgn(pgn_path: Path, game_index: int, depth: int) -> dict:
-    """Analyze a game from a PGN file and return the report dict."""
-    # Imported lazily so `--from-json` works without a Stockfish install.
-    from engine.analyzer import analyze_game
-    from engine.pgn import load_game
+    """Analyze a game from a PGN file and return the report dict.
 
+    Stockfish is only launched here, so ``--from-json`` works without it installed.
+    """
     game = load_game(pgn_path, game_index)
     if game is None:
         raise SystemExit(f"No game at index {game_index} in {pgn_path}.")
@@ -52,7 +53,9 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("white", "black"),
         help="which side to coach (default: the side that played worse)",
     )
-    parser.add_argument("--depth", type=int, default=15, help="Stockfish search depth")
+    parser.add_argument(
+        "--depth", type=int, default=DEFAULT_DEPTH, help="Stockfish search depth"
+    )
     parser.add_argument(
         "--game-index", type=int, default=0, help="0-based index of the game in the PGN"
     )
@@ -91,20 +94,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def load_profile(args: argparse.Namespace) -> str | None:
-    """Plain-text history for ``--user``, or ``None`` when there is nothing to say.
-
-    A player with no stored games gets no history section rather than an empty one — an
-    empty section invites the model to fill the silence.
-    """
+    """Plain-text history for ``--user``, or ``None`` (see :func:`memory.profile.profile_text`)."""
     if not args.user:
         return None
     # Imported lazily so plain coaching needs neither sqlite nor the memory package.
-    from memory.profile import build_profile, format_profile
+    from memory.profile import profile_text
     from memory.store import DEFAULT_DB, connect
 
-    conn = connect(args.db or DEFAULT_DB)
-    profile = build_profile(conn, args.user, args.last)
-    return None if profile.is_empty else format_profile(profile)
+    return profile_text(connect(args.db or DEFAULT_DB), args.user, args.last)
 
 
 def load_report(args: argparse.Namespace) -> dict:

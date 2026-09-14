@@ -13,14 +13,14 @@ dependencies = [
 coach = [
     "ollama>=0.3",
 ]
-# Phase 3 eval harness — frontier judge backends (optional; local Ollama judge needs none)
+# Research eval harness — frontier judge backends (optional; local Ollama judge needs none)
 eval = [
     "anthropic>=0.40",
     "scipy>=1.11",          # paired equivalence testing (TOST) in eval.equivalence
     "google-genai>=0.1",
     "python-dotenv>=1.0",   # load API keys from a gitignored .env
 ]
-# Phase 6 — the web dashboard. Server-rendered, so no JS toolchain.
+# The web app. Server-rendered, so no JS toolchain.
 api = [
     "fastapi>=0.115",
     "jinja2>=3.1",

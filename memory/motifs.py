@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 import chess
 
-from coach.prompts import coachable_mistakes
+from engine.report import coachable_mistakes
 
 # Centipawn values, for counting material on a board — not for simulating exchanges.
 PIECE_VALUES: dict[int, int] = {
@@ -311,7 +311,7 @@ def tag_move(move: dict, reply: dict | None = None) -> list[MotifTag]:
 def tag_report(report: dict, coached_side: str) -> dict[int, list[MotifTag]]:
     """Tag every flagged mistake by ``coached_side``, keyed by ply.
 
-    Mistake selection reuses :func:`coach.prompts.coachable_mistakes`, the one definition
+    Mistake selection reuses :func:`engine.report.coachable_mistakes`, the one definition
     of "worth coaching on" the rest of the project already follows.
     """
     by_ply = {m["ply"]: m for m in report.get("moves", [])}

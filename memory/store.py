@@ -23,11 +23,16 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from coach.prompts import MISTAKE_QUALITIES, choose_coached_side
 from engine.pgn import game_key, movetext_hash, read_game, split_pgn
+from engine.report import MISTAKE_QUALITIES, choose_coached_side
 from memory.motifs import game_phase, tag_report
 
 DEFAULT_DB = Path(__file__).resolve().parent.parent / "data" / "memory.db"
+
+# Stockfish depth for the player's own games. Shallower than the engine's research default
+# (15) because a sync analyzes dozens of games while someone waits; coaching re-analyzes a
+# stored game at whatever depth it was stored with, so the two always agree.
+SYNC_DEPTH = 12
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS games (
@@ -305,24 +310,35 @@ def unstored_games(conn: sqlite3.Connection, pgn_text: str) -> tuple[list[str], 
     return games, [g for g in games if not already_stored(conn, g)]
 
 
+def analyze(game, depth: int = SYNC_DEPTH) -> dict:
+    """Stockfish report dict for a parsed game.
+
+    The engine is imported here, not at the top, so reading the store (the dashboard,
+    ``--stats``, the tests) never needs Stockfish.
+    """
+    from engine.analyzer import analyze_game
+
+    return analyze_game(game, depth=depth).to_dict()
+
+
 def analyze_and_ingest(
     conn: sqlite3.Connection,
     pgn: str,
     user: str,
-    analyze_fn,
     *,
     side: str | None = None,
-    depth: int | None = None,
+    depth: int = SYNC_DEPTH,
+    analyze_fn=None,
 ) -> bool:
     """Analyze one game and store it. ``False`` if it has no moves or was already stored.
 
-    ``analyze_fn`` maps a parsed game to a report dict, so the caller picks the engine
-    depth and tests can skip Stockfish entirely.
+    ``analyze_fn`` replaces the Stockfish pass, so tests can skip the engine entirely.
     """
     game = read_game(pgn)
     if game is None or not game.mainline_moves():
         return False
-    return ingest_game(conn, pgn, analyze_fn(game), user, side=side, depth=depth) is not None
+    report = analyze_fn(game) if analyze_fn else analyze(game, depth)
+    return ingest_game(conn, pgn, report, user, side=side, depth=depth) is not None
 
 
 def list_games(
@@ -427,7 +443,9 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("white", "black"),
         help="which side is the student (default: the worse-playing side, per game)",
     )
-    parser.add_argument("--depth", type=int, default=12, help="Stockfish search depth")
+    parser.add_argument(
+        "--depth", type=int, default=SYNC_DEPTH, help="Stockfish search depth"
+    )
     parser.add_argument("--max", type=int, help="analyze at most this many new games")
     parser.add_argument(
         "--stats", action="store_true", help="just report what is already stored"
@@ -457,12 +475,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"File not found: {path}", file=sys.stderr)
         return 1
 
-    # Imported here so --stats stays instant and engine-free.
-    from engine.analyzer import analyze_game
-
-    def analyze(game):
-        return analyze_game(game, depth=args.depth).to_dict()
-
     games, fresh = unstored_games(conn, path.read_text(encoding="utf-8"))
     if args.max:
         fresh = fresh[: args.max]
@@ -470,9 +482,7 @@ def main(argv: list[str] | None = None) -> int:
     stored = 0
     for i, pgn in enumerate(fresh, 1):
         print(f"[{i}/{len(fresh)}] analyzing...", end="\r", file=sys.stderr, flush=True)
-        if analyze_and_ingest(
-            conn, pgn, args.user, analyze, side=args.side, depth=args.depth
-        ):
+        if analyze_and_ingest(conn, pgn, args.user, side=args.side, depth=args.depth):
             stored += 1
 
     info = stats(conn, args.user)
