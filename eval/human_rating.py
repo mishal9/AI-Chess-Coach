@@ -23,6 +23,14 @@ Usage:
     python -m eval.human_rating --out eval/human/round1 \\
         --report eval/reports/prompted_8b_2026-08-14.json \\
         --report eval/reports/8b_v2_2026-08-10.json
+
+Once 2+ raters have sent back a filled ``ratings.csv`` each, analyze them together:
+    python -m eval.human_rating \\
+        --rater sam=eval/human/round1/ratings_sam.csv \\
+        --rater alex=eval/human/round1/ratings_alex.csv \\
+        --answer-key eval/human/round1/answer_key.csv \\
+        --judge-report eval/reports/prompted_8b_2026-08-14.json \\
+        --judge-report eval/reports/8b_v2_2026-08-10.json
 """
 
 from __future__ import annotations
@@ -31,14 +39,15 @@ import argparse
 import csv
 import json
 import random
+import statistics
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from eval.rubric import RUBRIC_AXES, SCALE_MAX, SCALE_MIN
 
-# Enough for a stable agreement estimate without asking a volunteer for an evening. Two
-# raters x 20 items is the size the sprint plan budgets for.
-DEFAULT_SAMPLE = 20
+# Matches the main held-out set (n=29), so the human round can be reported at the same
+# n as the primary judge comparison rather than an arbitrary smaller number.
+DEFAULT_SAMPLE = 29
 
 # Fixed so the same sample can be rebuilt, and so a second rater gets identical items.
 DEFAULT_SEED = 20260902
@@ -245,21 +254,88 @@ def load_ratings(path: Path) -> dict[str, dict[str, int]]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Build a blinded human rating sheet from committed eval reports."
+        description="Build a blinded human rating sheet from committed eval reports, "
+        "or (with --rater) analyze filled-in ratings from two or more raters."
     )
-    parser.add_argument("--report", type=Path, action="append", required=True,
+    parser.add_argument("--report", type=Path, action="append",
                         help="an eval report JSON (repeatable; both arms get pooled)")
-    parser.add_argument("--out", type=Path, required=True, help="directory to write into")
+    parser.add_argument("--out", type=Path, help="directory to write into")
     parser.add_argument("--size", type=int, default=DEFAULT_SAMPLE)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--manifest", type=Path, default=None,
                         help="held-out manifest, for rebuilding the facts blocks")
     parser.add_argument("--depth", type=int, default=15)
+
+    parser.add_argument(
+        "--rater", action="append", metavar="NAME=PATH",
+        help="a rater's filled-in ratings.csv, as name=path (repeatable; 2+ switches "
+        "this command to multi-rater analysis instead of building a new sheet)",
+    )
+    parser.add_argument("--consensus-method", choices=("median", "mean"), default="median")
+    parser.add_argument(
+        "--answer-key", type=Path, default=None,
+        help="this round's answer_key.csv, to also report the consensus vs. the judge",
+    )
+    parser.add_argument(
+        "--judge-report", type=Path, action="append",
+        help="an eval report JSON with rubric scores, named by the answer key's "
+        "source_report (repeatable; matched by file stem)",
+    )
     return parser
+
+
+def _print_agreement_block(title: str, result: dict[str, dict]) -> None:
+    print(f"\n{title}:")
+    for axis, stats in result.items():
+        print(
+            f"  {axis:24s} n={stats['n']:<3d} r={stats['pearson']!s:<6} "
+            f"tau={stats['kendall']!s:<6} bias={stats['bias']:+.3f} "
+            f"exact={stats['exact']:.3f} within_one={stats['within_one']:.3f}"
+        )
+
+
+def analyze_raters(args: argparse.Namespace) -> int:
+    if len(args.rater) < 2:
+        print("Need at least 2 --rater entries to compute agreement.")
+        return 1
+
+    by_name: dict[str, Path] = {}
+    for spec in args.rater:
+        name, sep, path = spec.partition("=")
+        if not sep or not path:
+            print(f"Bad --rater spec (want name=path): {spec!r}")
+            return 1
+        by_name[name] = Path(path)
+    by_rater = load_many_ratings(by_name)
+
+    consensus = consensus_ratings(by_rater, method=args.consensus_method)
+    pairwise = pairwise_agreement(by_rater)
+
+    print(f"{len(by_rater)} raters: {sorted(by_rater)}")
+    print(f"{args.consensus_method} consensus computed over {len(consensus)} items")
+    print(f"mean pairwise Pearson r per axis: {mean_pairwise_r(pairwise)}")
+    for (a, b), result in pairwise.items():
+        _print_agreement_block(f"{a} vs {b}", result)
+
+    if args.answer_key and args.judge_report:
+        reports = {p.stem: p for p in args.judge_report}
+        judge = judge_scores_for(args.answer_key, reports)
+        _print_agreement_block(f"{args.consensus_method} consensus vs. judge", agreement(consensus, judge))
+    elif args.answer_key or args.judge_report:
+        print("\n(need both --answer-key and --judge-report to compare consensus vs. judge)")
+
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    if args.rater:
+        return analyze_raters(args)
+
+    if not args.report or not args.out:
+        print("Building a sheet needs --report (2+) and --out; see --help.")
+        return 1
 
     # Facts are what make the factual axis answerable, and they are not stored in the
     # reports — rebuild them from the manifest exactly as the judge pipeline does.
@@ -282,10 +358,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {name:8s} {path}")
     print("\nGive raters the sheet and a copy of ratings.csv. Keep answer_key.csv back.")
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
 
 
 # --- comparing humans to the judges -----------------------------------------------------
@@ -353,3 +425,84 @@ def agreement(
             "within_one": round(sum(abs(a - b) <= 1 for a, b in pairs) / len(pairs), 3),
         }
     return out
+
+
+# --- more than one rater: consensus and inter-rater agreement ------------------------
+
+
+def load_many_ratings(by_name: dict[str, Path]) -> dict[str, dict[str, dict[str, int]]]:
+    """``{rater_name: {item_id: {axis: score}}}`` from a name -> csv-path mapping."""
+    return {name: load_ratings(path) for name, path in by_name.items()}
+
+
+def consensus_ratings(
+    by_rater: dict[str, dict[str, dict[str, int]]], method: str = "median"
+) -> dict[str, dict[str, float]]:
+    """Per item, per axis: the raters' median (default) or mean score.
+
+    Only axes at least one rater actually scored are included, and an item nobody
+    touched is omitted rather than reported as a fabricated score. Median is the
+    default because it doesn't let one outlier rater (or one blank cell some raters
+    filled and others skipped) drag a small panel's consensus around the way a mean
+    would.
+    """
+    if method not in ("median", "mean"):
+        raise ValueError(f"unknown consensus method: {method!r}")
+    combine = statistics.median if method == "median" else statistics.mean
+
+    item_ids = sorted({item_id for ratings in by_rater.values() for item_id in ratings})
+    out: dict[str, dict[str, float]] = {}
+    for item_id in item_ids:
+        scores: dict[str, float] = {}
+        for axis in RUBRIC_AXES:
+            values = [
+                ratings[item_id][axis]
+                for ratings in by_rater.values()
+                if axis in ratings.get(item_id, {})
+            ]
+            if values:
+                scores[axis] = round(combine(values), 3)
+        if scores:
+            out[item_id] = scores
+    return out
+
+
+def pairwise_agreement(
+    by_rater: dict[str, dict[str, dict[str, int]]],
+) -> dict[tuple[str, str], dict[str, dict]]:
+    """Every rater pair's per-axis agreement, in the same shape :func:`agreement` returns.
+
+    Reuses :func:`agreement` directly — for a pair, "human" is simply whichever rater
+    sorts first and "judge" the other; the ``human_mean``/``judge_mean`` keys in the
+    result name the pair's two raters, not a human-vs-LLM comparison.
+    """
+    names = sorted(by_rater)
+    out: dict[tuple[str, str], dict[str, dict]] = {}
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            a, b = names[i], names[j]
+            out[(a, b)] = agreement(by_rater[a], by_rater[b])
+    return out
+
+
+def mean_pairwise_r(
+    pairwise: dict[tuple[str, str], dict[str, dict]],
+) -> dict[str, float | None]:
+    """Per axis, the mean Pearson r across every rater pair in :func:`pairwise_agreement`.
+
+    A single summary number for "how much do the raters agree with each other" —
+    None where fewer than one pair had enough variation to compute a correlation.
+    """
+    out: dict[str, float | None] = {}
+    for axis in RUBRIC_AXES:
+        rs = [
+            result[axis]["pearson"]
+            for result in pairwise.values()
+            if axis in result and result[axis]["pearson"] is not None
+        ]
+        out[axis] = round(sum(rs) / len(rs), 3) if rs else None
+    return out
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

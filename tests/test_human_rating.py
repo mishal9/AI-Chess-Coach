@@ -17,8 +17,12 @@ from eval.human_rating import (  # noqa: E402
     RatingItem,
     agreement,
     collect,
+    consensus_ratings,
     judge_scores_for,
+    load_many_ratings,
     load_ratings,
+    mean_pairwise_r,
+    pairwise_agreement,
     render_sheet,
     stratified_sample,
     write_round,
@@ -156,3 +160,67 @@ class TestAgreement:
         human = {f"i{n}": {a: 3 for a in RUBRIC_AXES} for n in range(5)}
         judge = {f"i{n}": {a: 3 for a in RUBRIC_AXES} for n in range(3)}
         assert agreement(human, judge)["clarity"]["n"] == 3
+
+
+class TestMultiRaterConsensus:
+    def _write_ratings(self, tmp_path, name, rows):
+        path = tmp_path / f"ratings_{name}.csv"
+        with path.open("w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["item_id", *RUBRIC_AXES, "comment"])
+            for item_id, scores in rows.items():
+                writer.writerow([item_id, *[scores.get(a, "") for a in RUBRIC_AXES], ""])
+        return path
+
+    def test_load_many_ratings_keys_by_rater_name(self, tmp_path):
+        paths = {
+            "sam": self._write_ratings(tmp_path, "sam", {"item-01": {a: 4 for a in RUBRIC_AXES}}),
+            "alex": self._write_ratings(tmp_path, "alex", {"item-01": {a: 2 for a in RUBRIC_AXES}}),
+        }
+        by_rater = load_many_ratings(paths)
+        assert set(by_rater) == {"sam", "alex"}
+        assert by_rater["sam"]["item-01"]["clarity"] == 4
+        assert by_rater["alex"]["item-01"]["clarity"] == 2
+
+    def test_median_consensus_is_not_dragged_by_one_outlier(self):
+        by_rater = {
+            "a": {"item-01": {"clarity": 4}},
+            "b": {"item-01": {"clarity": 5}},
+            "c": {"item-01": {"clarity": 1}},  # one rater way out of line
+        }
+        consensus = consensus_ratings(by_rater, method="median")
+        assert consensus["item-01"]["clarity"] == 4
+        mean_consensus = consensus_ratings(by_rater, method="mean")
+        assert mean_consensus["item-01"]["clarity"] == pytest.approx(10 / 3, abs=1e-3)
+
+    def test_consensus_skips_items_nobody_scored_on_an_axis(self):
+        by_rater = {
+            "a": {"item-01": {"clarity": 4}},
+            "b": {"item-01": {}},  # rater saw the item but left this axis blank
+        }
+        consensus = consensus_ratings(by_rater)
+        assert consensus["item-01"]["clarity"] == 4
+
+    def test_consensus_rejects_unknown_method(self):
+        with pytest.raises(ValueError):
+            consensus_ratings({"a": {}}, method="mode")
+
+    def test_pairwise_agreement_covers_every_pair_once(self):
+        by_rater = {
+            "a": {f"i{n}": {a: 3 for a in RUBRIC_AXES} for n in range(5)},
+            "b": {f"i{n}": {a: 3 for a in RUBRIC_AXES} for n in range(5)},
+            "c": {f"i{n}": {a: 3 for a in RUBRIC_AXES} for n in range(5)},
+        }
+        pairwise = pairwise_agreement(by_rater)
+        assert set(pairwise) == {("a", "b"), ("a", "c"), ("b", "c")}
+
+    def test_mean_pairwise_r_averages_across_pairs(self):
+        by_rater = {
+            "a": {f"i{n}": {"clarity": n} for n in range(1, 5)},
+            "b": {f"i{n}": {"clarity": n} for n in range(1, 5)},  # perfect agreement
+            "c": {f"i{n}": {"clarity": 5 - n} for n in range(1, 5)},  # perfect reversal
+        }
+        pairwise = pairwise_agreement(by_rater)
+        result = mean_pairwise_r(pairwise)
+        # (a,b)=+1, (a,c)=-1, (b,c)=-1 -> mean = -1/3
+        assert result["clarity"] == pytest.approx(-1 / 3, abs=1e-3)
