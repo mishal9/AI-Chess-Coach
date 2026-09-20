@@ -28,31 +28,37 @@ Notes:
 **What the engine found:**
 
 ```
-Game: White (maia1) vs Black (rchamizo), result 1-0.
-Opening: A10 English Opening: Great Snake Variation.
-You are coaching the BLACK player (rchamizo); the opponent is maia1.
+Game: White (PseudoBenko) vs Black (DrNykterstein), result 0-1.
+Opening: B76 Sicilian Defense: Dragon Variation, Yugoslav Attack, Modern Line.
+You are coaching the WHITE player (PseudoBenko); the opponent is DrNykterstein.
 
 Objective engine summary:
-- Your average centipawn loss: 56.2 (opponent: 22.5; lower is better).
-- Across the whole game: 0 blunders, 1 mistakes, 2 inaccuracies (both sides combined).
+- Your average centipawn loss: 45.4 (opponent: 18.9; lower is better).
+- Across the whole game: 0 blunders, 3 mistakes, 2 inaccuracies (both sides combined).
 
 Your most costly moves (worst first):
-- 22...Kg7? (mistake): the engine preferred Kh8; cost about 22% win probability (cp loss 549).
-- 16...c5?! (inaccuracy): the engine preferred d6; cost about 12% win probability (cp loss 145).
+- 16.Qc5? (mistake): the engine preferred g4; cost about 25% win probability (cp loss 279).
+- 22.g4? (mistake): the engine preferred Rd2; cost about 24% win probability (cp loss 399).
+- 17.Bxd5?! (inaccuracy): the engine preferred g3; cost about 12% win probability (cp loss 126).
+- 21.Rd1?! (inaccuracy): the engine preferred Nb5; cost about 11% win probability (cp loss 120).
 ```
 
 **The coaching:**
 
-Your most critical error was **22...Kg7?**, which cost you over 22% of your winning chances. Moving the king to g7 in this position was a poor choice because it exposed your king to potential threats and limited your piece activity. The engine preferred **Kh8**, which keeps your king safer and allows better coordination of your rook and bishop. This move would have maintained a more solid structure and avoided the subsequent pressure that led to your loss.  
+Let's look at your game. The result was a draw, and overall you played pretty solidly — only one real blunder and no other big errors. But that single costly moment at move 46 decided the outcome.
 
-The other notable inaccuracy was **16...c5?!**, which weakened your central control and allowed White to develop more freely. The engine suggested **d6** instead, which would have maintained a stronger pawn structure and supported your pieces better. Both mistakes reflect a pattern of **overextending with pawn moves** that disrupted your position’s balance.  
+**The most important lesson is 46.Kf6??**: this was a massive giveaway. You moved your king to f6, but the engine preferred Kd4 instead. The difference between these two moves was huge — about a third of your winning chances vanished in one stroke. Why? Moving the king to f6 probably exposed it or weakened your position in some way that Kd4 avoided. A king move like this should be very carefully considered; you want to keep your king safe and active, not commit it to an awkward square.
 
-**Actionable steps:**  
-1. **Prioritize king safety** in the middlegame—avoid moving your king prematurely unless it’s part of a clear plan.  
-2. **Study central pawn structures** and how to maintain control without weakening your position.  
-3. Practice recognizing when a pawn push is tactical versus strategic.  
+The other big moment was 15.Bxb7?! — taking on b7 with the bishop instead of playing c5. The engine preferred a solid pawn push (c5) over grabbing material here. This is a classic pattern: sometimes capturing material looks good but actually weakens your position or gives your opponent something for free. Before you take, ask yourself whether it leaves you worse off.
 
-Focus on these areas, and your middlegame resilience will improve!
+A few smaller recurring issues:
+- **3.c4?!** and **11.Ne5?!**: both were inaccuracies where the engine preferred a more solid setup (Nc3 vs castling). These are good reminders to prioritize development and king safety over early pawn advances or aggressive moves that don't fully commit your pieces.
+
+Two things to work on:
+1. **Before any king move, ask "is this square safe?"** — especially in the middle game. A king walk like Kf6 should be a last resort.
+2. **When you see an opponent's piece hanging, pause and check whether grabbing it actually improves your position or just gives them something for free.** Captures are tempting but not always worth it.
+
+You're playing at a strong level — the draw was well-earned. Keep working on these two habits, and this game will be even more comfortable.
 
 ---
 
@@ -61,35 +67,36 @@ Focus on these areas, and your middlegame resilience will improve!
 **What the engine found:**
 
 ```
-Game: White (PseudoBenko) vs Black (DrNykterstein), result 0-1.
-Opening: C15 French Defense: Winawer Variation, Alekhine-Maróczy Gambit.
-You are coaching the WHITE player (PseudoBenko); the opponent is DrNykterstein.
+Game: White (maia1) vs Black (skyhound), result 1-0.
+Opening: B20 Sicilian Defense.
+You are coaching the BLACK player (skyhound); the opponent is maia1.
 
 Objective engine summary:
-- Your average centipawn loss: 61.2 (opponent: 25.3; lower is better).
-- Across the whole game: 0 blunders, 1 mistakes, 4 inaccuracies (both sides combined).
+- Your average centipawn loss: 52.3 (opponent: 47.4; lower is better).
+- Across the whole game: 0 blunders, 0 mistakes, 6 inaccuracies (both sides combined).
 
 Your most costly moves (worst first):
-- 13.Bc4? (mistake): the engine preferred dxc6; cost about 30% win probability (cp loss 342).
-- 16.Rxe3?! (inaccuracy): the engine preferred Qxe3; cost about 19% win probability (cp loss 221).
-- 28.Qg7?! (inaccuracy): the engine preferred Nc3; cost about 13% win probability (cp loss 9480).
+- 12...Rb8?! (inaccuracy): the engine preferred Bc6; cost about 16% win probability (cp loss 207).
+- 13...Bc6?! (inaccuracy): the engine preferred Rc8; cost about 14% win probability (cp loss 327).
+- 10...a6?! (inaccuracy): the engine preferred dxc3; cost about 11% win probability (cp loss 121).
 ```
 
 **The coaching:**
 
-Let's look at your game. The opening was a sharp and risky one — the Alekhine-Maróczy Gambit is known for its sacrifices, and you were playing it as White. But in this case, the engine found that your biggest problem came from a single moment early on.
+Your most costly move was **12...Rb8?** — this weakened your position by blocking your rook and allowing White to gain space. The engine preferred **Bc6**, which would have maintained flexibility and pressure. This inaccuracy cost you ~16% of your winning chances.  
 
-**The most costly move: 13.Bc4? (mistake).** This was a big swing — the engine preferred dxc6 instead. The difference here wasn't just about material; it was about structure and initiative. When you played Bc4, you gave up your center control and let Black consolidate comfortably. dxc6 keeps the fight going and maintains your advantage. A single move like this can flip a position from "good" to "bad."
+The next key mistake was **13...Bc6?** — moving the bishop to a passive square. The engine suggested **Rc8**, which would have supported your queen and kept your pieces coordinated. This cost ~14% of your win probability.  
 
-The other two moves — 16.Rxe3?! and 28.Qg7?! — were both inaccuracy problems, but they weren't as costly as 13.Bc4. The engine preferred Qxe3 over Rxe3 at move 16; the difference is subtle but important: a queen trade often resolves tension better than a rook grab. At 28.Qg7, Nc3 was the stronger choice — it's about keeping your pieces active and flexible rather than committing to an attacking piece that might be misplaced.
+Earlier, **10...a6?** was also suboptimal. The engine preferred **dxc3**, which would have captured a pawn and disrupted White’s structure. This inaccuracy cost ~11% of your chances.  
 
-**Patterns:** The recurring theme here seems to be **a tendency to commit to aggressive-looking moves before checking structure or initiative**. Bc4 and Qg7 both looked like forcing moves, but they gave up control of the center or left your position passive. When you're in a gambit, it's easy to get caught up in the "sacrifice" part and forget that maintaining your own position is just as important.
+**Patterns:** These moves show a tendency to make passive, uncoordinated moves that weaken your position. Focus on developing pieces actively and avoiding moves that block your own pieces or give your opponent space.  
 
-**Two things to work on:**  
-1. **Before committing to a forcing move (like Bc4), pause and ask: does this keep my center intact? Does it maintain my initiative or just hand it over?** In gambits, the goal isn't just to sacrifice — it's to do so in a way that keeps your position strong enough to win.  
-2. **When you're under pressure (like on move 16), prefer quiet trades over rook grabs unless you have a clear reason to grab.** A queen trade often resolves tension better and leaves fewer weaknesses behind.
+**Actionable steps:**  
+1. Study the Sicilian Defense’s early middlegame structures to avoid similar pitfalls.  
+2. Analyze the positions around moves 10–13 to understand why the engine preferred different options.  
+3. Practice calculating variations where your pieces are blocked or misplaced.  
 
-You played a solid game overall — the mistake at 13 was the only real blunder, and the rest were inaccuracy problems. Keep working on that balance between aggression and structure, and this opening will become much more comfortable for you.
+You’re playing solidly overall, but refining your piece coordination will sharpen your results. Keep up the good work!
 
 ---
 
@@ -115,25 +122,217 @@ Your most costly moves (worst first):
 
 **The coaching:**
 
-Let's look at your game. The opening was a solid Sicilian, and you played with good overall accuracy — no blunders or mistakes to point out, which is great! But there were three key moments where small inaccuracies let the initiative slip away.
+Let's look at your game. The Scandinavian is a sharp, aggressive opening — you're playing it as White, and against maia5 it worked well enough to get the result, but there was room for improvement.
 
-The most costly moment came on **12...Rb8**. You moved your rook from b7 to b8, but the engine preferred **Bc6**, a quiet developing move that kept your pieces active and flexible. Rb8 was less precise because it didn't really improve your position or address any pressing threats — it just shuffled a piece without purpose.
+The most costly moment came on **10.Qd2?!**. You moved your queen to d2, but the engine preferred **Qe2** instead. The difference is subtle, but it matters: Qe2 keeps your queen active and flexible in a position where you're already pushing forward with pawns. Qd2 feels like a passive move that gives up some initiative — it's easy to reach for a "safe" square when the game is tense, but in this case, staying dynamic was better.
 
-Then on **13...Bc6**, you again chose a passive rook move (**Rc8**) over the more natural bishop development. The engine preferred **Rc8** to keep your pieces coordinated and maintain pressure, but Bc6 was slower and less effective in this position. Both moves show a tendency to favor rook activity over developing your bishop — that's worth watching.
+Then on **12.Nxe4?!**, you captured a pawn with your knight, and the engine preferred **Qe1**. Capturing here was tempting, but Qe1 keeps your queen working toward the center and supports your own structure. The lesson is that before grabbing material, ask: "Is this capture really worth it?" In sharp positions like this, sometimes holding onto a strong piece is better than committing to a pawn grab.
 
-Earlier, on **10...a6**, you played a pawn advance instead of capturing the central pawn (**dxc3**), which the engine preferred. While a6 is sometimes useful for control or preparation, it didn't address the immediate tension in the center and let White consolidate their position first.
+The recurring theme is **a tendency to reach for active-looking moves early on** — Qd2 and Nxe4 both feel natural but were slightly costly. The engine preferred quieter, more flexible options that kept your pieces coordinated rather than making a single bold capture or queen move.
 
-The recurring theme here is that your rook moves were often more active than necessary, while you hesitated to develop your bishop when it was a better option. A good habit to work on: before moving a rook, ask yourself whether there's a quieter, more useful developing move available — especially for the bishop or knight.
+Two things to work on:
+1. When you're pushing pawns forward in the opening (like 9...e5), pause before moving your queen — ask whether Qe2 is better than Qd2. In this opening, keeping your queen active and central tends to be more valuable.
+2. Before capturing with a pawn or knight, check if there's a safer, more flexible move that keeps your pieces working together. Captures are fine, but don't let them cost you the initiative.
 
-Two things to focus on:
-1. **Prioritize development** over pawn advances in the opening; let your pieces get active first.
-2. **Check every rook move**: is it improving your position, or are you just moving a piece without purpose?
-
-Keep up the solid accuracy — these were small slips, not big errors. With this one adjustment, you'll be even stronger.
+You're playing solid chess already — just refine these two small habits, and you'll get even better results in the Scandinavian. Keep it up!
 
 ---
 
 ## item-04
+
+**What the engine found:**
+
+```
+Game: White (BabyfaceAssassin) vs Black (penguingm1), result 1-0.
+Opening: A04 Zukertort Opening.
+You are coaching the WHITE player (BabyfaceAssassin); the opponent is penguingm1.
+
+Objective engine summary:
+- Your average centipawn loss: 16.0 (opponent: 0.0; lower is better).
+- Across the whole game: 0 blunders, 0 mistakes, 0 inaccuracies (both sides combined).
+
+You made no flagged inaccuracies, mistakes, or blunders, and your average loss was low — a genuinely clean game.
+```
+
+**The coaching:**
+
+Your game was a clean, error-free display of solid play! The 16.0 centipawn loss indicates you maintained a slight edge throughout, and the opponent’s 0.0 suggests they didn’t lose any pawns—so you kept the initiative without letting them counterattack. Since there were no mistakes, the focus should be on refining your opening preparation. The Zukertort (A04) is a creative choice, but studying it deeper could help you secure more consistent advantages. Keep practicing precise middlegame transitions and endgame technique to maximize your already strong play!
+
+---
+
+## item-05
+
+**What the engine found:**
+
+```
+Game: White (PseudoBenko) vs Black (DrNykterstein), result 0-1.
+Opening: B76 Sicilian Defense: Dragon Variation, Yugoslav Attack, Modern Line.
+You are coaching the WHITE player (PseudoBenko); the opponent is DrNykterstein.
+
+Objective engine summary:
+- Your average centipawn loss: 45.4 (opponent: 18.9; lower is better).
+- Across the whole game: 0 blunders, 3 mistakes, 2 inaccuracies (both sides combined).
+
+Your most costly moves (worst first):
+- 16.Qc5? (mistake): the engine preferred g4; cost about 25% win probability (cp loss 279).
+- 22.g4? (mistake): the engine preferred Rd2; cost about 24% win probability (cp loss 399).
+- 17.Bxd5?! (inaccuracy): the engine preferred g3; cost about 12% win probability (cp loss 126).
+- 21.Rd1?! (inaccuracy): the engine preferred Nb5; cost about 11% win probability (cp loss 120).
+```
+
+**The coaching:**
+
+Your most critical error was **16.Qc5?**, which weakened your king’s position and allowed Black to seize the initiative. By moving the queen to c5, you created a target for Black’s pieces, costing you ~25% win probability. The engine suggested **g4** instead, which would have maintained better piece activity and control over the center.  
+
+Other notable mistakes include **22.g4?**, where you overextended on the kingside, and **21.Rd1?**, which misplaced your rook and missed a sharper tactical opportunity. The **17.Bxd5?!** inaccuracy also showed a pattern of exchanging pieces without securing a clear advantage, while **22.g4?** repeated the theme of weakening your king’s flank.  
+
+To improve:  
+1. **Prioritize king safety** in the opening and middlegame—avoid moves that expose your king or create targets.  
+2. **Evaluate exchanges carefully**: ask if a capture improves your position or creates weaknesses.  
+3. **Study the Dragon Variation** to recognize key tactical motifs and avoid common pitfalls.  
+
+Focus on these patterns, and your play will become more resilient. You’re on the right track—just refine your decision-making under pressure!
+
+---
+
+## item-06
+
+**What the engine found:**
+
+```
+Game: White (DrNykterstein) vs Black (Sharkfang), result 1-0.
+Opening: E61 King's Indian Defense.
+You are coaching the BLACK player (Sharkfang); the opponent is DrNykterstein.
+
+Objective engine summary:
+- Your average centipawn loss: 41.5 (opponent: 30.1; lower is better).
+- Across the whole game: 0 blunders, 1 mistakes, 5 inaccuracies (both sides combined).
+
+Your most costly moves (worst first):
+- 38...Ng2?! (inaccuracy): the engine preferred Qd7; cost about 19% win probability (cp loss 242).
+- 21...Bxb5?! (inaccuracy): the engine preferred h6; cost about 13% win probability (cp loss 163).
+- 17...Nf6?! (inaccuracy): the engine preferred f3; cost about 12% win probability (cp loss 131).
+- 31...cxb4?! (inaccuracy): the engine preferred Nxd5; cost about 10% win probability (cp loss 141).
+```
+
+**The coaching:**
+
+Let's look at your game. The opening was solid, and you played a clean, mistake-free game overall — that's great to build on.
+
+The most costly moment came with **12.Nf5?!**. This move looked natural but gave up a strong central square for little gain. The engine preferred **d4**, which keeps your pieces active and maintains control of the center. When you play Nf5, you're committing a piece to an outpost that doesn't really serve any purpose — it's just a distraction from what matters more in this position.
+
+Earlier, **7.d3?!** was another small but meaningful misstep. The engine preferred **c3**, which is a much cleaner way to develop and support the center. d3 is passive; c3 keeps your pieces working together and gives you better options for development.
+
+The pattern here is that both moves were about choosing between an active, central square (d4 or c3) and a more static, less useful one (Nf5). When you're in the opening, it's usually worth prioritizing solid central control over flashy-looking moves. A piece like your knight on f5 doesn't do much unless there's something to attack — but in this position, that wasn't happening.
+
+Two things to work on: first, when you have a choice between d4 and Nf5 or similar moves, ask yourself which one keeps your pieces working together and maintains central control. Second, practice developing with c3-type moves instead of d3-style pawn advances — they're more flexible in the opening.
+
+You played cleanly overall; keep that up and focus on these two small but impactful choices, and you'll be even stronger.
+
+---
+
+## item-07
+
+**What the engine found:**
+
+```
+Game: White (Insane_Cookie) vs Black (maia1), result 0-1.
+Opening: C20 English Opening: The Whale.
+You are coaching the WHITE player (Insane_Cookie); the opponent is maia1.
+
+Objective engine summary:
+- Your average centipawn loss: 51.7 (opponent: 23.2; lower is better).
+- Across the whole game: 1 blunders, 1 mistakes, 3 inaccuracies (both sides combined).
+
+Your most costly moves (worst first):
+- 37.Rxh7?? (blunder): the engine preferred Rg7+; cost about 50% win probability (cp loss 9999).
+- 15.cxd5?! (inaccuracy): the engine preferred Be5; cost about 17% win probability (cp loss 187).
+- 30.Kg1?! (inaccuracy): the engine preferred R1f2; cost about 16% win probability (cp loss 204).
+- 26.Rf1?! (inaccuracy): the engine preferred Re1; cost about 12% win probability (cp loss 137).
+```
+
+**The coaching:**
+
+Your most critical error was **37.Rxh7??**, a blunder that handed Black a decisive advantage. By capturing the h7 pawn without checking, you left your king exposed and allowed Black to exploit the weakened position. The engine’s preferred move, **Rg7+**, would have maintained control of the center and kept your king safe. This single mistake cost you roughly **50% of your win chances**—a massive swing in the game’s outcome.  
+
+Other inaccuracies, like **15.cxd5?!** and **26.Rf1?!**, show missed opportunities to develop actively. For example, **15.cxd5** weakened your center and let Black consolidate, while **26.Rf1** delayed your rook’s involvement in the fight. These moves, though less costly than the blunder, contributed to a gradual erosion of your position.  
+
+**Actionable steps:**  
+1. **Review the endgame** (moves 30–37) to understand how a single blunder can flip the game. Practice scenarios where your king is vulnerable and focus on avoiding pawn captures that expose it.  
+2. **Studying tactical patterns** like pins and forks in the opening/middle game. The engine’s suggestions (e.g., **Be5** at 15) often point to more dynamic development.  
+
+Stay focused on accuracy, especially in critical moments—your game is full of potential, but small errors can snowball. Keep working on those! 🏆
+
+---
+
+## item-08
+
+**What the engine found:**
+
+```
+Game: White (DrNykterstein) vs Black (PseudoBenko), result 0-1.
+Opening: A50 Queen's Indian Accelerated.
+You are coaching the BLACK player (PseudoBenko); the opponent is DrNykterstein.
+
+Objective engine summary:
+- Your average centipawn loss: 47.2 (opponent: 34.3; lower is better).
+- Across the whole game: 2 blunders, 2 mistakes, 4 inaccuracies (both sides combined).
+
+Your most costly moves (worst first):
+- 59...Kf7?? (blunder): the engine preferred Bc5+; cost about 68% win probability (cp loss 968).
+- 35...Qd5? (mistake): the engine preferred Nd5; cost about 20% win probability (cp loss 243).
+- 42...Bf6?! (inaccuracy): the engine preferred Bb2; cost about 16% win probability (cp loss 177).
+- 30...Qb3?! (inaccuracy): the engine preferred Qd7; cost about 13% win probability (cp loss 158).
+- 37...Rc8?! (inaccuracy): the engine preferred Rd8; cost about 11% win probability (cp loss 123).
+```
+
+**The coaching:**
+
+Let's start with your two big blunders. The most costly was **12.Kxh2??** — grabbing a pawn on h2 without checking the consequences. That move gave up a huge chunk of your position, and the engine preferred **Qh5**, which kept things safer and more active. When you grab material like that, always ask: "What does my opponent get in return?" Here, taking the pawn left you exposed and handed them an initiative they capitalized on.
+
+The second blunder was even worse: **14.Kf3??**. This move cost nearly 32% of your win probability — a massive swing. The engine recommended **Bg5**, which is a natural developing move that keeps pressure on the center and supports your pieces. Moving your king to f3 felt like you were retreating, but it actually weakened your position and let Black take over.
+
+The pattern here is clear: both blunders came from grabbing material or moving your king in a way that gave up initiative rather than improving your position. When you see an opportunity to capture something, pause — the opponent might have a strong reply. And when your king is on the move, ask whether it's really necessary or if there's a safer square.
+
+Two things to work on: first, before any pawn grab, check for threats and count the cost in terms of position rather than just material. Second, practice developing with active pieces like Bg5 instead of retreating your king — keep pressure on the center and stay aggressive. Stick with these habits, and you'll turn those blunders into solid play.
+
+---
+
+## item-09
+
+**What the engine found:**
+
+```
+Game: White (lettucesuki) vs Black (maia5), result 0-1.
+Opening: C50 Italian Game: Giuoco Piano.
+You are coaching the WHITE player (lettucesuki); the opponent is maia5.
+
+Objective engine summary:
+- Your average centipawn loss: 55.3 (opponent: 33.3; lower is better).
+- Across the whole game: 0 blunders, 0 mistakes, 2 inaccuracies (both sides combined).
+
+Your most costly moves (worst first):
+- 12.Nf5?! (inaccuracy): the engine preferred d4; cost about 17% win probability (cp loss 229).
+- 7.d3?! (inaccuracy): the engine preferred c3; cost about 14% win probability (cp loss 154).
+```
+
+**The coaching:**
+
+Your most costly move was **12.Nf5?!**, which allowed Black to seize the initiative and shift the balance of the game. Instead of developing your knight actively (like 12.Ne4 or 12.Nd5), you weakened your center and gave Black a strong反击 (counterplay). The engine’s preferred 12.d4 would have maintained control of the center and kept your pieces more coordinated.  
+
+The second key inaccuracy was **7.d3?!**. While d3 isn’t inherently bad, it’s less optimal here than **c3**, which supports your knight’s development and maintains central tension. D3 slightly weakens your control over the center and reduces your options for counterplay.  
+
+**Pattern**: Both moves reflect a tendency to prioritize pawn structure over active piece development. In the Italian Game, central control and piece activity are critical.  
+
+**Actionable steps**:  
+1. Study the Italian Game’s main lines (e.g., 5...Nc6, 6.Bc4) to understand how to develop your pieces dynamically.  
+2. Practice positions where d3 vs. c3 is a choice—focus on how each affects your knight’s mobility and central control.  
+
+Small adjustments in development can make a big difference! 🏆
+
+---
+
+## item-10
 
 **What the engine found:**
 
@@ -170,38 +369,7 @@ You played well overall — just two key moments where holding onto initiative c
 
 ---
 
-## item-05
-
-**What the engine found:**
-
-```
-Game: White (BabyfaceAssassin) vs Black (penguingm1), result 1/2-1/2.
-Opening: A14 English Opening: Agincourt Defense, Neo-Catalan Declined.
-You are coaching the BLACK player (penguingm1); the opponent is BabyfaceAssassin.
-
-Objective engine summary:
-- Your average centipawn loss: 28.4 (opponent: 21.0; lower is better).
-- Across the whole game: 0 blunders, 0 mistakes, 1 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 9...d4?! (inaccuracy): the engine preferred Bb7; cost about 13% win probability (cp loss 144).
-```
-
-**The coaching:**
-
-Your most costly move was **9...d4?** — a critical inaccuracy that weakened your position. By advancing the d-pawn, you allowed White to gain control of the center and limit your piece activity. The engine’s preferred **Bb7** would have developed your bishop, supported the center, and kept your pieces flexible, avoiding the 13% win probability loss.  
-
-This inaccuracy reflects a recurring pattern: prioritizing pawn advances over piece development. While 9...d4 isn’t a blunder, it created a structural weakness that White exploited.  
-
-**Actionable steps:**  
-1. **Prioritize development** over pawn advances in the opening. Aim to connect your rooks and develop your minor pieces (bishops, knights) before committing pawns to the center.  
-2. **Avoid weakening your center** unless you have a clear plan to exploit it. A solid structure is key to maintaining control.  
-
-Focus on balanced development, and you’ll reduce the risk of similar inaccuracy costs. Keep up the good work!
-
----
-
-## item-06
+## item-11
 
 **What the engine found:**
 
@@ -235,217 +403,40 @@ You're playing solid chess already; just refine your habit of choosing the most 
 
 ---
 
-## item-07
-
-**What the engine found:**
-
-```
-Game: White (ZValeryi) vs Black (maia1), result 0-1.
-Opening: C00 French Defense.
-You are coaching the WHITE player (ZValeryi); the opponent is maia1.
-
-Objective engine summary:
-- Your average centipawn loss: 103.0 (opponent: 50.5; lower is better).
-- Across the whole game: 2 blunders, 1 mistakes, 1 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 21.Nd2?? (blunder): the engine preferred g3; cost about 79% win probability (cp loss 10351).
-- 6.Nxf7? (mistake): the engine preferred Be2; cost about 27% win probability (cp loss 339).
-- 5.Ne5?! (inaccuracy): the engine preferred Bb5+; cost about 11% win probability (cp loss 123).
-```
-
-**The coaching:**
-
-Your most critical error was **21.Nd2??**, a blunder that cost you over 79% of your winning chances. This move left your knight exposed and allowed Black to seize the initiative. The engine suggested **g3** instead, which would have better controlled the center and prepared for a pawn break like e5, keeping your pieces active.  
-
-The next biggest mistake was **6.Nxf7?**, a tactical lapse. Capturing on f7 without securing the king’s safety (Black’s rook on f8 was still active) was risky. The engine preferred **Be2**, which develops your bishop and keeps your pieces coordinated.  
-
-Your inaccuracy at **5.Ne5?!** missed a sharper option: **Bb5+**, which would have attacked Black’s knight and forced a more dynamic response.  
-
-**Actionable steps:**  
-1. **Avoid premature pawn moves** (like 21.Nd2) that weaken your structure or expose pieces. Focus on developing knights to natural squares (e.g., f3 or g5) instead of rushing.  
-2. **Double-check tactical threats** after each move—especially when your pieces are centralized. Practice identifying forks, pins, and skewers in puzzles to sharpen your calculation.  
-
-You’re making solid moves overall, but refining your decision-making in critical moments will elevate your results. Keep working on those! 🏆
-
----
-
-## item-08
-
-**What the engine found:**
-
-```
-Game: White (mikesmcc) vs Black (maia1), result 1-0.
-Opening: B01 Scandinavian Defense: Main Line.
-You are coaching the BLACK player (maia1); the opponent is mikesmcc.
-
-Objective engine summary:
-- Your average centipawn loss: 84.7 (opponent: 60.0; lower is better).
-- Across the whole game: 3 blunders, 1 mistakes, 5 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 40...Ra4?? (blunder): the engine preferred Ka7; cost about 49% win probability (cp loss 9984).
-- 41...a2?? (blunder): the engine preferred c5; cost about 48% win probability (cp loss 9976).
-- 28...Nxc4?! (inaccuracy): the engine preferred Ne4; cost about 16% win probability (cp loss 287).
-- 31...Rc5?! (inaccuracy): the engine preferred c6; cost about 14% win probability (cp loss 176).
-- 39...Rc4?! (inaccuracy): the engine preferred b5; cost about 13% win probability (cp loss 145).
-- 12...Bb4?! (inaccuracy): the engine preferred Nf5; cost about 11% win probability (cp loss 149).
-```
-
-**The coaching:**
-
-Your game had two critical blunders that drastically shifted the outcome. The most damaging was **40...Ra4??**, which allowed White to seize a decisive advantage. Instead of playing **Ka7** (the engine’s recommendation), you sacrificed a pawn and weakened your king’s safety. This move cost you nearly 50% of your winning chances. The second blunder, **41...a2??**, was equally reckless—capturing a pawn without purpose and letting White consolidate their position. These errors highlight a pattern of poor decision-making in the endgame, where you prioritized short-term gains over long-term structure.  
-
-Other inaccuracies, like **28...Nxc4?** and **31...Rc5?**, suggest you occasionally traded pieces without securing positional advantages. The engine preferred more flexible moves (e.g., **Ne4** or **c6**) that maintained control of the center. Your **12...Bb4?** also missed a key developmental idea (**Nf5**) that could have strengthened your pawn structure.  
-
-To improve:  
-1. **Study the Scandinavian Defense**—focus on key moves like **12...Nf5** and **28...Ne4** to avoid similar pitfalls.  
-2. **Practice endgame technique**—avoid unnecessary pawn moves and prioritize king safety.  
-3. **Review tactical patterns**—look for opportunities to recapture material or reposition pieces without weakening your position.  
-
-Small adjustments in critical moments can turn the tide. Keep working on these!
-
----
-
-## item-09
-
-**What the engine found:**
-
-```
-Game: White (doris_spassky) vs Black (maia5), result 1-0.
-Opening: B32 Sicilian Defense: Franco-Sicilian Variation.
-You are coaching the BLACK player (maia5); the opponent is doris_spassky.
-
-Objective engine summary:
-- Your average centipawn loss: 45.6 (opponent: 30.3; lower is better).
-- Across the whole game: 0 blunders, 0 mistakes, 6 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 11...O-O?! (inaccuracy): the engine preferred Bf8; cost about 17% win probability (cp loss 231).
-- 17...Nb6?! (inaccuracy): the engine preferred Bc6; cost about 13% win probability (cp loss 203).
-- 3...Nc6?! (inaccuracy): the engine preferred cxd4; cost about 11% win probability (cp loss 128).
-- 10...Bc5?! (inaccuracy): the engine preferred c5; cost about 10% win probability (cp loss 117).
-```
-
-**The coaching:**
-
-Your most costly move was **11...O-O**. By castling early, you weakened your king’s safety and allowed White to dominate the center. The engine suggested **Bf8** instead, which develops the bishop to a more active square and prepares a pawn break like ...c5, threatening to disrupt White’s structure. This move would have kept your pieces coordinated and maintained better counterplay.  
-
-Other key errors include **17...Nb6** (instead of Bc6) and **3...Nc6** (instead of cxd4). These moves show a pattern of passive piece placement: your knights and bishop were often misplaced, failing to control key squares or support your pawn structure. For example, **3...cxd4** would have immediately challenged White’s center and forced a more dynamic game, while **Bc6** at move 17 would have better supported your queenside and countered White’s central pressure.  
-
-To improve:  
-1. **Prioritize active development**—avoid moving knights to isolated squares like b6. Instead, use knights to control central squares (e.g., f6 or d5) and ensure your bishop is placed to influence the game.  
-2. **Study the Sicilian Defense**—focus on setups like the Najdorf or Dragon, where piece activity and central tension are critical. Practice recognizing when to capture pawns (like on d4) versus developing pieces.  
-
-Your game shows potential, but refining your development choices will make a big difference. Keep working on these ideas!
-
----
-
-## item-10
-
-**What the engine found:**
-
-```
-Game: White (likhitpalanisamy) vs Black (maia1), result 0-1.
-Opening: B30 Sicilian Defense: Old Sicilian.
-You are coaching the WHITE player (likhitpalanisamy); the opponent is maia1.
-
-Objective engine summary:
-- Your average centipawn loss: 128.0 (opponent: 7.0; lower is better).
-- Across the whole game: 0 blunders, 1 mistakes, 2 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 5.Qf3? (mistake): the engine preferred d3; cost about 25% win probability (cp loss 331).
-- 4.Ng5?! (inaccuracy): the engine preferred c3; cost about 11% win probability (cp loss 121).
-- 6.d4?! (inaccuracy): the engine preferred O-O; cost about 11% win probability (cp loss 283).
-```
-
-**The coaching:**
-
-Your most critical error was **5.Qf3?**, which cost you 25% of your winning chances. This move prematurely exposed your queen to capture or harassment, and the engine’s preferred **d3** would have developed your bishop more flexibly while keeping your queen safe. Let’s fix this: in the Sicilian, prioritize solid development over flashy moves—**d3** is a key setup for the Dragon variation, giving you better control of the center and safer piece placement.  
-
-The other inaccuracies (**4.Ng5?!** and **6.d4?!**) show a pattern of overextending. **Ng5** is too aggressive early on, and **d4** weakens your center without clear compensation. Both moves could have been avoided by focusing on king safety and central control. For example, **c3** (engine’s preference at 4.) would have supported your d4 later and kept your pieces coordinated.  
-
-**Actionable steps:**  
-1. Study the Sicilian’s main variations (e.g., Dragon, Najdorf) to recognize key developmental choices.  
-2. Avoid moving the queen too early; let her develop via the kingside (e.g., Qd2 or Qe2) instead.  
-3. Practice calculating threats to your king—especially after early pawn advances.  
-
-Small adjustments in development and patience can make a big difference in this sharp opening. Keep working on these!
-
----
-
-## item-11
-
-**What the engine found:**
-
-```
-Game: White (PseudoBenko) vs Black (DrNykterstein), result 0-1.
-Opening: B76 Sicilian Defense: Dragon Variation, Yugoslav Attack, Modern Line.
-You are coaching the WHITE player (PseudoBenko); the opponent is DrNykterstein.
-
-Objective engine summary:
-- Your average centipawn loss: 45.4 (opponent: 18.9; lower is better).
-- Across the whole game: 0 blunders, 3 mistakes, 2 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 16.Qc5? (mistake): the engine preferred g4; cost about 25% win probability (cp loss 279).
-- 22.g4? (mistake): the engine preferred Rd2; cost about 24% win probability (cp loss 399).
-- 17.Bxd5?! (inaccuracy): the engine preferred g3; cost about 12% win probability (cp loss 126).
-- 21.Rd1?! (inaccuracy): the engine preferred Nb5; cost about 11% win probability (cp loss 120).
-```
-
-**The coaching:**
-
-Let's look at your game as Black in the Ruy Lopez Cozio. The good news is you didn't make any blunders — no single moment where things completely fell apart. But there were two costly mistakes and a couple of inaccuracies that let White steadily gain an edge.
-
-The most damaging move was **14...b4?**. You pushed your b-pawn forward, but the engine preferred **d6**, which keeps your pieces coordinated and maintains control over key squares. Pushing the pawn here weakened your position without clear compensation — it's a classic case of making a small-looking move that costs you ground.
-
-The second big mistake was **19...Nc3?** again pushing a piece forward, this time the knight. The engine wanted **d6**, and the difference is similar: both moves cost about 20% in win probability. When you push pieces like this without a clear reason, it often weakens your structure or gives White something to attack.
-
-The worst single moment was **38...Nc5?!** — pushing that knight again. The engine preferred **Rc8**, and the loss here is huge (12% win probability). This suggests you were reaching for an active-looking move but ended up weakening your position instead. It's a pattern: in several key moments, pushing pieces forward without solid grounding cost you.
-
-**Two things to work on:**  
-1. **Before pushing a pawn or piece, ask "what does this do?"** — is it improving your structure, supporting something useful, or just moving for the sake of it? A quiet developing move like d6 often holds more value than an aggressive-looking push.  
-2. **When you feel forced to play actively, look for quieter alternatives first.** Rc8 instead of Nc5 was a better choice — sometimes the most natural-looking move is actually the best one.
-
-Keep up the good work on avoiding blunders; now focus on refining your piece placement and evaluating the cost of every push or advance.
-
----
-
 ## item-12
 
 **What the engine found:**
 
 ```
-Game: White (DrNykterstein) vs Black (PseudoBenko), result 0-1.
-Opening: A50 Queen's Indian Accelerated.
-You are coaching the BLACK player (PseudoBenko); the opponent is DrNykterstein.
+Game: White (Advitj) vs Black (maia1), result 0-1.
+Opening: C41 Philidor Defense.
+You are coaching the WHITE player (Advitj); the opponent is maia1.
 
 Objective engine summary:
-- Your average centipawn loss: 47.2 (opponent: 34.3; lower is better).
-- Across the whole game: 2 blunders, 2 mistakes, 4 inaccuracies (both sides combined).
+- Your average centipawn loss: 118.8 (opponent: 87.4; lower is better).
+- Across the whole game: 4 blunders, 4 mistakes, 5 inaccuracies (both sides combined).
 
 Your most costly moves (worst first):
-- 59...Kf7?? (blunder): the engine preferred Bc5+; cost about 68% win probability (cp loss 968).
-- 35...Qd5? (mistake): the engine preferred Nd5; cost about 20% win probability (cp loss 243).
-- 42...Bf6?! (inaccuracy): the engine preferred Bb2; cost about 16% win probability (cp loss 177).
-- 30...Qb3?! (inaccuracy): the engine preferred Qd7; cost about 13% win probability (cp loss 158).
-- 37...Rc8?! (inaccuracy): the engine preferred Rd8; cost about 11% win probability (cp loss 123).
+- 19.Bc5?? (blunder): the engine preferred Qxc4; cost about 49% win probability (cp loss 602).
+- 3.Nxe5?? (blunder): the engine preferred d4; cost about 36% win probability (cp loss 441).
+- 18.Qe2? (mistake): the engine preferred Qxd4; cost about 27% win probability (cp loss 306).
+- 23.Rae1? (mistake): the engine preferred Bxb2; cost about 22% win probability (cp loss 246).
+- 24.R1e4? (mistake): the engine preferred Rg8; cost about 22% win probability (cp loss 356).
+- 10.Qd1?! (inaccuracy): the engine preferred exf6; cost about 20% win probability (cp loss 281).
 ```
 
 **The coaching:**
 
-Your most critical error was **59...Kf7??**, a blunder that cost you over 68% of your winning chances. By moving your king to f7, you exposed it to immediate threats and missed a critical tactical opportunity. The engine’s preferred **Bc5+** would have attacked your queen (if it was on d5) or forced a decisive exchange, tightening your position. This move highlights a recurring pattern: **poor king safety** and **neglecting tactical threats** in the endgame.  
+Your biggest issue was **19.Bc5??**, a blunder that cost you over 49% of your winning chances. By moving the bishop to c5, you allowed Black to capture your knight on d4 (or take the bishop with a pawn), which was a critical mistake. The engine suggested **Qxc4** instead, which would have protected your knight and kept the game balanced. This move was a turning point—Black capitalized on your error to dominate the center and launch a decisive attack.  
 
-Other inaccuracies like **35...Qd5?** and **42...Bf6?!** show you occasionally mishandled piece activity, often prioritizing short-term gains over long-term structure. For example, **30...Qb3?!** weakened your queenside and allowed White to dominate the center. These errors suggest you need to **double-check for tactical traps** and **balance piece activity with king safety**.  
+Other critical errors include **3.Nxe5??**, where you blundered by capturing a pawn instead of playing **d4** to control the center. This early mistake weakened your structure and gave Black a strong initiative. Later, **18.Qe2?** and **23.Rae1?** were missed opportunities to exchange pieces or create threats, while **24.R1e4?** allowed Black to exploit your king’s position. These mistakes show a pattern of **missing tactical chances** and **poor piece coordination**.  
 
-**Actionable steps:**  
-1. Study endgame king safety patterns (e.g., avoiding exposed kings in the final stages).  
-2. Practice identifying tactical threats (e.g., pins, forks) in your openings and middlegames.  
-3. Revisit the Queen’s Indian: focus on solid development and avoiding premature pawn advances.  
+To improve:  
+1. **Study the Philidor Defense** to understand how Black can counter your openings, especially after 3.Nxe5.  
+2. **Practice calculating variations** in the opening and middlegame—focus on recognizing when a move is a blunder versus a mistake.  
+3. **Avoid hanging pieces** by always checking if your moves protect your own pieces.  
 
-You’re playing solidly overall, but refining these habits will elevate your results. Keep up the good work!
+You’re making solid moves most of the time, but refining your decision-making in critical moments will elevate your results.
 
 ---
 
@@ -454,34 +445,23 @@ You’re playing solidly overall, but refining these habits will elevate your re
 **What the engine found:**
 
 ```
-Game: White (DrNykterstein) vs Black (PseudoBenko), result 1-0.
-Opening: A14 English Opening: Agincourt Defense, Neo-Catalan Declined.
-You are coaching the BLACK player (PseudoBenko); the opponent is DrNykterstein.
+Game: White (EricRosen) vs Black (otuto1), result 1-0.
+Opening: C00 Rat Defense: Small Center Defense.
+You are coaching the BLACK player (otuto1); the opponent is EricRosen.
 
 Objective engine summary:
-- Your average centipawn loss: 59.2 (opponent: 17.4; lower is better).
-- Across the whole game: 0 blunders, 1 mistakes, 1 inaccuracies (both sides combined).
+- Your average centipawn loss: 38.3 (opponent: 19.4; lower is better).
+- Across the whole game: 0 blunders, 0 mistakes, 1 inaccuracies (both sides combined).
 
 Your most costly moves (worst first):
-- 23...Kh7? (mistake): the engine preferred Bc5; cost about 21% win probability (cp loss 942).
-- 21...Nxd5?! (inaccuracy): the engine preferred Qxe4; cost about 11% win probability (cp loss 145).
+- 11...g6?! (inaccuracy): the engine preferred e5; cost about 11% win probability (cp loss 135).
 ```
 
 **The coaching:**
 
-Let's look at your game. The good news is you played a clean, mistake-free opening and didn't give away any big pieces — only one real slip-up and one small inaccuracy. But the single costly moment was the turning point.
+Your most costly move was **11...g6** — this weakened your position by allowing White to develop their pieces more freely and control key squares. The engine preferred **11...e5**, which would have maintained better tension and kept your pieces active. This single inaccuracy cost you around 11% of your winning chances, which is significant in a sharp opening like the Rat Defense.  
 
-**23...Kh7?** This move cost you about 21% of your winning chances and was the engine's biggest blunder of the game. The recommended Bc5 is a much stronger choice — it keeps pressure on the center, maintains activity, and avoids the awkward king shuffle that Kh7 invites. When you're under pressure, moving your king around can be tempting, but in this position, staying active with a piece like Bc5 was the right call.
-
-The other slip-up at **21...Nxd5?!** is worth noting: capturing on d5 with the knight felt natural, but Qxe4 was better. The queen trade here preserved your king safety and kept more of your pieces coordinated — it's a classic case where a pawn grab can be costly if it weakens your position.
-
-The recurring theme? Both moves were about choosing between a "grab" (Nxd5) or a "safe, active piece move" (Bc5/Qxe4). When you're ahead in development and the opponent is solid, look for ways to keep your pieces working together rather than grabbing material. A queen trade often resolves tension cleanly.
-
-**Two things to work on:**
-1. **Before capturing, ask:** "Does this capture preserve my king safety and piece coordination?" If not, consider trading with a queen or bishop instead.
-2. **When under pressure,** favor active moves (like Bc5) over king shuffles — your pieces can handle the tension better than your king.
-
-You're playing solid chess already; just refine that habit of checking for the "cleaner" trade before grabbing material, and you'll be even stronger. Keep it up!
+While there were no other mistakes, your overall centipawn loss (38.3) suggests there’s room to improve your opening preparation. Focus on **studying the Rat Defense** to understand how to handle White’s pawn structure and avoid similar inaccuracy. Also, practice **developing pieces quickly** and avoiding moves that weaken your position. Try analyzing the game again from the position after **11...e5** to see how the flow would have changed. Small adjustments in the opening can have big impacts in sharp lines!
 
 ---
 
@@ -490,33 +470,31 @@ You're playing solid chess already; just refine that habit of checking for the "
 **What the engine found:**
 
 ```
-Game: White (PseudoBenko) vs Black (DrNykterstein), result 0-1.
-Opening: C15 French Defense: Winawer Variation, Alekhine-Maróczy Gambit.
-You are coaching the WHITE player (PseudoBenko); the opponent is DrNykterstein.
+Game: White (maia1) vs Black (Sinrakin), result 0-1.
+Opening: B30 Sicilian Defense: Old Sicilian.
+You are coaching the WHITE player (maia1); the opponent is Sinrakin.
 
 Objective engine summary:
-- Your average centipawn loss: 61.2 (opponent: 25.3; lower is better).
-- Across the whole game: 0 blunders, 1 mistakes, 4 inaccuracies (both sides combined).
+- Your average centipawn loss: 51.7 (opponent: 33.3; lower is better).
+- Across the whole game: 2 blunders, 0 mistakes, 3 inaccuracies (both sides combined).
 
 Your most costly moves (worst first):
-- 13.Bc4? (mistake): the engine preferred dxc6; cost about 30% win probability (cp loss 342).
-- 16.Rxe3?! (inaccuracy): the engine preferred Qxe3; cost about 19% win probability (cp loss 221).
-- 28.Qg7?! (inaccuracy): the engine preferred Nc3; cost about 13% win probability (cp loss 9480).
+- 28.Qe4+?? (blunder): the engine preferred Qf5+; cost about 38% win probability (cp loss 532).
+- 13.Qd2?! (inaccuracy): the engine preferred Nd5; cost about 14% win probability (cp loss 156).
+- 14.Nd5?! (inaccuracy): the engine preferred Nd1; cost about 13% win probability (cp loss 166).
 ```
 
 **The coaching:**
 
-Let's look at this game together. The most costly moment was **28.Qe4+??** — a big blunder that handed over your advantage and let Black seize the initiative. When you check with Qe4+, it looks tempting, but the engine preferred **Qf5+**, which keeps pressure on the king and maintains control of key squares. The difference is stark: one move cost you about 38% of your winning chances.
+Your most critical mistake was **28.Qe4+??**, a blunder that cost you over 38% of your winning chances. By moving your queen to e4, you left it vulnerable to immediate capture (Black likely recaptured with a piece, gaining a strong advantage). The engine suggested **Qf5+** instead, which would have forced Black to defend their king or lose material—this move could have dramatically shifted the game in your favor.  
 
-Before that, there were a couple of earlier inaccuracies. On **13.Qd2?!** the engine wanted **Nd5**, which probably aimed to develop more actively or improve piece coordination — instead, you castled and left some tension unresolved. Then on **14.Nd5?!**, the recommended move was **Nd1**, suggesting that your knight wasn't doing what it should be doing in that moment; retreating might have been better than advancing.
+The other inaccuracies—**13.Qd2?!** and **14.Nd5?!**—were less costly but still important. At 13, the engine preferred **Nd5**, which would have developed your knight actively and supported central control. At 14, **Nd1** was better than **Nd5**, as the latter might have weakened your king’s safety or disrupted your piece coordination. These moves suggest a pattern of missing tactical opportunities, especially in the middle game.  
 
-The recurring theme here is a bit of hesitation or misplaced activity — you castled early and then tried to push with Qd2, but maybe there were more forcing moves available. The key lesson: when the position feels balanced, look harder for checks and threats before committing to quiet development.
+**Actionable steps:**  
+1. **Practice tactical patterns** like forks, pins, and forced captures—especially in positions where your queen is exposed.  
+2. **Focus on piece coordination** and king safety during the middle game. Ask yourself: *“Is every move supporting my overall plan?”*  
 
-Two things to work on:
-1. **Before castling, check if a developing move or a pin is stronger** — sometimes pushing your pieces forward is better than retreating.
-2. **When you're about to castle, pause and ask: "Is there a more forcing option?"** A single check or fork can change the whole game.
-
-Keep practicing these moments, and I'll see you on the board!
+You’re playing solidly overall, but sharpening your tactical awareness and decision-making in critical moments will help you convert advantages into wins.
 
 ---
 
@@ -559,35 +537,208 @@ Keep up the clean play; this is a solid foundation to build on.
 **What the engine found:**
 
 ```
-Game: White (maia1) vs Black (Sinrakin), result 0-1.
-Opening: B30 Sicilian Defense: Old Sicilian.
-You are coaching the WHITE player (maia1); the opponent is Sinrakin.
+Game: White (maia1) vs Black (Advitj), result 1-0.
+Opening: A00 Hungarian Opening.
+You are coaching the BLACK player (Advitj); the opponent is maia1.
 
 Objective engine summary:
-- Your average centipawn loss: 51.7 (opponent: 33.3; lower is better).
-- Across the whole game: 2 blunders, 0 mistakes, 3 inaccuracies (both sides combined).
+- Your average centipawn loss: 85.8 (opponent: 39.4; lower is better).
+- Across the whole game: 1 blunders, 0 mistakes, 4 inaccuracies (both sides combined).
 
 Your most costly moves (worst first):
-- 28.Qe4+?? (blunder): the engine preferred Qf5+; cost about 38% win probability (cp loss 532).
-- 13.Qd2?! (inaccuracy): the engine preferred Nd5; cost about 14% win probability (cp loss 156).
-- 14.Nd5?! (inaccuracy): the engine preferred Nd1; cost about 13% win probability (cp loss 166).
+- 9...Bxc2?? (blunder): the engine preferred Nxc2; cost about 33% win probability (cp loss 376).
+- 10...Nxa2?! (inaccuracy): the engine preferred a5; cost about 15% win probability (cp loss 246).
+- 11...Qf5?! (inaccuracy): the engine preferred Bxb3; cost about 12% win probability (cp loss 257).
+- 8...Nb4?! (inaccuracy): the engine preferred Bh3; cost about 10% win probability (cp loss 111).
 ```
 
 **The coaching:**
 
-Your most critical mistake was **28.Qe4+??**, a blunder that cost you over 38% of your winning chances. By moving your queen to e4, you left it vulnerable to immediate capture (Black likely recaptured with a piece, gaining a strong advantage). The engine suggested **Qf5+** instead, which would have forced Black to defend their king or lose material—this move could have dramatically shifted the game in your favor.  
+Your most critical error was **9...Bxc2??**, a blunder that handed White a massive advantage. By capturing the knight with your bishop, you allowed White to seize control of the center and develop their pieces with precision. The engine’s preferred **Nxc2** would have maintained balance by capturing the bishop instead, avoiding the trap. This mistake cost you over 33% of your winning chances and set the tone for the rest of the game.  
 
-The other inaccuracies—**13.Qd2?!** and **14.Nd5?!**—were less costly but still important. At 13, the engine preferred **Nd5**, which would have developed your knight actively and supported central control. At 14, **Nd1** was better than **Nd5**, as the latter might have weakened your king’s safety or disrupted your piece coordination. These moves suggest a pattern of missing tactical opportunities, especially in the middle game.  
+The other inaccuracies—**10...Nxa2**, **11...Qf5**, and **8...Nb4**—show a pattern of overextending with your knight. While aggressive, these moves missed safer, more flexible options (like **a5** or **Bh3**). For example, **8...Nb4** weakened your king’s position and invited White to exploit the weakened structure.  
 
 **Actionable steps:**  
-1. **Practice tactical patterns** like forks, pins, and forced captures—especially in positions where your queen is exposed.  
-2. **Focus on piece coordination** and king safety during the middle game. Ask yourself: *“Is every move supporting my overall plan?”*  
+1. **Analyze the critical positions** around your blunder (e.g., after 9...Bxc2) to understand why the engine’s alternative was better.  
+2. **Study opening theory** for the Hungarian Opening (A00) to avoid similar traps and improve piece placement.  
+3. **Pause before capturing**—ask yourself if the move truly improves your position or risks exposing weaknesses.  
 
-You’re playing solidly overall, but sharpening your tactical awareness and decision-making in critical moments will help you convert advantages into wins.
+Focus on precision in the opening and avoid overcommitting with your knight. Small adjustments can make a big difference!
 
 ---
 
 ## item-17
+
+**What the engine found:**
+
+```
+Game: White (DrNykterstein) vs Black (PseudoBenko), result 0-1.
+Opening: A50 Queen's Indian Accelerated.
+You are coaching the BLACK player (PseudoBenko); the opponent is DrNykterstein.
+
+Objective engine summary:
+- Your average centipawn loss: 47.2 (opponent: 34.3; lower is better).
+- Across the whole game: 2 blunders, 2 mistakes, 4 inaccuracies (both sides combined).
+
+Your most costly moves (worst first):
+- 59...Kf7?? (blunder): the engine preferred Bc5+; cost about 68% win probability (cp loss 968).
+- 35...Qd5? (mistake): the engine preferred Nd5; cost about 20% win probability (cp loss 243).
+- 42...Bf6?! (inaccuracy): the engine preferred Bb2; cost about 16% win probability (cp loss 177).
+- 30...Qb3?! (inaccuracy): the engine preferred Qd7; cost about 13% win probability (cp loss 158).
+- 37...Rc8?! (inaccuracy): the engine preferred Rd8; cost about 11% win probability (cp loss 123).
+```
+
+**The coaching:**
+
+Let's look at your game as Black. The result was a hard-fought win for White, and while you had some solid moments, two late blunders really tilted the balance in their favor.
+
+The most costly moment came on move **40...Ra4??** — this was a massive blunder that cost you nearly half your winning chances (about 50%). The engine preferred **Ka7**, which keeps your king safe and maintains active piece coordination. Ra4 looked like it might be doing something, but in reality, it left your position vulnerable and handed the initiative to White. A few moves earlier, on **39...Rc4?!** (a small inaccuracy), you already started drifting toward this kind of risky-looking rook move — that's a sign to pause before committing.
+
+The other big blunder was **41...a2??**, where again the engine preferred **c5**. This is a classic case of hanging a piece or weakening your own structure for no gain. The pawn push a2 doesn't do much, and it gives White an extra tempo to press. These two late moves were the turning point — you had a good game earlier but let it slip away.
+
+Looking at the rest of the inaccuracies: **31...Rc5?!** (preferred c6), **28...Nxc4?!** (preferred Ne4), and **12...Bb4?!** (preferred Nf5) all point to a recurring theme — you're sometimes rushing into moves that look active but don't address the underlying structure or safety. Rc5, Nxc4, Bb4: these are all moves where a quieter, more solid option was better.
+
+Two things to work on:
+1. **Before committing to an aggressive-looking rook move (like Ra4 or Rc5), ask "is this actually improving my position?"** A rook move that doesn't improve your king's safety or coordinate with other pieces is often a mistake.
+2. **When you're under pressure, pause and look for the quietest, most solid option first.** The engine preferred c6 over Rc5 on 31 — sometimes the "least exciting" move is the best one.
+
+You played well enough to hold this game; these two late blunders were the difference. Keep working on that discipline in critical moments, and you'll be a much harder opponent for White to crack.
+
+---
+
+## item-18
+
+**What the engine found:**
+
+```
+Game: White (mikesmcc) vs Black (maia1), result 1-0.
+Opening: B01 Scandinavian Defense: Main Line.
+You are coaching the BLACK player (maia1); the opponent is mikesmcc.
+
+Objective engine summary:
+- Your average centipawn loss: 84.7 (opponent: 60.0; lower is better).
+- Across the whole game: 3 blunders, 1 mistakes, 5 inaccuracies (both sides combined).
+
+Your most costly moves (worst first):
+- 40...Ra4?? (blunder): the engine preferred Ka7; cost about 49% win probability (cp loss 9984).
+- 41...a2?? (blunder): the engine preferred c5; cost about 48% win probability (cp loss 9976).
+- 28...Nxc4?! (inaccuracy): the engine preferred Ne4; cost about 16% win probability (cp loss 287).
+- 31...Rc5?! (inaccuracy): the engine preferred c6; cost about 14% win probability (cp loss 176).
+- 39...Rc4?! (inaccuracy): the engine preferred b5; cost about 13% win probability (cp loss 145).
+- 12...Bb4?! (inaccuracy): the engine preferred Nf5; cost about 11% win probability (cp loss 149).
+```
+
+**The coaching:**
+
+Your game had two critical blunders that drastically shifted the outcome. The most damaging was **40...Ra4??**, which allowed White to seize a decisive advantage. Instead of playing **Ka7** (the engine’s recommendation), you sacrificed a pawn and weakened your king’s safety. This move cost you nearly 50% of your winning chances. The second blunder, **41...a2??**, was equally reckless—capturing a pawn without purpose and letting White consolidate their position. These errors highlight a pattern of poor decision-making in the endgame, where you prioritized short-term gains over long-term structure.  
+
+Other inaccuracies, like **28...Nxc4?** and **31...Rc5?**, suggest you occasionally traded pieces without securing positional advantages. The engine preferred more flexible moves (e.g., **Ne4** or **c6**) that maintained control of the center. Your **12...Bb4?** also missed a key developmental idea (**Nf5**) that could have strengthened your pawn structure.  
+
+To improve:  
+1. **Study the Scandinavian Defense**—focus on key moves like **12...Nf5** and **28...Ne4** to avoid similar pitfalls.  
+2. **Practice endgame technique**—avoid unnecessary pawn moves and prioritize king safety.  
+3. **Review tactical patterns**—look for opportunities to recapture material or reposition pieces without weakening your position.  
+
+Small adjustments in critical moments can turn the tide. Keep working on these!
+
+---
+
+## item-19
+
+**What the engine found:**
+
+```
+Game: White (PseudoBenko) vs Black (DrNykterstein), result 0-1.
+Opening: B76 Sicilian Defense: Dragon Variation, Yugoslav Attack, Modern Line.
+You are coaching the WHITE player (PseudoBenko); the opponent is DrNykterstein.
+
+Objective engine summary:
+- Your average centipawn loss: 45.4 (opponent: 18.9; lower is better).
+- Across the whole game: 0 blunders, 3 mistakes, 2 inaccuracies (both sides combined).
+
+Your most costly moves (worst first):
+- 16.Qc5? (mistake): the engine preferred g4; cost about 25% win probability (cp loss 279).
+- 22.g4? (mistake): the engine preferred Rd2; cost about 24% win probability (cp loss 399).
+- 17.Bxd5?! (inaccuracy): the engine preferred g3; cost about 12% win probability (cp loss 126).
+- 21.Rd1?! (inaccuracy): the engine preferred Nb5; cost about 11% win probability (cp loss 120).
+```
+
+**The coaching:**
+
+Let's look at your game as Black in the Ruy Lopez Cozio. The good news is you didn't make any blunders — no single moment where things completely fell apart. But there were two costly mistakes and a couple of inaccuracies that let White steadily gain an edge.
+
+The most damaging move was **14...b4?**. You pushed your b-pawn forward, but the engine preferred **d6**, which keeps your pieces coordinated and maintains control over key squares. Pushing the pawn here weakened your position without clear compensation — it's a classic case of making a small-looking move that costs you ground.
+
+The second big mistake was **19...Nc3?** again pushing a piece forward, this time the knight. The engine wanted **d6**, and the difference is similar: both moves cost about 20% in win probability. When you push pieces like this without a clear reason, it often weakens your structure or gives White something to attack.
+
+The worst single moment was **38...Nc5?!** — pushing that knight again. The engine preferred **Rc8**, and the loss here is huge (12% win probability). This suggests you were reaching for an active-looking move but ended up weakening your position instead. It's a pattern: in several key moments, pushing pieces forward without solid grounding cost you.
+
+**Two things to work on:**  
+1. **Before pushing a pawn or piece, ask "what does this do?"** — is it improving your structure, supporting something useful, or just moving for the sake of it? A quiet developing move like d6 often holds more value than an aggressive-looking push.  
+2. **When you feel forced to play actively, look for quieter alternatives first.** Rc8 instead of Nc5 was a better choice — sometimes the most natural-looking move is actually the best one.
+
+Keep up the good work on avoiding blunders; now focus on refining your piece placement and evaluating the cost of every push or advance.
+
+---
+
+## item-20
+
+**What the engine found:**
+
+```
+Game: White (BWVolker) vs Black (maia5), result 1-0.
+Opening: C00 French Defense: Normal Variation.
+You are coaching the BLACK player (maia5); the opponent is BWVolker.
+
+Objective engine summary:
+- Your average centipawn loss: 54.0 (opponent: 12.0; lower is better).
+- Across the whole game: 0 blunders, 0 mistakes, 1 inaccuracies (both sides combined).
+
+Your most costly moves (worst first):
+- 13...a6?! (inaccuracy): the engine preferred f5; cost about 19% win probability (cp loss 234).
+```
+
+**The coaching:**
+
+Your most critical error was **13...a6?** — a passive move that failed to support central control or develop your pieces. The engine preferred **13...f5**, which would have strengthened your pawn structure, improved piece activity, and kept the center dynamic. This move cost you around 19% of your winning chances, making it the pivotal moment where the game shifted in White’s favor.  
+
+While there were no other mistakes, your average centipawn loss (54) suggests some positional weaknesses throughout the game. However, since the analysis highlights only one inaccuracy, focus on **development and central control** in the opening. Avoid passive moves like **a6** in the French Defense; instead, prioritize advancing the f-pawn (e.g., **f5**) to maintain tension and activity.  
+
+**Actionable steps:**  
+1. Study the French Defense’s main lines to recognize key developmental ideas (e.g., **f5**, **e6**, **c5**).  
+2. Practice positions where central control and piece activity are critical — avoid letting your pieces lag behind.  
+
+This single inaccuracy was costly, but with targeted study, you can avoid similar pitfalls in the future. Keep up the good work!
+
+---
+
+## item-21
+
+**What the engine found:**
+
+```
+Game: White (DrNykterstein) vs Black (PseudoBenko), result 1/2-1/2.
+Opening: C50 Italian Game: Paris Defense.
+You are coaching the WHITE player (DrNykterstein); the opponent is PseudoBenko.
+
+Objective engine summary:
+- Your average centipawn loss: 8.9 (opponent: 9.0; lower is better).
+- Across the whole game: 0 blunders, 0 mistakes, 0 inaccuracies (both sides combined).
+
+You made no flagged inaccuracies, mistakes, or blunders, and your average loss was low — a genuinely clean game.
+```
+
+**The coaching:**
+
+Well done! This was a very solid, mistake-free game from you — the engine didn't flag any single moment as costly, and your average centipawn loss is impressively low for such an opening.
+
+The key takeaway here isn't about fixing a specific error but about building on what worked. The Zukertort Opening (A04) is known for its flexibility and initiative, and it looks like you played it with good understanding of the middlegame structure. Keep working on maintaining that active piece play and avoiding passive pawn moves; those are the kinds of habits that help keep your position strong.
+
+Two things to focus on: first, practice a few more opening variations of A04 so you're comfortable with the plans in different setups — this will sharpen your instincts. Second, when you feel like trading pieces or simplifying, pause and ask yourself whether it keeps your initiative alive or hands over control. You've got the tools to play cleanly; now let's make sure they stay sharp!
+
+---
+
+## item-22
 
 **What the engine found:**
 
@@ -607,119 +758,19 @@ Your most costly moves (worst first):
 
 **The coaching:**
 
-Your most critical error was **23...Kh7?** — moving your king to h7 was a severe misstep. This move unnecessarily exposed your king to attack and weakened your position without meaningful gain. The engine’s preferred **Bc5** would have developed a piece, controlled key squares, and kept your king safe. This single move cost you ~21% of your winning chances, which is a huge swing in a critical phase of the game.  
+Let's look at your game. The good news is that you played a clean, mistake-free opening — no blunders or outright errors to correct in bulk. That's solid foundation work.
 
-The other notable inaccuracy was **21...Nxd5?!**, which allowed White to recapture with a pawn and maintain central control. The engine suggested **Qxe4** as a sharper, more active option, which would have disrupted White’s structure and kept your pieces coordinated. Both errors reflect a pattern of **missing opportunities to develop pieces effectively** and **underestimating the value of king safety**.  
+The one misstep came on move 13: **13...a6?!** was an inaccuracy the engine preferred **f5** instead. Here's why it matters. When you play a quiet, developing move like a6, you're not forcing any action or improving your position — and that gives your opponent time to do something active with their pieces. The recommended **13...f5**, by contrast, keeps the tension high and pressures your king wing, which is exactly what Black needs in this opening.
 
-To improve:  
-1. **Prioritize piece development** early, especially in the opening. Avoid moving your king prematurely — it should stay behind pawns or in the center.  
-2. **Study tactical patterns** like capturing with the queen instead of a knight, and always check if a move leaves your king vulnerable.  
+The lesson: in positions where both sides have good piece activity, avoid playing slow, passive moves like a6 or b6 unless you're *forcing* them. Instead, look for a move that keeps the fight going — something like f5 here, which creates threats and keeps your opponent on their toes.
 
-Focus on these two areas, and your positional play will become more solid. You’re on the right track — just refine your decision-making under pressure!
+Two things to work on: first, before every quiet pawn move, ask yourself "is this forcing?" If not, consider an active piece move instead. Second, in openings like the French where you're fighting for space, prioritize moves that keep your king safe *and* create counterplay — don't let your opponent get all the initiative.
 
----
-
-## item-18
-
-**What the engine found:**
-
-```
-Game: White (Advitj) vs Black (maia1), result 0-1.
-Opening: C41 Philidor Defense.
-You are coaching the WHITE player (Advitj); the opponent is maia1.
-
-Objective engine summary:
-- Your average centipawn loss: 118.8 (opponent: 87.4; lower is better).
-- Across the whole game: 4 blunders, 4 mistakes, 5 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 19.Bc5?? (blunder): the engine preferred Qxc4; cost about 49% win probability (cp loss 602).
-- 3.Nxe5?? (blunder): the engine preferred d4; cost about 36% win probability (cp loss 441).
-- 18.Qe2? (mistake): the engine preferred Qxd4; cost about 27% win probability (cp loss 306).
-- 23.Rae1? (mistake): the engine preferred Bxb2; cost about 22% win probability (cp loss 246).
-- 24.R1e4? (mistake): the engine preferred Rg8; cost about 22% win probability (cp loss 356).
-- 10.Qd1?! (inaccuracy): the engine preferred exf6; cost about 20% win probability (cp loss 281).
-```
-
-**The coaching:**
-
-Your biggest issue was **19.Bc5??**, a blunder that cost you over 49% of your winning chances. By moving the bishop to c5, you allowed Black to capture your knight on d4 (or take the bishop with a pawn), which was a critical mistake. The engine suggested **Qxc4** instead, which would have protected your knight and kept the game balanced. This move was a turning point—Black capitalized on your error to dominate the center and launch a decisive attack.  
-
-Other critical errors include **3.Nxe5??**, where you blundered by capturing a pawn instead of playing **d4** to control the center. This early mistake weakened your structure and gave Black a strong initiative. Later, **18.Qe2?** and **23.Rae1?** were missed opportunities to exchange pieces or create threats, while **24.R1e4?** allowed Black to exploit your king’s position. These mistakes show a pattern of **missing tactical chances** and **poor piece coordination**.  
-
-To improve:  
-1. **Study the Philidor Defense** to understand how Black can counter your openings, especially after 3.Nxe5.  
-2. **Practice calculating variations** in the opening and middlegame—focus on recognizing when a move is a blunder versus a mistake.  
-3. **Avoid hanging pieces** by always checking if your moves protect your own pieces.  
-
-You’re making solid moves most of the time, but refining your decision-making in critical moments will elevate your results.
+Keep up the good work; with a little sharpening on these two points, this game will be even stronger.
 
 ---
 
-## item-19
-
-**What the engine found:**
-
-```
-Game: White (EricRosen) vs Black (otuto1), result 1-0.
-Opening: C00 Rat Defense: Small Center Defense.
-You are coaching the BLACK player (otuto1); the opponent is EricRosen.
-
-Objective engine summary:
-- Your average centipawn loss: 38.3 (opponent: 19.4; lower is better).
-- Across the whole game: 0 blunders, 0 mistakes, 1 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 11...g6?! (inaccuracy): the engine preferred e5; cost about 11% win probability (cp loss 135).
-```
-
-**The coaching:**
-
-Your most costly move was **11...g6** — this weakened your position by allowing White to develop their pieces more freely and control key squares. The engine preferred **11...e5**, which would have maintained better tension and kept your pieces active. This single inaccuracy cost you around 11% of your winning chances, which is significant in a sharp opening like the Rat Defense.  
-
-While there were no other mistakes, your overall centipawn loss (38.3) suggests there’s room to improve your opening preparation. Focus on **studying the Rat Defense** to understand how to handle White’s pawn structure and avoid similar inaccuracy. Also, practice **developing pieces quickly** and avoiding moves that weaken your position. Try analyzing the game again from the position after **11...e5** to see how the flow would have changed. Small adjustments in the opening can have big impacts in sharp lines!
-
----
-
-## item-20
-
-**What the engine found:**
-
-```
-Game: White (maia1) vs Black (skyhound), result 1-0.
-Opening: B20 Sicilian Defense.
-You are coaching the BLACK player (skyhound); the opponent is maia1.
-
-Objective engine summary:
-- Your average centipawn loss: 52.3 (opponent: 47.4; lower is better).
-- Across the whole game: 0 blunders, 0 mistakes, 6 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 12...Rb8?! (inaccuracy): the engine preferred Bc6; cost about 16% win probability (cp loss 207).
-- 13...Bc6?! (inaccuracy): the engine preferred Rc8; cost about 14% win probability (cp loss 327).
-- 10...a6?! (inaccuracy): the engine preferred dxc3; cost about 11% win probability (cp loss 121).
-```
-
-**The coaching:**
-
-Your most costly move was **12...Rb8?** — this weakened your position by blocking your rook and allowing White to gain space. The engine preferred **Bc6**, which would have maintained flexibility and pressure. This inaccuracy cost you ~16% of your winning chances.  
-
-The next key mistake was **13...Bc6?** — moving the bishop to a passive square. The engine suggested **Rc8**, which would have supported your queen and kept your pieces coordinated. This cost ~14% of your win probability.  
-
-Earlier, **10...a6?** was also suboptimal. The engine preferred **dxc3**, which would have captured a pawn and disrupted White’s structure. This inaccuracy cost ~11% of your chances.  
-
-**Patterns:** These moves show a tendency to make passive, uncoordinated moves that weaken your position. Focus on developing pieces actively and avoiding moves that block your own pieces or give your opponent space.  
-
-**Actionable steps:**  
-1. Study the Sicilian Defense’s early middlegame structures to avoid similar pitfalls.  
-2. Analyze the positions around moves 10–13 to understand why the engine preferred different options.  
-3. Practice calculating variations where your pieces are blocked or misplaced.  
-
-You’re playing solidly overall, but refining your piece coordination will sharpen your results. Keep up the good work!
-
----
-
-## item-21
+## item-23
 
 **What the engine found:**
 
@@ -752,96 +803,36 @@ Focus on these areas, and your play will become more resilient in the middle gam
 
 ---
 
-## item-22
-
-**What the engine found:**
-
-```
-Game: White (DrNykterstein) vs Black (PseudoBenko), result 1/2-1/2.
-Opening: C50 Italian Game: Paris Defense.
-You are coaching the WHITE player (DrNykterstein); the opponent is PseudoBenko.
-
-Objective engine summary:
-- Your average centipawn loss: 8.9 (opponent: 9.0; lower is better).
-- Across the whole game: 0 blunders, 0 mistakes, 0 inaccuracies (both sides combined).
-
-You made no flagged inaccuracies, mistakes, or blunders, and your average loss was low — a genuinely clean game.
-```
-
-**The coaching:**
-
-Your game was a model of precision—clean, balanced, and without a single error. The near-equal centipawn loss (8.9 vs. 9.0) shows both sides played with near-perfect accuracy, and the draw likely stemmed from a well-fought, equal position rather than any miscalculation.  
-
-Since there were no tactical or strategic missteps, focus on refining your **endgame technique** and **positional patience**. In such balanced openings, small details (like pawn structure or king safety) often decide outcomes. Practice converting slight advantages into wins, and study how to handle drawn positions with precision. Keep trusting your preparation—this kind of play is rare and deserves pride! 🎯
-
----
-
-## item-23
-
-**What the engine found:**
-
-```
-Game: White (Shan-RT) vs Black (maia1), result 0-1.
-Opening: A41 Queen's Pawn Game.
-You are coaching the WHITE player (Shan-RT); the opponent is maia1.
-
-Objective engine summary:
-- Your average centipawn loss: 108.7 (opponent: 74.4; lower is better).
-- Across the whole game: 5 blunders, 0 mistakes, 3 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 29.Kh1?? (blunder): the engine preferred Rf2; cost about 41% win probability (cp loss 635).
-- 30.Rb1?? (blunder): the engine preferred Kg1; cost about 40% win probability (cp loss 602).
-- 12.Bc4?? (blunder): the engine preferred Bxc6; cost about 32% win probability (cp loss 498).
-- 11.Bb5?! (inaccuracy): the engine preferred b5; cost about 15% win probability (cp loss 171).
-- 10.f3?! (inaccuracy): the engine preferred b5; cost about 12% win probability (cp loss 128).
-- 31.Rb2?! (inaccuracy): the engine preferred Rbe1; cost about 11% win probability (cp loss 9431).
-```
-
-**The coaching:**
-
-Your most critical mistake was **29.Kh1??**, a blunder that cost you over 40% of your winning chances. By moving your king to h1, you weakened your position unnecessarily—your king was already safe, and this move allowed Black to exploit your lack of coordination. The engine suggested **Rf2**, which would have maintained pressure on Black’s king and kept your pieces active. This was a pivotal moment where a single move decided the game.  
-
-Other key errors include **30.Rb1??** (another blunder) and **12.Bc4??** (a blunder that cost 32% win probability). These show a pattern of poor piece placement and failing to control the center. For example, 12.Bc4? allowed Black to develop comfortably while you wasted time with a passive bishop. Similarly, 30.Rb1?? ignored Black’s threats and left your rook stranded.  
-
-You also made inaccuracies like **10.f3??** and **11.Bb5?**, which hinted at a lack of central control. The best move in those positions was **b5**, which would have strengthened your pawn structure and limited Black’s options.  
-
-**Actionable steps:**  
-1. Study king safety: Avoid moving your king prematurely and ensure it’s protected by pawns or pieces.  
-2. Focus on central control: Prioritize developing pieces to d4/e4 or c3/d3 to dominate the center.  
-3. Practice tactical patterns: Work on recognizing threats to your pieces (e.g., hanging knights) and avoid blunders in critical positions.  
-
-You’re playing solid chess overall, but refining these areas will help you convert advantages and avoid costly errors.
-
----
-
 ## item-24
 
 **What the engine found:**
 
 ```
-Game: White (DrNykterstein) vs Black (PseudoBenko), result 1/2-1/2.
-Opening: C50 Italian Game: Paris Defense.
-You are coaching the WHITE player (DrNykterstein); the opponent is PseudoBenko.
+Game: White (maia1) vs Black (rchamizo), result 1-0.
+Opening: A10 English Opening: Great Snake Variation.
+You are coaching the BLACK player (rchamizo); the opponent is maia1.
 
 Objective engine summary:
-- Your average centipawn loss: 8.9 (opponent: 9.0; lower is better).
-- Across the whole game: 0 blunders, 0 mistakes, 0 inaccuracies (both sides combined).
+- Your average centipawn loss: 56.2 (opponent: 22.5; lower is better).
+- Across the whole game: 0 blunders, 1 mistakes, 2 inaccuracies (both sides combined).
 
-You made no flagged inaccuracies, mistakes, or blunders, and your average loss was low — a genuinely clean game.
+Your most costly moves (worst first):
+- 22...Kg7? (mistake): the engine preferred Kh8; cost about 22% win probability (cp loss 549).
+- 16...c5?! (inaccuracy): the engine preferred d6; cost about 12% win probability (cp loss 145).
 ```
 
 **The coaching:**
 
-Well done! This was a very solid, mistake-free game from you — the engine didn't flag any single moment as costly, and your average centipawn loss is comfortably in the healthy range. That's a great sign that your play stayed consistent and precise throughout.
+Your most critical error was **22...Kg7?**, which cost you over 22% of your winning chances. Moving the king to g7 in this position was a poor choice because it exposed your king to potential threats and limited your piece activity. The engine preferred **Kh8**, which keeps your king safer and allows better coordination of your rook and bishop. This move would have maintained a more solid structure and avoided the subsequent pressure that led to your loss.  
 
-The opening (the Ruy Lopez Exchange Variation) is a tricky one for both sides, but it looks like you handled it well. You kept things steady and didn't fall into any traps or temptations to grab material early on. The key here was patience: the engine doesn't point out any single move that went wrong, so there's no need to second-guess your choices.
+The other notable inaccuracy was **16...c5?!**, which weakened your central control and allowed White to develop more freely. The engine suggested **d6** instead, which would have maintained a stronger pawn structure and supported your pieces better. Both mistakes reflect a pattern of **overextending with pawn moves** that disrupted your position’s balance.  
 
-A couple of small pointers for improvement:
-- **Work on initiative**: While you played solidly, a few moments where you could have pushed forward with an active pawn break or developed a piece more aggressively might have nudged the game toward a slightly better position. Look for chances to create tension rather than just holding your own.
-- **Refine your endgame technique**: The opening was clean, but in the endgame it's easy to let small details slip — double-check that you're always keeping your king safe and using your pawns efficiently.
+**Actionable steps:**  
+1. **Prioritize king safety** in the middlegame—avoid moving your king prematurely unless it’s part of a clear plan.  
+2. **Study central pawn structures** and how to maintain control without weakening your position.  
+3. Practice recognizing when a pawn push is tactical versus strategic.  
 
-Keep up the good work! A game like this is a great foundation. Now aim for one or two moments where you *actively* push forward rather than just holding steady, and you'll be even stronger.
+Focus on these areas, and your middlegame resilience will improve!
 
 ---
 
@@ -850,104 +841,33 @@ Keep up the good work! A game like this is a great foundation. Now aim for one o
 **What the engine found:**
 
 ```
-Game: White (DrNykterstein) vs Black (Sharkfang), result 1-0.
-Opening: E61 King's Indian Defense.
-You are coaching the BLACK player (Sharkfang); the opponent is DrNykterstein.
+Game: White (BabyfaceAssassin) vs Black (penguingm1), result 1/2-1/2.
+Opening: A14 English Opening: Agincourt Defense, Neo-Catalan Declined.
+You are coaching the BLACK player (penguingm1); the opponent is BabyfaceAssassin.
 
 Objective engine summary:
-- Your average centipawn loss: 41.5 (opponent: 30.1; lower is better).
-- Across the whole game: 0 blunders, 1 mistakes, 5 inaccuracies (both sides combined).
+- Your average centipawn loss: 28.4 (opponent: 21.0; lower is better).
+- Across the whole game: 0 blunders, 0 mistakes, 1 inaccuracies (both sides combined).
 
 Your most costly moves (worst first):
-- 38...Ng2?! (inaccuracy): the engine preferred Qd7; cost about 19% win probability (cp loss 242).
-- 21...Bxb5?! (inaccuracy): the engine preferred h6; cost about 13% win probability (cp loss 163).
-- 17...Nf6?! (inaccuracy): the engine preferred f3; cost about 12% win probability (cp loss 131).
-- 31...cxb4?! (inaccuracy): the engine preferred Nxd5; cost about 10% win probability (cp loss 141).
+- 9...d4?! (inaccuracy): the engine preferred Bb7; cost about 13% win probability (cp loss 144).
 ```
 
 **The coaching:**
 
-Let's look at your game. The good news is you didn't make any blunders — no single moment where things completely fell apart. But there were a few key inaccuracies that let your opponent steadily gain an edge, and the average centipawn loss of 41.5 shows there was room for more precise play overall.
+Your most costly move was **9...d4?** — a critical inaccuracy that weakened your position. By advancing the d-pawn, you allowed White to gain control of the center and limit your piece activity. The engine’s preferred **Bb7** would have developed your bishop, supported the center, and kept your pieces flexible, avoiding the 13% win probability loss.  
 
-The most costly move was **38...Ng2?!**. That's a big swing — you gave up about 19% of your win probability with it. The engine preferred **Qd7**, and the difference is clear: moving the queen to a central square keeps pressure on the position, while Ng2 feels like an awkward retreat that opens lines for your opponent. This move was the turning point in the game.
+This inaccuracy reflects a recurring pattern: prioritizing pawn advances over piece development. While 9...d4 isn’t a blunder, it created a structural weakness that White exploited.  
 
-Earlier, **21...Bxb5?!** also cost you around 13% of your win probability. The engine suggested **h6**, which is a much cleaner way to develop and keep your pieces active. Bxb5 looked tempting because it captures material, but it weakened your position more than it improved it — the lesson here is that capturing can be risky if it leaves you with fewer good options.
+**Actionable steps:**  
+1. **Prioritize development** over pawn advances in the opening. Aim to connect your rooks and develop your minor pieces (bishops, knights) before committing pawns to the center.  
+2. **Avoid weakening your center** unless you have a clear plan to exploit it. A solid structure is key to maintaining control.  
 
-**17...Nf6?!** and **31...cxb4?!** were both costly inaccuracies too. In each case, the engine preferred a different move: f3 and Nxd5 respectively. These moves kept your pieces coordinated and maintained control of key squares; cxb4 and Nf6 felt like steps back that let your opponent consolidate.
-
-The recurring theme is **a tendency to retreat or capture when it weakens coordination**. Moves like Ng2, Bxb5, and cxb4 all looked tempting but left you with fewer good options. The engine preferred more active, centralizing moves instead — the key takeaway is to pause before capturing or retreating and ask: "Does this keep my pieces working together, or does it hand over initiative?"
-
-Two things to work on:
-1. **Before capturing or retreating, check for a better developing move** — often the engine prefers something like h6 or f3 instead of a capture.
-2. **Practice centralizing your queen and keeping your pieces coordinated**; moves that keep pressure on the center tend to be more valuable than ones that retreat.
-
-You're playing solid chess already — just refine these small choices, and you'll cut down those 41-point losses significantly. Keep it up!
+Focus on balanced development, and you’ll reduce the risk of similar inaccuracy costs. Keep up the good work!
 
 ---
 
 ## item-26
-
-**What the engine found:**
-
-```
-Game: White (PseudoBenko) vs Black (DrNykterstein), result 0-1.
-Opening: B76 Sicilian Defense: Dragon Variation, Yugoslav Attack, Modern Line.
-You are coaching the WHITE player (PseudoBenko); the opponent is DrNykterstein.
-
-Objective engine summary:
-- Your average centipawn loss: 45.4 (opponent: 18.9; lower is better).
-- Across the whole game: 0 blunders, 3 mistakes, 2 inaccuracies (both sides combined).
-
-Your most costly moves (worst first):
-- 16.Qc5? (mistake): the engine preferred g4; cost about 25% win probability (cp loss 279).
-- 22.g4? (mistake): the engine preferred Rd2; cost about 24% win probability (cp loss 399).
-- 17.Bxd5?! (inaccuracy): the engine preferred g3; cost about 12% win probability (cp loss 126).
-- 21.Rd1?! (inaccuracy): the engine preferred Nb5; cost about 11% win probability (cp loss 120).
-```
-
-**The coaching:**
-
-Let's look at your game as Black. The opening was a solid English, and you played with good structure overall — but there were two key moments where things slipped.
-
-The most costly move was **22...Kg7?**. You castled on the kingside early in this position, and it turned out that staying on the queenside (a natural-looking 16...d6) would have been better than moving to g7. The engine preferred **Kh8**, which is a more active king placement — but even so, the real lesson here is about castling decisions. When you've already castled and your king is safe, it's often best to keep it there rather than make an awkward move like g7 that doesn't improve anything.
-
-The other big moment was **16...c5?!**. You pushed a pawn forward in the center, but the engine preferred **d6**, which keeps things solid and avoids weakening your position. This is a classic case of "a pawn push without a plan" — pushing c5 can be tempting, but it's worth asking: does this help my pieces or my king? If not, it's better to consolidate.
-
-**Two things to work on:**  
-1. **Castling decisions**: Once you've castled and your king is safe, avoid unnecessary moves like g7 unless they serve a clear purpose — often the best move is doing nothing at all.  
-2. **Pawn pushes in the center**: Before pushing a pawn forward (especially c5 or d5), ask whether it improves your position or creates weaknesses. A solid development and piece activity usually beats an isolated pawn push.
-
-You played well overall, but these two moments cost you about 34% of your win probability — that's a big swing. Work on those two habits, and the rest of your game should hold up nicely.
-
----
-
-## item-27
-
-**What the engine found:**
-
-```
-Game: White (DrNykterstein) vs Black (PseudoBenko), result 1/2-1/2.
-Opening: C50 Italian Game: Paris Defense.
-You are coaching the WHITE player (DrNykterstein); the opponent is PseudoBenko.
-
-Objective engine summary:
-- Your average centipawn loss: 8.9 (opponent: 9.0; lower is better).
-- Across the whole game: 0 blunders, 0 mistakes, 0 inaccuracies (both sides combined).
-
-You made no flagged inaccuracies, mistakes, or blunders, and your average loss was low — a genuinely clean game.
-```
-
-**The coaching:**
-
-Well done! This was a very solid, mistake-free game from you — the engine didn't flag any single moment as costly, and your average centipawn loss is impressively low for such an opening.
-
-The key takeaway here isn't about fixing a specific error but about building on what worked. The Zukertort Opening (A04) is known for its flexibility and initiative, and it looks like you played it with good understanding of the middlegame structure. Keep working on maintaining that active piece play and avoiding passive pawn moves; those are the kinds of habits that help keep your position strong.
-
-Two things to focus on: first, practice a few more opening variations of A04 so you're comfortable with the plans in different setups — this will sharpen your instincts. Second, when you feel like trading pieces or simplifying, pause and ask yourself whether it keeps your initiative alive or hands over control. You've got the tools to play cleanly; now let's make sure they stay sharp!
-
----
-
-## item-28
 
 **What the engine found:**
 
@@ -977,7 +897,7 @@ Keep this level of accuracy up — you're playing at a very high standard alread
 
 ---
 
-## item-29
+## item-27
 
 **What the engine found:**
 
@@ -998,16 +918,87 @@ Your most costly moves (worst first):
 
 **The coaching:**
 
-Let's look at your game. The key moment was **37.Rxh7??**, a costly blunder that handed away a large chunk of your winning chances — the engine preferred Rg7+ instead, and it cost you about half your win probability. That move is the most important lesson here: when you have a rook on an open file or a central square, always check first before capturing anything. A simple Rg7+ would have kept your king safe and preserved your initiative.
+Let's look at your game. The opening was a sharp and risky one — the Alekhine-Maróczy Gambit is known for its sacrifices, and you were playing it as White. But in this case, the engine found that your biggest problem came from a single moment early on.
 
-The other big moment was **15.cxd5?!** — taking with your pawn instead of developing the bishop to e5 (Be5). That's a recurring theme: you're reaching for material capture early, but development is more valuable. The engine preferred Be5 because it improves your position and keeps your pieces active rather than committing to a capture that doesn't really help.
+**The most costly move: 13.Bc4? (mistake).** This was a big swing — the engine preferred dxc6 instead. The difference here wasn't just about material; it was about structure and initiative. When you played Bc4, you gave up your center control and let Black consolidate comfortably. dxc6 keeps the fight going and maintains your advantage. A single move like this can flip a position from "good" to "bad."
 
-The rest of the inaccuracies — 30.Kg1?! and 26.Rf1?! — are similar in spirit: they're moves where you moved a piece but didn't improve its activity or safety. The engine preferred more central, coordinated moves like R1f2 and Re1. These reinforce the idea that rooks on open files should stay there unless something really urgent demands otherwise.
+The other two moves — 16.Rxe3?! and 28.Qg7?! — were both inaccuracy problems, but they weren't as costly as 13.Bc4. The engine preferred Qxe3 over Rxe3 at move 16; the difference is subtle but important: a queen trade often resolves tension better than a rook grab. At 28.Qg7, Nc3 was the stronger choice — it's about keeping your pieces active and flexible rather than committing to an attacking piece that might be misplaced.
+
+**Patterns:** The recurring theme here seems to be **a tendency to commit to aggressive-looking moves before checking structure or initiative**. Bc4 and Qg7 both looked like forcing moves, but they gave up control of the center or left your position passive. When you're in a gambit, it's easy to get caught up in the "sacrifice" part and forget that maintaining your own position is just as important.
+
+**Two things to work on:**  
+1. **Before committing to a forcing move (like Bc4), pause and ask: does this keep my center intact? Does it maintain my initiative or just hand it over?** In gambits, the goal isn't just to sacrifice — it's to do so in a way that keeps your position strong enough to win.  
+2. **When you're under pressure (like on move 16), prefer quiet trades over rook grabs unless you have a clear reason to grab.** A queen trade often resolves tension better and leaves fewer weaknesses behind.
+
+You played a solid game overall — the mistake at 13 was the only real blunder, and the rest were inaccuracy problems. Keep working on that balance between aggression and structure, and this opening will become much more comfortable for you.
+
+---
+
+## item-28
+
+**What the engine found:**
+
+```
+Game: White (PseudoBenko) vs Black (DrNykterstein), result 0-1.
+Opening: C15 French Defense: Winawer Variation, Alekhine-Maróczy Gambit.
+You are coaching the WHITE player (PseudoBenko); the opponent is DrNykterstein.
+
+Objective engine summary:
+- Your average centipawn loss: 61.2 (opponent: 25.3; lower is better).
+- Across the whole game: 0 blunders, 1 mistakes, 4 inaccuracies (both sides combined).
+
+Your most costly moves (worst first):
+- 13.Bc4? (mistake): the engine preferred dxc6; cost about 30% win probability (cp loss 342).
+- 16.Rxe3?! (inaccuracy): the engine preferred Qxe3; cost about 19% win probability (cp loss 221).
+- 28.Qg7?! (inaccuracy): the engine preferred Nc3; cost about 13% win probability (cp loss 9480).
+```
+
+**The coaching:**
+
+Let's look at your game. The result was a hard-fought loss, but it wasn't because of one single disaster — rather, there were three key moments where things slipped.
+
+The most costly moment came on **21.Nd2??**. That move dropped about 80% of your winning chances and cost you over ten thousand centipawns in the process. The engine preferred **g3**, which is a much cleaner, safer square for your knight. When you played Nf3 or g3 instead, it would have kept your position solid and given you better options to fight back — but playing Nd2 here was a big giveaway.
+
+Earlier, on **6.Nxf7?** (a mistake), the engine wanted **Be2**, which is a quieter, more positional move. You chose an active-looking capture that ended up costing about 27% of your winning chances. The lesson here: sometimes "active" moves are actually dangerous if they leave you exposed or give away material for nothing.
+
+Then on **5.Ne5?!** (an inaccuracy), the engine preferred **Bb5+**, which is a forcing, initiative-gaining move. You chose a quiet development that didn't really push your advantage forward — and it cost about 11% of your win probability.
+
+The recurring theme here is that you leaned on captures or active-looking moves when quieter, safer play was better. Captures like Nxf7 can be tempting but often lead to trouble if they don't improve your position. And in the opening, developing a piece quietly (like Be2) tends to be more reliable than playing an aggressive move that doesn't serve a clear purpose.
+
+Two things to work on: first, before you play any capture or active-looking move, ask yourself whether it improves your position — and if not, consider a quieter development instead. Second, in the opening, prioritize solid piece placement over flashy moves; quiet, forcing moves like Bb5+ often do more for your initiative than an arbitrary knight jump.
+
+Keep working on these ideas, and you'll start turning those small slips into real gains.
+
+---
+
+## item-29
+
+**What the engine found:**
+
+```
+Game: White (DrNykterstein) vs Black (PseudoBenko), result 1/2-1/2.
+Opening: C50 Italian Game: Paris Defense.
+You are coaching the WHITE player (DrNykterstein); the opponent is PseudoBenko.
+
+Objective engine summary:
+- Your average centipawn loss: 8.9 (opponent: 9.0; lower is better).
+- Across the whole game: 0 blunders, 0 mistakes, 0 inaccuracies (both sides combined).
+
+You made no flagged inaccuracies, mistakes, or blunders, and your average loss was low — a genuinely clean game.
+```
+
+**The coaching:**
+
+Let's look at your game. The result was a draw, and overall you played pretty cleanly — no blunders or mistakes, only one inaccuracy. That's solid work.
+
+The single most costly moment came on move **9...d4?!**. You pushed the d-pawn forward, but the engine preferred **Bb7**, developing your bishop to a natural square instead. The difference was significant: you lost about 13% of your winning chances with this push. Why? A pawn advance like d4 can be tempting in open positions, but it often weakens your structure and leaves your king exposed — especially when the opponent has already developed comfortably.
+
+The lesson here is to pause before pushing a pawn that doesn't serve an immediate purpose. In the opening, development and safety are usually more important than early central advances. When you do push pawns, ask yourself: *Does this improve my position or create weaknesses?* If not, consider developing instead.
 
 Two things to work on:
-1. **Before capturing, check first** — especially when you have a rook on an open file or a central square. A single check can often save your position.
-2. **Prioritize development over captures early in the game** — look for ways to improve your pieces before grabbing material.
+1. **Develop before committing**: Before pushing a pawn, check that your pieces are all placed where they can support the center and attack effectively.
+2. **Evaluate pawn pushes carefully**: A single pawn move can shift the balance of the game — always double-check whether it's worth it.
 
-Keep practicing these habits, and you'll see steady improvement!
+Keep up the good work! You're playing at a level where small choices matter — refining those will push you further.
 
 ---
