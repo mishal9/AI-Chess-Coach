@@ -1,0 +1,1308 @@
+{
+  "coach_model": "template",
+  "coach_temperature": 0.0,
+  "judge": "anthropic",
+  "judge_model": "gemini-3.1-pro-preview",
+  "depth": 15,
+  "metric_versions": {
+    "grounding": 2,
+    "claims": 1
+  },
+  "date": "2026-09-20",
+  "aggregate": {
+    "games": 29,
+    "grounding_mean": 1.0,
+    "grounded_rate": 1.0,
+    "worst_move_identified_rate": 0.724,
+    "claims_mean": 1.0,
+    "claims_ok_rate": 1.0,
+    "rubric_axis_means": {
+      "factual_correctness": 5.0,
+      "clarity": 4.41,
+      "actionability": 2.31,
+      "identifies_key_mistake": 5.0
+    },
+    "rubric_overall_mean": 4.18
+  },
+  "games": [
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 0,
+      "coached_side": "white",
+      "note": "near-clean game (both sides low ACPL, nothing flagged) \u2014 the coach must recognize a clean game, not invent errors",
+      "coaching": "Your average centipawn loss was 8.9, against 9.0 for your opponent (lower is better).\n\nThe engine flagged no inaccuracies, mistakes or blunders on your side, and your average loss was low, so this was a clean game.\n\nTo keep improving, keep checking each opponent move for a threat before you play, and review the game for ideas to repeat.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.5,
+        "rationale": "The coaching accurately reflects the engine facts, noting the clean game with no mistakes. The advice is necessarily generic due to the lack of errors, making actionability average, but it correctly identifies the nature of the game."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 0,
+      "coached_side": "black",
+      "note": "gradual loss: high ACPL but no discrete blunder (Opera-like) \u2014 the case where a small model tends to hallucinate",
+      "coaching": "Your average centipawn loss was 59.2, against 17.4 for your opponent (lower is better).\n\nThe most costly moment was 23...Kh7?, a mistake. It cost about 21% win probability. The engine preferred Bc5.\n\nThe other costly moves were 21...Nxd5?! (the engine preferred Qxe4), about 11%.\n\nYou had 2 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc5",
+          "Kh7",
+          "Nxd5",
+          "Qxe4"
+        ],
+        "allowed": [
+          "Bc5",
+          "Kh7",
+          "Nxd5",
+          "Qxe4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the key mistake. However, the advice is extremely generic and slightly confusing ('compare it with the engine's preferred move afterwards' is awkwardly phrased for post-game analysis)."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 0,
+      "coached_side": "white",
+      "note": "a single clear blunder plus high ACPL",
+      "coaching": "Your average centipawn loss was 61.2, against 25.3 for your opponent (lower is better).\n\nThe most costly moment was 13.Bc4?, a mistake. It cost about 30% win probability. The engine preferred dxc6.\n\nThe other costly moves were 16.Rxe3?! (the engine preferred Qxe3), about 19%; 28.Qg7?! (the engine preferred Nc3), about 13%.\n\nYou had 3 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc4",
+          "Nc3",
+          "Qg7",
+          "Qxe3",
+          "Rxe3",
+          "dxc6"
+        ],
+        "allowed": [
+          "Bc4",
+          "Nc3",
+          "Qg7",
+          "Qxe3",
+          "Rxe3",
+          "dxc6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 3,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching is factually accurate and correctly identifies the key mistake. However, it reads like a robotic summary of the engine output and provides only generic, template-level advice rather than concrete, position-specific takeaways."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 0,
+      "coached_side": "black",
+      "note": "multiple blunders in one game (2 blunders + a mistake)",
+      "coaching": "Your average centipawn loss was 47.2, against 34.3 for your opponent (lower is better).\n\nThe most costly moment was 59...Kf7??, a blunder. It cost about 68% win probability. The engine preferred Bc5+.\n\nThe other costly moves were 35...Qd5? (the engine preferred Nd5), about 20%; 42...Bf6?! (the engine preferred Bb2), about 16%; 30...Qb3?! (the engine preferred Qd7), about 13%; 37...Rc8?! (the engine preferred Rd8), about 11%.\n\nYou had 5 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb2",
+          "Bc5",
+          "Bf6",
+          "Kf7",
+          "Nd5",
+          "Qb3",
+          "Qd5",
+          "Qd7",
+          "Rc8",
+          "Rd8"
+        ],
+        "allowed": [
+          "Bb2",
+          "Bc5",
+          "Bf6",
+          "Kf7",
+          "Nd5",
+          "Qb3",
+          "Qd5",
+          "Qd7",
+          "Rc8",
+          "Rd8"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 5,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the key mistake. However, the advice provided at the end is extremely generic and not tailored to the specific positions or mistakes in the game, making it less actionable for the player."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 0,
+      "coached_side": "black",
+      "note": "death by many small inaccuracies; no blunder or mistake",
+      "coaching": "Your average centipawn loss was 41.5, against 30.1 for your opponent (lower is better).\n\nThe most costly moment was 38...Ng2?!, an inaccuracy. It cost about 19% win probability. The engine preferred Qd7.\n\nThe other costly moves were 21...Bxb5?! (the engine preferred h6), about 13%; 17...Nf6?! (the engine preferred f3), about 12%; 31...cxb4?! (the engine preferred Nxd5), about 10%.\n\nYou had 4 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bxb5",
+          "Nf6",
+          "Ng2",
+          "Nxd5",
+          "Qd7",
+          "cxb4",
+          "f3",
+          "h6"
+        ],
+        "allowed": [
+          "Bxb5",
+          "Nf6",
+          "Ng2",
+          "Nxd5",
+          "Qd7",
+          "cxb4",
+          "f3",
+          "h6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 4,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the most costly move. However, the advice provided at the end is extremely generic and not tailored to the specific mistakes made in the game, making it less actionable. The text is clear but reads like a robotic list of facts."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 0,
+      "coached_side": "white",
+      "note": "a couple of mistakes, no blunder",
+      "coaching": "Your average centipawn loss was 45.4, against 18.9 for your opponent (lower is better).\n\nThe most costly moment was 16.Qc5?, a mistake. It cost about 25% win probability. The engine preferred g4.\n\nThe other costly moves were 22.g4? (the engine preferred Rd2), about 24%; 17.Bxd5?! (the engine preferred g3), about 12%; 21.Rd1?! (the engine preferred Nb5), about 11%.\n\nYou had 4 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bxd5",
+          "Nb5",
+          "Qc5",
+          "Rd1",
+          "Rd2",
+          "g3",
+          "g4"
+        ],
+        "allowed": [
+          "Bxd5",
+          "Nb5",
+          "Qc5",
+          "Rd1",
+          "Rd2",
+          "g3",
+          "g4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 3,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the key mistake. However, the advice provided is extremely generic and lacks specific, actionable insights tailored to the game's actual positions."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 1,
+      "coached_side": "white",
+      "note": "auto-curated into 'slow_loss' (coached side: white)",
+      "coaching": "Your average centipawn loss was 47.2, against 6.5 for your opponent (lower is better).\n\nThere was no single flagged blunder or mistake, but your average loss was high: you lost ground gradually through many small imprecisions rather than one big error.\n\nTo improve, slow down in equal positions and compare two or three candidate moves before committing.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.5,
+        "rationale": "The coaching accurately reflects the engine facts, correctly noting the absence of a single major mistake and the gradual loss of the position. The advice is clear but somewhat generic, lacking specific positional themes to focus on."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 2,
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Your average centipawn loss was 54.0, against 12.0 for your opponent (lower is better).\n\nThe most costly moment was 13...a6?!, an inaccuracy. It cost about 19% win probability. The engine preferred f5.\n\nBefore your next game, spend a moment on each move checking what your opponent's last move threatens, then review this moment against the engine's preferred move.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "a6",
+          "f5"
+        ],
+        "allowed": [
+          "a6",
+          "f5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.5,
+        "rationale": "The coaching is factually accurate and clearly identifies the single inaccuracy in the game. However, the advice is quite generic and doesn't explain the specific positional or tactical reasons why f5 was preferred over a6."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 3,
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Your average centipawn loss was 72.2, against 11.4 for your opponent (lower is better).\n\nThere was no single flagged blunder or mistake, but your average loss was high: you lost ground gradually through many small imprecisions rather than one big error.\n\nTo improve, slow down in equal positions and compare two or three candidate moves before committing.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "The coaching accurately reflects the engine facts, correctly noting the absence of a single major mistake and the gradual loss of evaluation. The advice is clear and provides a reasonable, if slightly generic, method for addressing small imprecisions."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 4,
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Your average centipawn loss was 38.3, against 19.4 for your opponent (lower is better).\n\nThe most costly moment was 11...g6?!, an inaccuracy. It cost about 11% win probability. The engine preferred e5.\n\nBefore your next game, spend a moment on each move checking what your opponent's last move threatens, then review this moment against the engine's preferred move.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "e5",
+          "g6"
+        ],
+        "allowed": [
+          "e5",
+          "g6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.5,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the single inaccuracy in the game. The writing is clear and concise. However, the actionable advice is somewhat generic and boilerplate, lacking specific chess concepts related to the move 11...g6 or e5."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 1,
+      "coached_side": "black",
+      "note": "auto-curated into 'inaccuracies' (coached side: black)",
+      "coaching": "Your average centipawn loss was 52.3, against 47.4 for your opponent (lower is better).\n\nThe most costly moment was 12...Rb8?!, an inaccuracy. It cost about 16% win probability. The engine preferred Bc6.\n\nThe other costly moves were 13...Bc6?! (the engine preferred Rc8), about 14%; 10...a6?! (the engine preferred dxc3), about 11%.\n\nYou had 3 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc6",
+          "Rb8",
+          "Rc8",
+          "a6",
+          "dxc3"
+        ],
+        "allowed": [
+          "Bc6",
+          "Rb8",
+          "Rc8",
+          "a6",
+          "dxc3"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.25,
+        "rationale": "The coaching is perfectly accurate and clearly presents the engine facts, correctly identifying the key mistake. However, the advice given is extremely generic and not tailored to the specific mistakes made in the game, making it less actionable."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 2,
+      "coached_side": "white",
+      "note": "auto-curated into 'inaccuracies' (coached side: white)",
+      "coaching": "Your average centipawn loss was 56.8, against 33.7 for your opponent (lower is better).\n\nThe most costly moment was 10.Qd2?!, an inaccuracy. It cost about 18% win probability. The engine preferred Qe2.\n\nThe other costly moves were 12.Nxe4?! (the engine preferred Qe1), about 11%.\n\nYou had 2 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nxe4",
+          "Qd2",
+          "Qe1",
+          "Qe2"
+        ],
+        "allowed": [
+          "Nxe4",
+          "Qd2",
+          "Qe1",
+          "Qe2"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the key mistake. However, the advice is extremely generic and doesn't provide any specific insights into the positions or why the engine preferred certain moves, making it less actionable."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'inaccuracies' (coached side: white)",
+      "coaching": "Your average centipawn loss was 55.3, against 33.3 for your opponent (lower is better).\n\nThe most costly moment was 12.Nf5?!, an inaccuracy. It cost about 17% win probability. The engine preferred d4.\n\nThe other costly moves were 7.d3?! (the engine preferred c3), about 14%.\n\nYou had 2 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nf5",
+          "c3",
+          "d3",
+          "d4"
+        ],
+        "allowed": [
+          "Nf5",
+          "c3",
+          "d3",
+          "d4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.25,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the key mistake. However, the advice provided is extremely generic and does not explain the specific chess concepts behind the inaccuracies (such as central breaks in the Italian Game), making it less actionable for the player."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 4,
+      "coached_side": "black",
+      "note": "auto-curated into 'inaccuracies' (coached side: black)",
+      "coaching": "Your average centipawn loss was 45.6, against 30.3 for your opponent (lower is better).\n\nThe most costly moment was 11...O-O?!, an inaccuracy. It cost about 17% win probability. The engine preferred Bf8.\n\nThe other costly moves were 17...Nb6?! (the engine preferred Bc6), about 13%; 3...Nc6?! (the engine preferred cxd4), about 11%; 10...Bc5?! (the engine preferred c5), about 10%.\n\nYou had 4 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc5",
+          "Bc6",
+          "Bf8",
+          "Nb6",
+          "Nc6",
+          "O-O",
+          "c5",
+          "cxd4"
+        ],
+        "allowed": [
+          "Bc5",
+          "Bc6",
+          "Bf8",
+          "Nb6",
+          "Nc6",
+          "O-O",
+          "c5",
+          "cxd4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 4,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reports the engine facts and correctly identifies the most costly move. However, the advice provided at the end is extremely generic and not tailored to the specific mistakes made in the game, making it less actionable."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 1,
+      "coached_side": "black",
+      "note": "auto-curated into 'two_mistakes' (coached side: black)",
+      "coaching": "Your average centipawn loss was 51.0, against 26.8 for your opponent (lower is better).\n\nThe most costly moment was 14...b4?, a mistake. It cost about 24% win probability. The engine preferred d6.\n\nThe other costly moves were 19...Nc3? (the engine preferred d6), about 21%; 38...Nc5?! (the engine preferred Rc8), about 12%.\n\nYou had 3 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nc3",
+          "Nc5",
+          "Rc8",
+          "b4",
+          "d6"
+        ],
+        "allowed": [
+          "Nc3",
+          "Nc5",
+          "Rc8",
+          "b4",
+          "d6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 3,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching is factually accurate and correctly identifies the key mistake. However, the advice is extremely generic and lacks specific insights into the positions or why the engine preferred certain moves, making it less actionable."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 2,
+      "coached_side": "black",
+      "note": "auto-curated into 'two_mistakes' (coached side: black)",
+      "coaching": "Your average centipawn loss was 56.2, against 22.5 for your opponent (lower is better).\n\nThe most costly moment was 22...Kg7?, a mistake. It cost about 22% win probability. The engine preferred Kh8.\n\nThe other costly moves were 16...c5?! (the engine preferred d6), about 12%.\n\nYou had 2 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Kg7",
+          "Kh8",
+          "c5",
+          "d6"
+        ],
+        "allowed": [
+          "Kg7",
+          "Kh8",
+          "c5",
+          "d6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.25,
+        "rationale": "The coaching is factually accurate and correctly identifies the key mistake. However, the advice provided is extremely generic and not tailored to the specific mistakes made in the game, making it less actionable."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'two_mistakes' (coached side: white)",
+      "coaching": "Your average centipawn loss was 26.3, against 24.3 for your opponent (lower is better).\n\nThe most costly moment was 46.Kf6??, a blunder. It cost about 37% win probability. The engine preferred Kd4.\n\nThe other costly moves were 15.Bxb7?! (the engine preferred c5), about 17%; 3.c4?! (the engine preferred Nc3), about 12%; 11.Ne5?! (the engine preferred O-O), about 12%.\n\nYou had 4 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bxb7",
+          "Kd4",
+          "Kf6",
+          "Nc3",
+          "Ne5",
+          "O-O",
+          "c4",
+          "c5"
+        ],
+        "allowed": [
+          "Bxb7",
+          "Kd4",
+          "Kf6",
+          "Nc3",
+          "Ne5",
+          "O-O",
+          "c4",
+          "c5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 4,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 1,
+          "identifies_key_mistake": 5
+        },
+        "overall": 3.75,
+        "rationale": "The coaching is factually accurate and correctly identifies the key mistake, but it is essentially a robotic regurgitation of the engine facts. The advice given is a generic template that makes no sense ('compare it with the engine's preferred move afterwards' during a game), making it completely unactionable."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 4,
+      "coached_side": "white",
+      "note": "auto-curated into 'two_mistakes' (coached side: white)",
+      "coaching": "Your average centipawn loss was 128.0, against 7.0 for your opponent (lower is better).\n\nThe most costly moment was 5.Qf3?, a mistake. It cost about 25% win probability. The engine preferred d3.\n\nThe other costly moves were 4.Ng5?! (the engine preferred c3), about 11%; 6.d4?! (the engine preferred O-O), about 11%.\n\nYou had 3 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Ng5",
+          "O-O",
+          "Qf3",
+          "c3",
+          "d3",
+          "d4"
+        ],
+        "allowed": [
+          "Ng5",
+          "O-O",
+          "Qf3",
+          "c3",
+          "d3",
+          "d4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 3,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching is completely factually accurate and correctly identifies the key mistake. However, it is essentially a robotic restatement of the engine facts and offers only generic, boilerplate advice rather than concrete, actionable insights based on the specific moves."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 1,
+      "coached_side": "black",
+      "note": "auto-curated into 'one_blunder' (coached side: black)",
+      "coaching": "Your average centipawn loss was 85.8, against 39.4 for your opponent (lower is better).\n\nThe most costly moment was 9...Bxc2??, a blunder. It cost about 33% win probability. The engine preferred Nxc2.\n\nThe other costly moves were 10...Nxa2?! (the engine preferred a5), about 15%; 11...Qf5?! (the engine preferred Bxb3), about 12%; 8...Nb4?! (the engine preferred Bh3), about 10%.\n\nYou had 4 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bh3",
+          "Bxb3",
+          "Bxc2",
+          "Nb4",
+          "Nxa2",
+          "Nxc2",
+          "Qf5",
+          "a5"
+        ],
+        "allowed": [
+          "Bh3",
+          "Bxb3",
+          "Bxc2",
+          "Nb4",
+          "Nxa2",
+          "Nxc2",
+          "Qf5",
+          "a5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 4,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the key mistake without fabricating any details. However, the advice provided at the end is extremely generic and lacks concrete, actionable insights tailored to the specific game."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 2,
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Your average centipawn loss was 51.7, against 23.2 for your opponent (lower is better).\n\nThe most costly moment was 37.Rxh7??, a blunder. It cost about 50% win probability. The engine preferred Rg7+.\n\nThe other costly moves were 15.cxd5?! (the engine preferred Be5), about 17%; 30.Kg1?! (the engine preferred R1f2), about 16%; 26.Rf1?! (the engine preferred Re1), about 12%.\n\nYou had 4 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Be5",
+          "Kg1",
+          "R1f2",
+          "Re1",
+          "Rf1",
+          "Rg7",
+          "Rxh7",
+          "cxd5"
+        ],
+        "allowed": [
+          "Be5",
+          "Kg1",
+          "R1f2",
+          "Re1",
+          "Rf1",
+          "Rg7",
+          "Rxh7",
+          "cxd5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 4,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the key mistake. However, the advice provided is extremely generic and not tailored to the specific mistakes made in the game, making it less actionable."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Your average centipawn loss was 51.7, against 33.3 for your opponent (lower is better).\n\nThe most costly moment was 28.Qe4+??, a blunder. It cost about 38% win probability. The engine preferred Qf5+.\n\nThe other costly moves were 13.Qd2?! (the engine preferred Nd5), about 14%; 14.Nd5?! (the engine preferred Nd1), about 13%.\n\nYou had 3 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nd1",
+          "Nd5",
+          "Qd2",
+          "Qe4",
+          "Qf5"
+        ],
+        "allowed": [
+          "Nd1",
+          "Nd5",
+          "Qd2",
+          "Qe4",
+          "Qf5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reports the engine facts and correctly identifies the biggest mistake. However, the advice is extremely generic and lacks any concrete explanation of the positions or why the engine preferred certain moves, making it less actionable for an improving player."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 4,
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Your average centipawn loss was 103.0, against 50.5 for your opponent (lower is better).\n\nThe most costly moment was 21.Nd2??, a blunder. It cost about 79% win probability. The engine preferred g3.\n\nThe other costly moves were 6.Nxf7? (the engine preferred Be2), about 27%; 5.Ne5?! (the engine preferred Bb5+), about 11%.\n\nYou had 3 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb5",
+          "Be2",
+          "Nd2",
+          "Ne5",
+          "Nxf7",
+          "g3"
+        ],
+        "allowed": [
+          "Bb5",
+          "Be2",
+          "Nd2",
+          "Ne5",
+          "Nxf7",
+          "g3"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 3,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching perfectly matches the engine facts and correctly identifies the key mistake. However, the advice is extremely generic and lacks specific insights into the nature of the mistakes, making it less actionable."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 1,
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Your average centipawn loss was 118.8, against 87.4 for your opponent (lower is better).\n\nThe most costly moment was 19.Bc5??, a blunder. It cost about 49% win probability. The engine preferred Qxc4.\n\nThe other costly moves were 3.Nxe5?? (the engine preferred d4), about 36%; 18.Qe2? (the engine preferred Qxd4), about 27%; 23.Rae1? (the engine preferred Bxb2), about 22%; 24.R1e4? (the engine preferred Rg8), about 22%; 10.Qd1?! (the engine preferred exf6), about 20%.\n\nYou had 6 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc5",
+          "Bxb2",
+          "Nxe5",
+          "Qd1",
+          "Qe2",
+          "Qxc4",
+          "Qxd4",
+          "R1e4",
+          "Rae1",
+          "Rg8",
+          "d4",
+          "exf6"
+        ],
+        "allowed": [
+          "Bc5",
+          "Bxb2",
+          "Nxe5",
+          "Qd1",
+          "Qe2",
+          "Qxc4",
+          "Qxd4",
+          "R1e4",
+          "Rae1",
+          "Rg8",
+          "d4",
+          "exf6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 6,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the most critical mistake. However, it reads like a robotic list of moves and the advice provided is extremely generic, lacking specific insights into why the mistakes were made or how to improve upon them."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 2,
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Your average centipawn loss was 108.7, against 74.4 for your opponent (lower is better).\n\nThe most costly moment was 29.Kh1??, a blunder. It cost about 41% win probability. The engine preferred Rf2.\n\nThe other costly moves were 30.Rb1?? (the engine preferred Kg1), about 40%; 12.Bc4?? (the engine preferred Bxc6), about 32%; 11.Bb5?! (the engine preferred b5), about 15%; 10.f3?! (the engine preferred b5), about 12%; 31.Rb2?! (the engine preferred Rbe1), about 11%.\n\nYou had 6 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb5",
+          "Bc4",
+          "Bxc6",
+          "Kg1",
+          "Kh1",
+          "Rb1",
+          "Rb2",
+          "Rbe1",
+          "Rf2",
+          "b5",
+          "f3"
+        ],
+        "allowed": [
+          "Bb5",
+          "Bc4",
+          "Bxc6",
+          "Kg1",
+          "Kh1",
+          "Rb1",
+          "Rb2",
+          "Rbe1",
+          "Rf2",
+          "b5",
+          "f3"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 6,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.25,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the most critical mistake. However, the advice provided at the end is extremely generic and not tailored to the specific mistakes made in the game, making it less actionable for the player."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 3,
+      "coached_side": "black",
+      "note": "auto-curated into 'multi_blunder' (coached side: black)",
+      "coaching": "Your average centipawn loss was 84.7, against 60.0 for your opponent (lower is better).\n\nThe most costly moment was 40...Ra4??, a blunder. It cost about 49% win probability. The engine preferred Ka7.\n\nThe other costly moves were 41...a2?? (the engine preferred c5), about 48%; 28...Nxc4?! (the engine preferred Ne4), about 16%; 31...Rc5?! (the engine preferred c6), about 14%; 39...Rc4?! (the engine preferred b5), about 13%; 12...Bb4?! (the engine preferred Nf5), about 11%.\n\nYou had 6 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb4",
+          "Ka7",
+          "Ne4",
+          "Nf5",
+          "Nxc4",
+          "Ra4",
+          "Rc4",
+          "Rc5",
+          "a2",
+          "b5",
+          "c5",
+          "c6"
+        ],
+        "allowed": [
+          "Bb4",
+          "Ka7",
+          "Ne4",
+          "Nf5",
+          "Nxc4",
+          "Ra4",
+          "Rc4",
+          "Rc5",
+          "a2",
+          "b5",
+          "c5",
+          "c6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 6,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the most critical blunder. However, it reads like a robotic list of moves, and the advice provided at the end is extremely generic and not tailored to the specific mistakes made in the game."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 4,
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Your average centipawn loss was 101.4, against 29.1 for your opponent (lower is better).\n\nThe most costly moment was 12.Kxh2??, a blunder. It cost about 35% win probability. The engine preferred Qh5.\n\nThe other costly moves were 14.Kf3?? (the engine preferred Bg5), about 32%.\n\nYou had 2 flagged moves in this game. Before each move, check what your opponent's last move threatens, and compare it with the engine's preferred move afterwards.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bg5",
+          "Kf3",
+          "Kxh2",
+          "Qh5"
+        ],
+        "allowed": [
+          "Bg5",
+          "Kf3",
+          "Kxh2",
+          "Qh5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 4,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.0,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the most costly mistake. However, the advice provided is extremely generic and boilerplate, offering no specific insights into the positions or why the blunders occurred, which limits its actionability."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 1,
+      "coached_side": "white",
+      "note": "auto-curated into 'clean_draw' (coached side: white)",
+      "coaching": "Your average centipawn loss was 13.0, against 4.2 for your opponent (lower is better).\n\nThe engine flagged no inaccuracies, mistakes or blunders on your side, and your average loss was low, so this was a clean game.\n\nTo keep improving, keep checking each opponent move for a threat before you play, and review the game for ideas to repeat.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "The coaching accurately reflects the engine facts, correctly noting the clean game with no mistakes. The advice is necessarily generic given the lack of errors, but remains clear and encouraging."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 2,
+      "coached_side": "black",
+      "note": "auto-curated into 'clean_draw' (coached side: black)",
+      "coaching": "Your average centipawn loss was 28.4, against 21.0 for your opponent (lower is better).\n\nThe most costly moment was 9...d4?!, an inaccuracy. It cost about 13% win probability. The engine preferred Bb7.\n\nBefore your next game, spend a moment on each move checking what your opponent's last move threatens, then review this moment against the engine's preferred move.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb7",
+          "d4"
+        ],
+        "allowed": [
+          "Bb7",
+          "d4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 2,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.25,
+        "rationale": "The coaching accurately reflects the engine facts and correctly identifies the single inaccuracy of the game. However, the actionable advice is highly generic and doesn't explain the positional difference between d4 and Bb7, making it less useful for improvement."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'clean_draw' (coached side: white)",
+      "coaching": "Your average centipawn loss was 16.0, against 0.0 for your opponent (lower is better).\n\nThe engine flagged no inaccuracies, mistakes or blunders on your side, and your average loss was low, so this was a clean game.\n\nTo keep improving, keep checking each opponent move for a threat before you play, and review the game for ideas to repeat.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "The coaching accurately reflects the engine facts, noting the clean game with no mistakes. The advice is general but appropriate given the lack of errors to critique."
+      },
+      "judged_by": "gemini-3.1-pro-preview"
+    }
+  ],
+  "rejudged_from": "claude-opus-4-8"
+}

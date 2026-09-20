@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Callable
 
 from coach import client as coach_client, prompts
-from eval import backends, claims, grounding
+from eval import backends, claims, grounding, template_coach
 from eval import judge as judge_mod
 from eval.rubric import RUBRIC_AXES
 
@@ -70,7 +70,12 @@ def load_cases(manifest_path: Path = DEFAULT_MANIFEST) -> list[EvalCase]:
 
 
 def make_coach_fn(model: str, temperature: float) -> CoachFn:
-    """Default coach: the Phase-2 prompted pipeline over a local Ollama model."""
+    """Default coach: the Phase-2 prompted pipeline over a local Ollama model.
+
+    ``model == "template"`` selects the deterministic no-LLM control arm instead.
+    """
+    if model == template_coach.NAME:
+        return lambda report, coached_side: template_coach.template_coaching(report, coached_side)
 
     def coach_fn(report: dict, coached_side: str) -> str:
         messages = prompts.build_messages(report, coached_side)
