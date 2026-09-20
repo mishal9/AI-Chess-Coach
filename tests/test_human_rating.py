@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import json
+from collections import Counter
 
 import pytest
 
@@ -95,6 +96,39 @@ class TestSampling:
 
     def test_asking_for_more_than_exists_returns_what_there_is(self):
         assert len(stratified_sample(pool(), size=99, seed=1).items) == 12
+
+    def test_balances_arms_within_each_bucket(self):
+        """The real bug this fixes: one bucket ending up 4:1 by shuffle luck."""
+        sample = stratified_sample(pool(), size=6, seed=1)  # 2 per bucket, both arms
+        assert sample.arms == {"prompted_8b_2026-08-14": 3, "8b_v2_2026-08-10": 3}
+        for bucket in sample.buckets:
+            by_arm = Counter(i.source_report for i in sample.items if i.bucket == bucket)
+            assert max(by_arm.values()) - min(by_arm.values()) <= 1
+
+    def test_odd_per_bucket_quota_is_off_by_one_not_worse(self):
+        items = [
+            item(bucket="X", source=src, idx=i, coaching=f"{src}-{i}")
+            for src in ("a", "b")
+            for i in range(5)
+        ]
+        for size in (1, 3, 5, 7, 9):
+            sample = stratified_sample(items, size=size, seed=3)
+            counts = Counter(i.source_report for i in sample.items)
+            assert abs(counts.get("a", 0) - counts.get("b", 0)) <= 1, (size, counts)
+
+    def test_balances_each_bucket_independently(self):
+        """A bucket with more of one arm available shouldn't affect another bucket."""
+        items = [
+            item(bucket=bucket, source=src, idx=i, coaching=f"{bucket}-{src}-{i}")
+            for bucket in ("clean_draw", "multi_blunder")
+            for src in ("a", "b")
+            for i in range(4)
+        ]
+        sample = stratified_sample(items, size=10, seed=5)  # 5 per bucket: 3:2 or 2:3
+        for bucket in ("clean_draw", "multi_blunder"):
+            by_arm = Counter(i.source_report for i in sample.items if i.bucket == bucket)
+            assert sum(by_arm.values()) == 5
+            assert max(by_arm.values()) - min(by_arm.values()) <= 1
 
 
 class TestRoundTrip:
