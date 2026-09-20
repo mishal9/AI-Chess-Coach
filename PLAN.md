@@ -56,7 +56,7 @@ Your data: 53 `mshah509` games (25 Jun – 6 Sep 2026). Tagged mistakes so far: 
 
 ## Next steps (picked up from 20 Sep)
 
-Ordered. Each gate decides whether the next step is needed.
+N1, N2, N3 and N4 round 1 can all start now and run in parallel; none waits on another. Later steps wait on the gates. Each gate decides whether the next step is needed.
 
 **N1. Resolve the teacher licence (blocks everything below that touches distillation).**
 Ask Anthropic for written permission (describe: academic chess-coaching study, 8B student, no release
@@ -72,17 +72,27 @@ the same prompt, judge with Opus (evaluation is not restricted), and run the cla
 is not reproducible licence-free, and the paper leans on the audit, the checkers and the template
 control (§4, §5, and the new control), with the fine-tune as an appendix.
 
-**N3. Fine-tune on the template's output (no teacher, no licence issue, ~$1.20 GPU).**
+**N3. Fine-tune on the template's output (no teacher, no licence issue, ~$1.20 GPU). Runnable now, in parallel with N1 and N2.**
 The missing attribution control: are v2's gains from the teacher's text or from the row *shape*? The
 shape-vs-volume ablation already pointed at shape. Template rows are free, so this also gives a
 data-scale ablation (1k / 5k / 20k rows) with no teacher spend. Read the result against v2 and the
-prompted base, not in absolute terms: the student can at best match the template. Needs an edit to
-"Not in this goal" below.
+prompted base, not in absolute terms: the student can at best match the template. Its outputs do not
+depend on the teacher, so it is a stable arm for human rating (N4, round 2).
 
-**N4. Human ratings (P3), now decisive.** Gate 3 made human judgement the tiebreak between two
-judges that weigh severity differently. Fill `eval/human/round1/ratings.csv` with at least two raters,
-state each rater's strength, and compute human ↔ judge agreement. Check the sample includes the
-template arm before collecting; if not, add it, since it is the cheap arm that most needs a human read.
+**N4. Human ratings (P3), now decisive. Round 1 can start now.** Gate 3 made human judgement the
+tiebreak between two judges that weigh severity differently. Use at least two raters, state each
+rater's strength, and compute human ↔ judge agreement.
+
+Arms depend on the teacher, so rate in two rounds. Otherwise ratings of a fine-tune that may not
+survive the licence answer are wasted.
+
+- **Round 1 (now): teacher-independent arms only** — prompted `qwen3:8b` and the template coach. The
+  current sample (`eval/human/round1`) holds 15 v2 and 14 prompted-base items, so rebuild it to swap
+  v2 out for the template report. Check how the arm-balanced stratification behaves with the new pair.
+- **Round 2 (after N1 and N2 settle which fine-tune is real):** the surviving fine-tune (v2 if
+  Anthropic says yes, else the open-weights-teacher fine-tune) and the template-trained model from N3.
+- **Anchors:** repeat 4–5 prompted-base items in both rounds, so a calibration shift between sessions
+  shows up and can be corrected. Use the same raters for both rounds.
 
 **N5. Fix before the figures script (P5) reads any report.**
 Older re-judged reports (`*__gemini31pro.json`) still carry a stale `aggregate` block from before the
@@ -105,7 +115,16 @@ on this project slipped by adding "one more thing worth auditing".
 flowchart LR
     C[Cleanup PR] --> P1
     subgraph G1["Goal 1 - publish, date to be reset after N1"]
-      P1[Land paper code] --> P2[Second judge] --> T[Template control] --> N1[N1 Teacher licence] --> N3[N2/N3 teacher swap, template fine-tune] --> P3[Human ratings] --> P4[Evidence freeze] --> P5[Figures] --> P6[Write] --> P7[Submit]
+      P1[Land paper code] --> P2[Second judge] --> T[Template control]
+      T --> N1[N1 Teacher licence] --> N2[N2 teacher swap]
+      T --> N3[N3 template fine-tune]
+      T --> R1[N4 round 1 ratings]
+      N2 --> R2[N4 round 2 ratings]
+      R1 --> R2
+      N2 --> P4[Evidence freeze]
+      N3 --> P4
+      R2 --> P4
+      P4 --> P5[Figures] --> P6[Write] --> P7[Submit]
     end
     P7 --> A1
     subgraph G2["Goal 2 - a coach you use weekly"]
