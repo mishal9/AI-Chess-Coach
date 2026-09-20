@@ -87,6 +87,15 @@ class Sample:
             counts[item.bucket] = counts.get(item.bucket, 0) + 1
         return counts
 
+    @property
+    def arms(self) -> dict[str, int]:
+        """Item count per ``source_report`` — for the operator's own eyes (the answer
+        key, never the rater-facing sheet), to confirm the arm balance held."""
+        counts: dict[str, int] = {}
+        for item in self.items:
+            counts[item.source_report] = counts.get(item.source_report, 0) + 1
+        return counts
+
 
 def bucket_of(game: dict) -> str:
     """The mistake-profile bucket, from the held-out file the game came from."""
@@ -120,27 +129,60 @@ def collect(reports: list[Path], facts_by_game: dict[tuple[str, int], str]) -> l
 def stratified_sample(
     items: list[RatingItem], size: int = DEFAULT_SAMPLE, seed: int = DEFAULT_SEED
 ) -> Sample:
-    """Take ``size`` items spread as evenly as possible across buckets.
+    """Take ``size`` items spread as evenly as possible across buckets, and within each
+    bucket, as evenly as possible across arms (``source_report``).
 
     Round-robins across buckets rather than sampling uniformly, so a bucket with few
-    games still appears. Whichever system produced a text is irrelevant to selection —
-    both arms are pooled, which is what keeps the sample blind by construction.
+    games still appears. Within a bucket, each pick goes to whichever arm has contributed
+    the fewest items to that bucket so far, so one arm can never end up dominating a
+    bucket the way pure random luck otherwise allows (e.g. 4:1) — the worst case for any
+    bucket is off-by-one. This never touches blinding: it only decides which candidates
+    are picked, never what a rater sees — the item id, order, and sheet still carry no
+    provenance.
     """
     rng = random.Random(seed)
-    by_bucket: dict[str, list[RatingItem]] = {}
+    by_bucket_arm: dict[str, dict[str, list[RatingItem]]] = {}
     for item in items:
-        by_bucket.setdefault(item.bucket, []).append(item)
-    for pool in by_bucket.values():
-        rng.shuffle(pool)
+        by_bucket_arm.setdefault(item.bucket, {}).setdefault(item.source_report, []).append(item)
+    for arms in by_bucket_arm.values():
+        for arm_pool in arms.values():
+            rng.shuffle(arm_pool)
+
+    picked_count: dict[str, dict[str, int]] = {b: {} for b in by_bucket_arm}
+    total_count: dict[str, int] = {}  # across the whole sample, for the tie-break below
+
+    def pop_from_bucket(bucket: str) -> RatingItem | None:
+        arms = by_bucket_arm[bucket]
+        counts = picked_count[bucket]
+        available = [arm for arm, pool in arms.items() if pool]
+        if not available:
+            return None
+        # Primary: whichever arm this bucket has picked fewest of so far (caps any one
+        # bucket's imbalance at 1). Ties -- inevitable in every bucket with an odd
+        # quota -- break by whichever arm has fewest picks in the WHOLE sample so far,
+        # not alphabetically: alphabetical order is fixed, so it would hand every odd
+        # bucket's "extra" pick to the same arm every time (5 odd buckets => a 12:17
+        # split, not the close-to-even split stratifying by arm is supposed to buy).
+        # The global tally naturally alternates which arm wins the tie from one bucket
+        # to the next instead.
+        least_picked = min(counts.get(arm, 0) for arm in available)
+        tied = [a for a in available if counts.get(a, 0) == least_picked]
+        arm = min(tied, key=lambda a: (total_count.get(a, 0), a))
+        counts[arm] = counts.get(arm, 0) + 1
+        total_count[arm] = total_count.get(arm, 0) + 1
+        return arms[arm].pop()
 
     picked: list[RatingItem] = []
-    buckets = sorted(by_bucket)
-    while len(picked) < size and any(by_bucket[b] for b in buckets):
+    buckets = sorted(by_bucket_arm)
+    while len(picked) < size and any(
+        any(pool for pool in arms.values()) for arms in by_bucket_arm.values()
+    ):
         for bucket in buckets:
             if len(picked) >= size:
                 break
-            if by_bucket[bucket]:
-                picked.append(by_bucket[bucket].pop())
+            item = pop_from_bucket(bucket)
+            if item is not None:
+                picked.append(item)
 
     rng.shuffle(picked)  # order must not carry information either
     return Sample(
@@ -354,6 +396,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"{len(sample.items)} items from {len(items)} candidates")
     print(f"buckets: {sample.buckets}")
+    print(f"arms: {sample.arms}")
     for name, path in paths.items():
         print(f"  {name:8s} {path}")
     print("\nGive raters the sheet and a copy of ratings.csv. Keep answer_key.csv back.")
