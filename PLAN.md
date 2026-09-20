@@ -1,6 +1,6 @@
 # Plan — one goal at a time
 
-Rewritten 2026-09-13. The original Phase 0–6 roadmap (Chroma, Qwen2.5-3B, a hosted public site)
+Rewritten 2026-09-13; status and next steps updated 2026-09-20. The original Phase 0–6 roadmap (Chroma, Qwen2.5-3B, a hosted public site)
 is in git history. It served its purpose, and most of it was either built or deliberately
 dropped. This version replaces it with two finishable goals, done **one after the other**.
 
@@ -29,13 +29,71 @@ Your data: 53 `mshah509` games (25 Jun – 6 Sep 2026). Tagged mistakes so far: 
 3. Distillation reproduced its base model's judged quality (factual 3.72 vs 3.72) and improved
    citation hygiene. It did not exceed the base model. The teacher scores 4.97, so the headroom is real.
 
+**Since 13 Sep** (all merged to `master`)
+
+- **Gate 3 ran** (#62). Under a second judge (`gemini-3.1-pro-preview`) the distillation tie does not
+  survive: factual is +0.41 for the fine-tune (not significant at n = 29), and the two judges disagree
+  on how much invented narrative should cost. `docs/experiments/2026-09-13-gate3-cross-judge.md`.
+- **Human-rating tooling landed** (#65, #66): multi-rater consensus, inter-rater agreement, and a
+  29-item round-1 sample, stratified by arm within each bucket. **`eval/human/round1/ratings.csv`
+  still has 0 ratings.**
+- **Template control added** (#67): a coach with no model in it, built from the same facts block.
+  Factual 5.00 against 3.72 (Opus) and 2.86–3.28 (Gemini) for the 8B arms, and overall 4.22 vs
+  4.14–4.17. A script ties or beats both 8B models on this rubric; the LLM's edge is actionability.
+  `docs/experiments/2026-09-20-template-control.md`.
+
 **Not finished**
 
-- Paper: no draft yet. The cross-judge check (Gate 3) has not run. The human-rating sheet was
-  built today with 0 ratings. The paper's code is on `paper/grounding-audit`, which has no PR.
-  The sprint's TMLR date (14 Sep) cannot be met.
+- **Blocker: the teacher licence.** Anthropic's terms prohibit using Outputs "as training targets
+  for models" and "models designed for open-ended text generation" without written permission
+  (Help Center, updated 16 Mar 2026; Commercial Terms §D.4). The v2 fine-tune was trained on Opus
+  rows. Nothing in the repo addresses this. It must be resolved before any submission; see
+  "Next steps".
+- Paper: no draft yet. Human ratings are 0. The evidence freeze (P4) and the TMLR date have both
+  slipped past their dates.
 - App: you can read about a game, but you can't see the board. Coaching covers one game at a
   time, never your habits across games, and nothing makes you practise.
+
+## Next steps (picked up from 20 Sep)
+
+Ordered. Each gate decides whether the next step is needed.
+
+**N1. Resolve the teacher licence (blocks everything below that touches distillation).**
+Ask Anthropic for written permission (describe: academic chess-coaching study, 8B student, no release
+of the distilled data) and keep the reply. Do not release the distilled dataset either way; release
+generation prompts only. State the teacher, and the permission, in the paper. Do not omit or rename it.
+
+**N2. In parallel, test an open-weights teacher (free of the licence question).**
+Shortlist by licence first: DeepSeek-V4 (MIT), GLM-5.3, Kimi K3, and check each licence text yourself.
+`openrouter.ai/collections/distillable-models` lists models whose terms allow distillation. A hosted API
+has its own terms, separate from the weights licence. Run each candidate on the 29 held-out games with
+the same prompt, judge with Opus (evaluation is not restricted), and run the claim checkers.
+**Gate:** judged factual ≥ ~4.5 and zero claim violations. If none clears it, the distilled fine-tune
+is not reproducible licence-free, and the paper leans on the audit, the checkers and the template
+control (§4, §5, and the new control), with the fine-tune as an appendix.
+
+**N3. Fine-tune on the template's output (no teacher, no licence issue, ~$1.20 GPU).**
+The missing attribution control: are v2's gains from the teacher's text or from the row *shape*? The
+shape-vs-volume ablation already pointed at shape. Template rows are free, so this also gives a
+data-scale ablation (1k / 5k / 20k rows) with no teacher spend. Read the result against v2 and the
+prompted base, not in absolute terms: the student can at best match the template. Needs an edit to
+"Not in this goal" below.
+
+**N4. Human ratings (P3), now decisive.** Gate 3 made human judgement the tiebreak between two
+judges that weigh severity differently. Fill `eval/human/round1/ratings.csv` with at least two raters,
+state each rater's strength, and compute human ↔ judge agreement. Check the sample includes the
+template arm before collecting; if not, add it, since it is the cheap arm that most needs a human read.
+
+**N5. Fix before the figures script (P5) reads any report.**
+Older re-judged reports (`*__gemini31pro.json`) still carry a stale `aggregate` block from before the
+`eval.rejudge` fix. Their per-game rubrics are correct. Have the figures script recompute from `games`,
+not `aggregate`. Do not report `identifies_worst_move`: it scores the game's worst move for either side,
+but the facts block lists only the coached side's mistakes, so 5 of the template's 8 misses are moves no
+coach could cite.
+
+**N6. Freeze and write.** Only after N1 is answered and N2/N3 are run or dropped: evidence freeze
+(P4), figures (P5), draft (P6), hostile read and submit (P7). Move the target date once N1 has an
+answer; 12 Oct is not realistic without one.
 
 ## The rule
 
@@ -46,8 +104,8 @@ on this project slipped by adding "one more thing worth auditing".
 ```mermaid
 flowchart LR
     C[Cleanup PR] --> P1
-    subgraph G1["Goal 1 - publish by Mon 12 Oct"]
-      P1[Land paper code] --> P2[Second judge] --> P3[Human ratings] --> P4[Evidence freeze] --> P5[Figures] --> P6[Write] --> P7[Submit]
+    subgraph G1["Goal 1 - publish, date to be reset after N1"]
+      P1[Land paper code] --> P2[Second judge] --> T[Template control] --> N1[N1 Teacher licence] --> N3[N2/N3 teacher swap, template fine-tune] --> P3[Human ratings] --> P4[Evidence freeze] --> P5[Figures] --> P6[Write] --> P7[Submit]
     end
     P7 --> A1
     subgraph G2["Goal 2 - a coach you use weekly"]
@@ -78,19 +136,20 @@ branch.
 
 | # | Step | Done when | By |
 |---|---|---|---|
-| P1 | Land the paper code: rebase `paper/grounding-audit` on master and open a PR (`equivalence`, `rejudge`, `human_rating`, outline, gap analysis) | merged; bare `pytest` green | Tue 15 Sep |
-| P2 | **Gate 3, second judge.** `eval.rejudge` over stored coaching for both arms; per-axis agreement with Opus; rerun `eval.equivalence` under the second judge. Disclose that `gemini-3.6-flash` is weaker than Opus | `docs/experiments/…-gate3-cross-judge.md` committed | Fri 18 Sep |
-| P3 | **Human ratings.** You plus one chess-playing rater, 20 blinded items (`eval/human/round1`). If no second rater by Fri 18 Sep, ship with one rater and state it as a limitation | `ratings.csv` filled; human ↔ judge agreement computed | Sun 20 Sep |
-| P4 | **Evidence freeze.** Tag `evidence-freeze`. From here: no new experiments, no expanding the held-out set (n=29 with the stated bound) | tag pushed | Sun 20 Sep |
+| P1 | Land the paper code: rebase `paper/grounding-audit` on master and open a PR (`equivalence`, `rejudge`, `human_rating`, outline, gap analysis) | merged; bare `pytest` green. **Done** (#61) | Tue 15 Sep |
+| P2 | **Gate 3, second judge.** `eval.rejudge` over stored coaching for both arms; per-axis agreement with Opus; rerun `eval.equivalence` under the second judge. Disclose that `gemini-3.6-flash` is weaker than Opus | `docs/experiments/…-gate3-cross-judge.md` committed. **Done** (#62) | Fri 18 Sep |
+| P3 | **Human ratings.** You plus one chess-playing rater, 29 blinded items (`eval/human/round1`, resized from 20). If no second rater by Fri 18 Sep, ship with one rater and state it as a limitation | `ratings.csv` filled; human ↔ judge agreement computed. **Tooling done, 0 ratings; slipped (N4)** | Sun 20 Sep |
+| P4 | **Evidence freeze.** Tag `evidence-freeze`. From here: no new experiments, no expanding the held-out set (n=29 with the stated bound) | tag pushed. **Slipped: now after N1 (N6)** | Sun 20 Sep |
 | P5 | Figures and tables as committed scripts under `eval/figures/`: F2 ceiling pile-up, F3 grounding vs factual, F4 TOST forest plot, T1 corrected scoreboard, T2 checker precision, T3 ablation | each regenerates from committed reports | Sun 27 Sep |
 | P6 | Write, in this order: §4 audit → §5 checkers → §6 distillation → §7 threats → §3 setup → §2 related work → §1 intro → abstract last | full draft in `paper/` | Sun 4 Oct |
 | P7 | Hostile read (write the three reviews you fear, answer each in the text); fresh-clone reproduction with `paper/REPRODUCE.md`; tag `paper-v1`; submit | submitted | Mon 12 Oct |
 
-**Not in this goal:** a v3 dataset, another fine-tune, held-out expansion, positional motifs,
-new audits, app features.
+**Not in this goal:** a v3 dataset of Opus rows, held-out expansion, positional motifs, new audits,
+app features. Exception, gated on N1/N2: the template-target fine-tune and the open-weights teacher
+test in "Next steps", which exist to answer the licence question and the attribution control.
 
-**Budget:** P2 costs little or nothing on the Gemini key. P1–P7 need no Anthropic spend, because
-every Opus score is already stored.
+**Budget:** P2 cost little on the Gemini key. P1–P7 need no further Anthropic spend beyond judging any
+new arm (the template arm was 29 Opus calls, roughly $0.40); every earlier Opus score is already stored.
 
 ---
 
