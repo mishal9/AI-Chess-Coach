@@ -29,7 +29,7 @@ from pathlib import Path
 
 from eval.judge import judge_coaching
 from eval.recheck import DEFAULT_MANIFEST, analyze_manifest
-from eval.run import _JUDGE_BACKENDS
+from eval.run import _JUDGE_BACKENDS, aggregate
 
 # Judge names exactly as `eval.run` spells them, so `--judge gemini` means the same thing
 # in both tools.
@@ -129,17 +129,13 @@ def _default_model_for(judge: str) -> str:
 
 
 def _reaggregate(report: dict) -> None:
-    """Recompute the rubric means so the summary matches the new per-game scores."""
-    scored = [g for g in report["games"] if g.get("rubric")]
-    if not scored:
-        return
-    axes = scored[0]["rubric"]["scores"].keys()
-    aggregate = report.setdefault("aggregate", {})
-    for axis in axes:
-        values = [g["rubric"]["scores"][axis] for g in scored]
-        aggregate[f"rubric_{axis}"] = round(sum(values) / len(values), 3)
-    overalls = [g["rubric"]["overall"] for g in scored]
-    aggregate["rubric_overall"] = round(sum(overalls) / len(overalls), 3)
+    """Recompute the summary from the per-game records, exactly as ``eval.run`` does.
+
+    The summary must be rebuilt by that one definition: a parallel set of keys would leave
+    the ``rubric_axis_means`` / ``rubric_overall_mean`` that readers use holding the
+    *original* judge's numbers while the games carried the new judge's.
+    """
+    report["aggregate"] = aggregate(report["games"])
 
 
 def build_parser() -> argparse.ArgumentParser:

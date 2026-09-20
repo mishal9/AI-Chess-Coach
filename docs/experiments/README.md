@@ -8,6 +8,13 @@ Iteration runs single-seed/single-judge on purpose; [`paper-protocol.md`](./pape
 is the one-time rigor checklist (multi-seed variance, Wilcoxon on the paired design,
 second judge, ablations) to run on the final configuration before writing anything up.
 
+- [2026-09-20 · Control: a coach with no model in it](./2026-09-20-template-control.md) —
+  a deterministic template built from the same facts block. **Factual 5.00** against 3.72
+  (Opus) / 2.86–3.28 (Gemini) for the 8B arms, and **overall 4.22 vs 4.14–4.17**, so a script
+  ties or beats both 8B models on this rubric. The LLM's real contribution is actionability
+  (template 2.83 vs 3.59–3.72). Also fixes `eval.rejudge` leaving the first judge's means in
+  `aggregate`.
+
 - [2026-08-14 · The prompted-8B control](./2026-08-14-prompted-8b-control.md) —
   the comparison the project was missing. Same base weights, same prompt, same held-out
   set, only the LoRA differs. **Judged factual is identical: 3.72 both.** Fine-tuning bought

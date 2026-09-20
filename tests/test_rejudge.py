@@ -16,7 +16,7 @@ pytest.importorskip("scipy", reason="needs the `eval` extra")
 
 from eval.backends import GeminiDailyQuotaExhausted, _retry_delay  # noqa: E402
 from eval.equivalence import judge_agreement  # noqa: E402
-from eval.rejudge import judged_count  # noqa: E402
+from eval.rejudge import _reaggregate, judged_count  # noqa: E402
 
 
 def game(pgn="a.pgn", index=0, side="white", coaching="You played Nxe5.", **scores):
@@ -53,6 +53,20 @@ class TestResume:
 
     def test_an_empty_report_counts_zero(self):
         assert judged_count({}, "gemini-2.5-flash") == 0
+
+
+class TestReaggregate:
+    def test_the_summary_readers_use_follows_the_new_judge(self):
+        """A stale nested summary once kept the first judge's means beside the second's games."""
+        games = [
+            {**game(clarity=5), "grounding": {"score": 1.0, "grounded": True},
+             "claims": {"score": 1.0, "ok": True}, "identifies_worst_move": True},
+        ]
+        rep = report(games)
+        rep["aggregate"] = {"rubric_axis_means": {"clarity": 1.0}, "rubric_overall_mean": 1.0}
+        _reaggregate(rep)
+        assert rep["aggregate"]["rubric_axis_means"]["clarity"] == 5.0
+        assert rep["aggregate"]["rubric_overall_mean"] == 3.0
 
 
 class TestAgreement:
