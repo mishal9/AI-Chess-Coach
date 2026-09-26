@@ -97,7 +97,8 @@ def test_violation_counts_groups_by_kind():
 def test_cli_refuses_an_unaligned_report(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(recheck, "analyze_manifest", lambda *a, **k: [_analyzed()])
     path = tmp_path / "r.json"
-    path.write_text(json.dumps({"games": [_game("You played Bg5.")]}), encoding="utf-8")
+    path.write_text(json.dumps({"depth": 15, "games": [_game("You played Bg5.")]}),
+                    encoding="utf-8")
     assert recheck.main([str(path)]) == 1
     assert "refusing to backfill" in capsys.readouterr().err
 

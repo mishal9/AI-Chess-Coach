@@ -24,6 +24,7 @@ from datetime import date
 from pathlib import Path
 
 from coach import prompts
+from engine.analyzer import DEFAULT_DEPTH
 from eval import backends, claims, grounding
 from eval.run import (
     DEFAULT_MANIFEST, aggregate, analyze_case, append_partial, evaluate_case,
@@ -55,7 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prompt", choices=["v2-era", "current"], default="v2-era")
     parser.add_argument("--judge-model", default=None)
     parser.add_argument("--no-judge", action="store_true")
-    parser.add_argument("--depth", type=int, default=15, help="Stockfish depth (reports use 15)")
+    parser.add_argument("--depth", type=int, default=DEFAULT_DEPTH, help="Stockfish search depth")
     parser.add_argument("--limit", type=int, default=None, help="only the first N games")
     parser.add_argument("--max-judge-calls", type=int, default=50)
     parser.add_argument("--resume", action="store_true")

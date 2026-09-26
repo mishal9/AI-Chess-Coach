@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Callable
 
 from coach import client as coach_client, prompts
+from engine.analyzer import DEFAULT_DEPTH
 from eval import backends, claims, grounding, template_coach
 from eval import judge as judge_mod
 from eval.rubric import RUBRIC_AXES
@@ -252,7 +253,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--coach-temperature", type=float, default=0.0,
         help="coach sampling temperature (default 0 for a reproducible baseline)",
     )
-    parser.add_argument("--depth", type=int, default=15, help="Stockfish search depth")
+    parser.add_argument("--depth", type=int, default=DEFAULT_DEPTH, help="Stockfish search depth")
     parser.add_argument(
         "--max-judge-calls", type=int, default=50,
         help="refuse to start if the run would make more judge calls than this (spend guard)",

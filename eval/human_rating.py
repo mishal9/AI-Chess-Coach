@@ -306,7 +306,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--manifest", type=Path, default=None,
                         help="held-out manifest, for rebuilding the facts blocks")
-    parser.add_argument("--depth", type=int, default=15)
+    parser.add_argument("--depth", type=int, default=None,
+                        help="Stockfish depth (default: the depth the reports record)")
 
     parser.add_argument(
         "--rater", action="append", metavar="NAME=PATH",
@@ -381,9 +382,22 @@ def main(argv: list[str] | None = None) -> int:
 
     # Facts are what make the factual axis answerable, and they are not stored in the
     # reports — rebuild them from the manifest exactly as the judge pipeline does.
-    from eval.recheck import DEFAULT_MANIFEST, analyze_manifest
+    from eval.recheck import DEFAULT_MANIFEST, analyze_manifest, report_depth
 
-    analyzed = analyze_manifest(args.manifest or DEFAULT_MANIFEST, depth=args.depth)
+    try:
+        depths = {
+            report_depth(json.loads(p.read_text(encoding="utf-8")), args.depth)
+            for p in args.report
+        }
+    except ValueError as exc:
+        print(str(exc))
+        return 1
+    if len(depths) > 1:
+        print(f"These reports were run at different depths {sorted(depths)}; "
+              "their facts blocks would not match.")
+        return 1
+
+    analyzed = analyze_manifest(args.manifest or DEFAULT_MANIFEST, depth=depths.pop())
     facts_by_game = {(e["pgn"], e["game_index"]): e["facts"] for e in analyzed}
 
     items = collect(args.report, facts_by_game)

@@ -43,6 +43,48 @@ Estimated one-time cost: ~$1 GPU + ~200 judge calls.
 Every number in the paper traces to a committed `eval/reports/*.json` plus the experiment
 record in this directory that produced it. No number in prose without its JSON.
 
+## Analysis depth (decided 2026-09-26)
+
+Every Stockfish analysis that feeds a result uses **depth 18**: training data, held-out
+bucketing, and every evaluation run. The constant is `engine.analyzer.DEFAULT_DEPTH`, and
+`tests/test_analysis_depth.py` fails if any research script defaults to anything else.
+
+**Why one depth.** The facts block a coach sees depends on depth: a borderline move can
+change label (the inaccuracy threshold is 0.10 win-probability loss) and the engine's
+preferred move can change. Before this decision the pipeline mixed four depths:
+
+| Where | Before | Now |
+|---|---|---|
+| Training data (`training.distill`) | 18 | 18 |
+| Held-out bucketing (`eval.expand_heldout`) | 16 | 18 |
+| Evaluation (`eval.run`, `training.n2_eval`) | 15 | 18 |
+| App (`memory.store.SYNC_DEPTH`) | 12 | 15 |
+
+A model was trained on depth-18 facts and scored on depth-15 facts, and some held-out games
+were bucketed on facts the coaches never saw.
+
+**Why 18.** It matches the depth v2's training data was generated at, so v2 needs no
+exception, and it matches ACT-Eval (Hebbar et al., 2026), the closest related work. The
+cost is time: about 1 s per move on the development machine, 4–5× depth 15.
+
+**The app stays at 15.** Syncing analyzes dozens of games while someone waits. The app is
+not part of any reported number. Deployment depth is stated once in the paper.
+
+**Existing reports.** Every report in `eval/reports/` up to this date was run at depth 15 on
+the 29-game set and records `"depth": 15`. They remain the historical record and are not
+compared with depth-18 results. `eval.recheck`, `eval.rejudge` and `eval.human_rating` now
+rebuild facts at the depth a report records, never at the current default, so re-judging
+an old report still gives the judge the facts its coach was given. The judge-drift check
+re-judges old depth-15 texts against depth-15 facts, which isolates the judge as the only
+change.
+
+**v2's depth is inferred.** v2's rows predate depth recording. The `training.distill`
+default was 18 from 5 Jul and the v2 data was generated on 9 Aug, so it was almost
+certainly 18. State it as inferred. Rows generated from now on store `source.depth`.
+
+**Order.** Re-bucket the held-out set at depth 18 before any arm is scored on the 91 games,
+and before any DeepSeek training rows are generated.
+
 ## Data-scale sweep and held-out expansion (pre-registered 2026-09-25)
 
 N3 asks whether more DeepSeek-taught training rows help. Pre-registering the design here,

@@ -38,6 +38,7 @@ from pathlib import Path
 from typing import Callable
 
 from coach.prompts import choose_coached_side
+from engine.analyzer import DEFAULT_DEPTH
 from training import corpus
 
 HELDOUT_DIR = Path(__file__).resolve().parent / "heldout"
@@ -178,8 +179,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--perf-type", default=None,
                         help="restrict fetch to Lichess speeds, e.g. 'rapid,classical' "
                              "(slow games are where clean, low-ACPL play is found)")
-    parser.add_argument("--depth", type=int, default=16,
-                        help="Stockfish depth for bucketing (default: 16)")
+    parser.add_argument("--depth", type=int, default=DEFAULT_DEPTH,
+                        help="Stockfish depth for bucketing; keep it equal to the eval depth "
+                        f"(default: {DEFAULT_DEPTH})")
     parser.add_argument("--dry-run", action="store_true",
                         help="analyze and show the bucket table, but write nothing")
     return parser

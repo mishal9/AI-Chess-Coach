@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Callable
 
 from coach import prompts
+from engine.analyzer import DEFAULT_DEPTH
 from eval import grounding
 from training import teacher as teacher_mod
 from training.schema import DistillRecord
@@ -129,14 +130,23 @@ def _best_grounded_attempt(generate, check, retries: int):
     return best
 
 
+def _depth_field(depth: int | None) -> dict:
+    return {} if depth is None else {"depth": depth}
+
+
 def build_record(
     source: SourceGame,
     report: dict,
     teacher_fn: teacher_mod.TeacherFn,
     teacher_desc: dict,
     retries: int = 0,
+    depth: int | None = None,
 ) -> DistillRecord:
-    """Coach one game with the teacher and package the grounding-checked training pair."""
+    """Coach one game with the teacher and package the grounding-checked training pair.
+
+    ``depth`` is the Stockfish depth ``report`` was analyzed at. It is stored in the row's
+    ``source`` so a dataset can show which depth its facts came from.
+    """
     coached_side = source.coached_side or prompts.choose_coached_side(report)
     messages = prompts.build_messages(report, coached_side)
     facts = prompts.format_report_facts(report, coached_side)
@@ -156,6 +166,7 @@ def build_record(
             "pgn": source.pgn.name,
             "game_index": source.game_index,
             "coached_side": coached_side,
+            **_depth_field(depth),
         },
         coached_side=coached_side,
         facts=facts,
@@ -174,6 +185,7 @@ def build_position_record(
     position_teacher_fn: teacher_mod.PositionTeacherFn,
     teacher_desc: dict,
     retries: int = 0,
+    depth: int | None = None,
 ) -> DistillRecord:
     """Coach ONE critical position and package the tight-citation training pair.
 
@@ -203,6 +215,7 @@ def build_position_record(
             "coached_side": coached_side,
             "move_number": move["move_number"],
             "move_san": move["san"],
+            **_depth_field(depth),
         },
         coached_side=coached_side,
         facts=facts,
@@ -232,7 +245,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="deepseek only: send an explicit thinking mode (default: the API's own); "
         "recorded in each row's teacher metadata",
     )
-    parser.add_argument("--depth", type=int, default=18, help="Stockfish search depth")
+    parser.add_argument("--depth", type=int, default=DEFAULT_DEPTH, help="Stockfish search depth")
     parser.add_argument(
         "--positions-per-game", type=int, default=4,
         help="also emit up to N per-position rows (worst mistakes first) per game; "
@@ -318,12 +331,12 @@ def main(argv: list[str] | None = None) -> int:
 
             if not args.no_game_rows:
                 emit(fh, build_record(source, report, teacher_fn, teacher_desc,
-                                      retries=args.retries))
+                                      retries=args.retries, depth=args.depth))
             mistakes = prompts.coachable_mistakes(report, coached_side)
             for move in mistakes[: args.positions_per_game]:
                 emit(fh, build_position_record(source, report, move,
                                                position_teacher_fn, teacher_desc,
-                                               retries=args.retries))
+                                               retries=args.retries, depth=args.depth))
 
     if args.teacher == "deepseek":
         u = teacher_mod.DEEPSEEK_USAGE
