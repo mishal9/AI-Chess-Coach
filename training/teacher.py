@@ -13,7 +13,11 @@ Claude (``anthropic``) but can be pointed at any backend without touching this m
 
 from __future__ import annotations
 
+import os
+import time
 from typing import Callable
+
+import requests
 
 from coach import prompts
 from eval import backends
@@ -61,11 +65,81 @@ def build_teacher_position_messages(
     return [{"role": "system", "content": TEACHER_POSITION_SYSTEM_PROMPT}, *student[1:]]
 
 
+# DeepSeek's own API (OpenAI-compatible). Its terms assign outputs to the caller and allow
+# "training other models (such as model distillation)" — unlike the Anthropic terms this
+# project's v2 rows were generated under (see PLAN.md, N1/N2). The docs name only the alias
+# ``deepseek-v4-pro``, not a dated snapshot, so the model the response reports is recorded.
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-pro"
+# Non-zero on purpose: a grounding retry only helps if a re-roll can differ.
+DEEPSEEK_TEMPERATURE = 0.7
+# ``None`` sends no ``thinking`` field and takes the API's default; "enabled"/"disabled"
+# sends it explicitly. Set by ``training.distill --teacher-thinking`` and recorded there.
+DEEPSEEK_THINKING: str | None = None
+DEEPSEEK_MAX_ATTEMPTS = 5
+DEEPSEEK_TIMEOUT_S = 300
+
+# Running tally of what the API reported, so a run can print its real token bill.
+DEEPSEEK_USAGE = {
+    "calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "reasoning_tokens": 0,
+    "models": set(),
+}
+
+
+def deepseek_backend(messages: list[dict], model: str | None = None) -> str:
+    """Chat with DeepSeek via its OpenAI-compatible endpoint; return the answer text only.
+
+    Needs ``DEEPSEEK_API_KEY`` (environment or ``.env``). Only ``message.content`` is used:
+    any ``reasoning_content`` is dropped, so a thinking-mode trace can never end up in a
+    training target. 429 and 5xx responses are retried with backoff; anything else raises.
+    """
+    backends._load_dotenv()
+    key = os.environ.get("DEEPSEEK_API_KEY")
+    if not key:
+        raise SystemExit("DEEPSEEK_API_KEY is not set (environment or .env).")
+    body = {
+        "model": model or DEFAULT_DEEPSEEK_MODEL,
+        "messages": messages,
+        "temperature": DEEPSEEK_TEMPERATURE,
+        "stream": False,
+    }
+    if DEEPSEEK_THINKING:
+        body["thinking"] = {"type": DEEPSEEK_THINKING}
+
+    for attempt in range(1, DEEPSEEK_MAX_ATTEMPTS + 1):
+        resp = requests.post(
+            f"{DEEPSEEK_BASE_URL}/chat/completions",
+            headers={"Authorization": f"Bearer {key}"},
+            json=body,
+            timeout=DEEPSEEK_TIMEOUT_S,
+        )
+        if resp.status_code == 429 or resp.status_code >= 500:
+            if attempt == DEEPSEEK_MAX_ATTEMPTS:
+                resp.raise_for_status()
+            time.sleep(min(2 ** attempt, 30))
+            continue
+        if resp.status_code >= 400:
+            raise RuntimeError(f"DeepSeek API {resp.status_code}: {resp.text[:300]}")
+        data = resp.json()
+        usage = data.get("usage") or {}
+        DEEPSEEK_USAGE["calls"] += 1
+        DEEPSEEK_USAGE["prompt_tokens"] += usage.get("prompt_tokens", 0)
+        DEEPSEEK_USAGE["completion_tokens"] += usage.get("completion_tokens", 0)
+        DEEPSEEK_USAGE["reasoning_tokens"] += (
+            (usage.get("completion_tokens_details") or {}).get("reasoning_tokens", 0)
+        )
+        if data.get("model"):
+            DEEPSEEK_USAGE["models"].add(data["model"])
+        return (data["choices"][0]["message"].get("content") or "").strip()
+    raise RuntimeError("unreachable")  # pragma: no cover
+
+
 def _backend(backend_name: str):
     return {
         "ollama": backends.ollama_backend,
         "anthropic": backends.anthropic_backend,
         "gemini": backends.gemini_backend,
+        "deepseek": deepseek_backend,
     }[backend_name]
 
 

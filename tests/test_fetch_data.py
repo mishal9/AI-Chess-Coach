@@ -87,3 +87,32 @@ def test_cli_requires_user_for_chesscom(monkeypatch, tmp_path):
     monkeypatch.setattr(fetch_data, "DATA_DIR", tmp_path)
     with pytest.raises(SystemExit):  # argparse error → SystemExit(2)
         fetch_data.main(["--source", "chesscom"])
+
+
+def test_lichess_sends_accept_and_user_agent(monkeypatch):
+    """Lichess falls through to the generic site 404 page for an anonymous games/user
+    call (lichess-org/api#667) — the header is what makes this a real API response."""
+    seen = {}
+
+    def fake_get(url, params=None, headers=None, timeout=None, **kwargs):
+        seen.update(url=url, params=params, headers=headers)
+        return type("R", (), {
+            "raise_for_status": lambda self: None,
+            "text": "[Event \"x\"]\n1. e4 *",
+        })()
+
+    monkeypatch.setattr(fetch_data.requests, "get", fake_get)
+    text = fetch_data.fetch_lichess_games("DrNykterstein", 5)
+
+    assert seen["headers"]["User-Agent"] == fetch_data._USER_AGENT
+    assert seen["headers"]["Accept"] == "application/x-chess-pgn"
+    assert text.strip().endswith("*")
+
+
+def test_lichess_raises_on_empty_response(monkeypatch):
+    def fake_get(url, params=None, headers=None, timeout=None, **kwargs):
+        return type("R", (), {"raise_for_status": lambda self: None, "text": "  "})()
+
+    monkeypatch.setattr(fetch_data.requests, "get", fake_get)
+    with pytest.raises(RuntimeError, match="no games"):
+        fetch_data.fetch_lichess_games("nobody", 5)

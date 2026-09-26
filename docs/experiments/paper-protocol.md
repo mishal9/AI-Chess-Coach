@@ -42,3 +42,121 @@ Estimated one-time cost: ~$1 GPU + ~200 judge calls.
 
 Every number in the paper traces to a committed `eval/reports/*.json` plus the experiment
 record in this directory that produced it. No number in prose without its JSON.
+
+## Data-scale sweep and held-out expansion (pre-registered 2026-09-25)
+
+N3 asks whether more DeepSeek-taught training rows help. Pre-registering the design here,
+before any row beyond the pilot is generated, is what stops "one more size worth trying"
+from becoming the failure mode this project already named once (see `PLAN.md`, "The rule").
+**Nothing below changes once the sweep starts.**
+
+### Why the held-out set grows first
+
+Every existing headline number comes from 29 games. The per-game SD on the factual axis
+(v2 vs. prompted-base, `eval/reports/8b_v2_2026-08-10.json` and `prompted_8b_2026-08-14.json`)
+is **1.16**, which gives a 90%-CI half-width of **±0.37** at n=29 — already the bound Gate 3
+reports. A data-scale sweep exists to detect a *difference between sizes*, and ±0.37 cannot
+resolve that against noise this size.
+
+| n (games) | 90% CI half-width (factual axis, SD 1.16) |
+|---|---|
+| 29 (today) | ±0.37 |
+| 60 | ±0.26 |
+| **100 (target)** | **±0.20** |
+| 150 | ±0.16 |
+
+**Target: ~100 held-out games, 17 per mistake-profile bucket** (`eval.expand_heldout
+--per-bucket 17`). At ±0.20, a difference of ~0.4 becomes detectable and a TOST equivalence
+claim at δ=0.30 becomes meaningful — both out of reach at n=29. Beyond 150 games the bound
+flattens while judge spend keeps rising, so 100 is the stopping point, not a floor.
+
+Caveat: SD 1.16 is one comparison (v2 vs. prompted-base); template-vs-prompted gives 0.7. The
+bound is a planning estimate, not a guarantee — re-state it from the actual n once expansion
+finishes.
+
+**Order, because each step depends on the last:**
+1. `eval.expand_heldout --per-bucket 17` (writes new held-out PGNs), then `training.corpus`
+   (re-derives the corpus so it stays disjoint from the wider held-out set — it reads
+   `eval/heldout/` fingerprints, so this must run *after* step 1, not before).
+2. Re-run every existing arm (template, prompted 8B, v2, DeepSeek-as-coach) on the widened
+   set — the old 29-game reports are not comparable to anything scored on 100 games.
+3. Only then generate sweep training data and fine-tune.
+
+### Reproducible game selection (added 2026-09-25)
+
+"Nested" only holds if the same games sit in the same order every time, independent of
+when the corpus was fetched — `training.corpus.assemble` otherwise orders games by fetch
+order, which drifts as the roster keeps playing new games on Lichess. Fixed by
+`training.corpus.canonical_order`: games are sorted by a SHA-256 hash of each game's own
+identity (`engine.pgn.game_key`, same id-or-movetext-hash scheme `heldout_fingerprints`
+already uses), so the order depends only on the games themselves, not on fetch time or
+manifest position. Row-count prefixes of a `training.distill` run over a canonically
+ordered manifest are then the same games at every tier, reproducible months later against
+a corpus that has moved on.
+
+`training.corpus --canonical-seed 0` opts into this (default: unchanged fetch order, so
+existing usage is untouched). Use it for every corpus fetch that feeds the sweep.
+
+**What this does not make reproducible:** DeepSeek's completions themselves.
+`training.teacher.DEEPSEEK_TEMPERATURE = 0.7` on purpose — a re-roll after a failed
+grounding check only helps if it can produce a different answer — so re-running
+distillation on the same canonically ordered games will not reproduce byte-identical
+training text. This matches how the original Opus/v2 dataset was already generated (the
+teacher is nondeterministic there too); state it as a limitation rather than a gap
+specific to the DeepSeek arm. What must and does reproduce is *which* games and rows make
+up each tier, and the train/val/test split of whatever text they end up holding
+(`training.dataset.assign_split`, seed 0).
+
+### Training-size sweep
+
+Four **nested** train-row sizes, each a superset of the smaller ones so only size varies:
+
+| Rows (train split) | Role |
+|---|---|
+| ~400 | replicates v2's size, like-for-like |
+| 1,000 | |
+| 2,500 | |
+| 5,000 | upper end of this sweep |
+
+- **Fixed shape mix**: hold v2's ~1 game-row : 2 position-row ratio at every size — the
+  shape-vs-volume ablation (`2026-08-10-ablation-shape-vs-volume.md`) already showed shape
+  drives the grounding gain, so a sweep that let the mix drift would confound size with shape.
+- **Same recipe throughout**: same base model (Qwen3-8B), same QLoRA config, same held-out
+  set (the widened one from above).
+- **Report every point**, including a flat curve. A flat curve at 5,000 rows is itself the
+  answer to "is 400 rows undertrained" — say that plainly rather than only reporting the win
+  case.
+- Template-trained (N3, no teacher) rows sweep further (1k/5k/20k) at effectively no cost and
+  run alongside this as the free comparison — did DeepSeek's text add anything the row shape
+  alone didn't already provide?
+
+### Seeding (revised 2026-09-25)
+
+A 4-point curve with a noise estimate only at its two ends leaves the middle two points
+undefended — a reviewer has no way to tell a real step from seed wobble at 1,000 or 2,500
+rows. GPU is cheap here (~$1–2/run); judging is what's expensive. So seed and judge are
+decoupled:
+
+- **Train 3 seeds (0, 1, 2) at all 4 sizes** — 12 QLoRA runs, ~$18–24 GPU total.
+- **Score grounding + claims on all 12** — deterministic, no judge call, effectively free.
+  This alone bounds how much a run wobbles before any judge spend.
+- **Rubric-judge (Opus + Gemini) one seed per size** for the headline curve — 4 points, the
+  same judge cost as before.
+- **Rubric-judge all 3 seeds at the two endpoints** (~400 and 5,000) as the calibration: how
+  much does the *judged* rubric itself wobble across seeds, independent of the deterministic
+  metrics. That figure is what licenses trusting the single-seed middle points.
+
+### Cost (at DeepSeek V4 Pro peak pricing; roughly half off-peak)
+
+| Item | Approx. cost |
+|---|---|
+| Held-out expansion Stockfish pass (~70 new games) | compute only, no API spend |
+| Re-scoring 4 existing arms on ~100 games (Opus judge) | ~$5.60 (4 × ~100 × $0.014) |
+| 5,000-row dataset (≈5,750 raw rows ≈ 1,700 source games) | ~$13 |
+| QLoRA training, 4 sizes × 3 seeds | ~$18–24 GPU (~$1–2/run) |
+| Grounding + claims on all 12 seed runs | free (deterministic) |
+| Headline judging: 1 seed × 4 sizes, Opus + Gemini, ~100 games | ~$11–15 |
+| Endpoint seed-variance judging: 2 extra seeds × 2 sizes, Opus + Gemini | ~$5.60 |
+
+Total for the full sweep: roughly **$53–72**, most of it the widened held-out judging, which
+is paid once and reused by every arm after it.

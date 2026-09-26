@@ -1,0 +1,1291 @@
+{
+  "coach_model": "deepseek-v4-pro",
+  "coach_temperature": 0.0,
+  "coach_prompt": "v2-era",
+  "coach_thinking": "disabled",
+  "coach_models_reported": [
+    "deepseek-v4-pro"
+  ],
+  "judge": "anthropic",
+  "judge_model": "claude-opus-4-8",
+  "depth": 15,
+  "metric_versions": {
+    "grounding": 2,
+    "claims": 1
+  },
+  "date": "2026-09-25",
+  "aggregate": {
+    "games": 29,
+    "grounding_mean": 0.977,
+    "grounded_rate": 0.931,
+    "worst_move_identified_rate": 0.724,
+    "claims_mean": 0.989,
+    "claims_ok_rate": 0.966,
+    "rubric_axis_means": {
+      "factual_correctness": 5.0,
+      "clarity": 5.0,
+      "actionability": 4.31,
+      "identifies_key_mistake": 4.97
+    },
+    "rubric_overall_mean": 4.82
+  },
+  "games": [
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 0,
+      "coached_side": "white",
+      "note": "near-clean game (both sides low ACPL, nothing flagged) \u2014 the coach must recognize a clean game, not invent errors",
+      "coaching": "That was a genuinely clean game \u2014 the engine found no inaccuracies, mistakes, or blunders from either side, and your average centipawn loss was very low. A draw against solid play with zero flagged errors is something to be pleased about.\n\nSince there are no specific mistakes to point to, the main takeaway is that your play was consistently sound. You didn't give your opponent any clear chances, and you didn't drift into losing territory at any point.\n\nTo keep improving from here, focus on converting clean positions into wins. In games like this, the difference between a draw and a win often comes down to small practical decisions: creating imbalances earlier, pressing in equal-looking endgames, or taking calculated risks when the position is stable. Review the middlegame and ask yourself whether there was a moment where you could have played more ambitiously without taking on real risk.\n\nFor now, though, credit yourself for a well-played game. Consistency like this is a strong foundation.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "Accurately reflects the clean game with no errors and low centipawn loss; no fabrication. Correctly recognizes there was no single mistake. Advice on pressing for wins is reasonable and actionable, though somewhat generic since no specific moves are available."
+      }
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 0,
+      "coached_side": "black",
+      "note": "gradual loss: high ACPL but no discrete blunder (Opera-like) \u2014 the case where a small model tends to hallucinate",
+      "coaching": "Let\u2019s focus on the moment that really changed the game: **23...Kh7**.\n\nYou had a chance to play **Bc5**, which would have kept your position active and given you real counterplay. Instead, the king move was too passive. It didn\u2019t address the pressure White was building, and it cost you about 21% of your winning chances in one move. When you\u2019re under pressure, stepping the king away can feel safe, but here it just gave White time to consolidate. **Bc5** would have fought for the initiative instead of retreating.\n\nEarlier, **21...Nxd5** was also a bit hasty. The engine preferred **Qxe4**, which keeps more tension and grabs material in a more favorable way. Your move wasn\u2019t a blunder, but it let White off the hook a little and started the slide toward that later mistake.\n\nThe pattern here is clear: when the position got sharp, you chose moves that reduced tension or played it safe, but those choices actually handed the initiative to your opponent. Against a strong player, that\u2019s usually enough to lose.\n\n**What to work on:**\n1. In critical moments, look for the move that fights back \u2014 even if it feels riskier. Ask yourself: \u201cWhat is my most active move?\u201d\n2. When you have a choice between a safe-looking move and one that keeps pressure on your opponent, calculate the active one first. You\u2019ll often find it\u2019s not as dangerous as it looks.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc5",
+          "Kh7",
+          "Nxd5",
+          "Qxe4"
+        ],
+        "allowed": [
+          "Bc5",
+          "Kh7",
+          "Nxd5",
+          "Qxe4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "All moves and eval costs match the facts (Kh7, Bc5, Nxd5, Qxe4, percentages). Correctly leads with the key mistake. Clear and well-organized. Advice is reasonable but somewhat generic; the cp loss of 942 vs 21% framing is faithful. Slight overinterpretation of 'grabs material' for Qxe4 but not contradicted by facts."
+      }
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 0,
+      "coached_side": "white",
+      "note": "a single clear blunder plus high ACPL",
+      "coaching": "Let's break down your game. The headline is that you didn't make any outright blunders \u2014 no hanging a piece in one move \u2014 but one decision in the early middlegame really changed the character of the game, and a couple of quieter choices let the position slip further.\n\nThe key moment was **13.Bc4**. This was your one true mistake, and it cost you a lot. The engine wanted **dxc6** instead. What's the difference? By taking on c6, you open lines and create immediate pressure while keeping your pieces coordinated. With Bc4, the bishop looks active, but it doesn't actually create a concrete threat, and it allowed your opponent to consolidate. In practical terms, you spent a move on a piece that wasn't doing enough, and that let the initiative pass to Black. When you have a chance to open the position and seize the initiative, take it \u2014 don't settle for a \"nice-looking\" developing move that doesn't force your opponent to respond.\n\nThe second moment to note is **16.Rxe3**, where the engine preferred **Qxe3**. This is a smaller issue, but it points to a pattern: choosing the more \"natural\" recapture without checking which piece belongs on which square. Capturing with the queen keeps your rook flexible and avoids potential coordination problems later. It's worth pausing on recaptures and asking: which piece do I actually want on this square, and which piece do I want to keep for other duties?\n\nFinally, **28.Qg7** was a significant inaccuracy in a sharp position. The engine's preference for **Nc3** suggests that bringing the knight back into the game was more important than the queen's activity. In tense positions, it's easy to chase checks or attacks with the queen, but sometimes the quiet move that improves your worst-placed piece is stronger.\n\nOverall, your play was solid \u2014 no catastrophic errors \u2014 but the game slipped because of a few moments where you chose activity that wasn't backed by concrete threats. To work on this: before making a developing or attacking move, ask yourself \"What is my opponent's best reply, and does this move actually force them to react?\" And on recaptures, take an extra few seconds to decide which piece truly belongs on the square.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc4",
+          "Nc3",
+          "Qg7",
+          "Qxe3",
+          "Rxe3",
+          "dxc6"
+        ],
+        "allowed": [
+          "Bc4",
+          "Nc3",
+          "Qg7",
+          "Qxe3",
+          "Rxe3",
+          "dxc6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 5,
+          "identifies_key_mistake": 5
+        },
+        "overall": 5.0,
+        "rationale": "All moves and engine preferences match the facts (13.Bc4/dxc6, 16.Rxe3/Qxe3, 28.Qg7/Nc3). Correctly leads with 13.Bc4 as the key mistake. Clear structure, concrete takeaways. Only minor slip: the 28.Qg7 cp loss (9480) is enormous yet framed as a smaller inaccuracy, but engine facts labeled it an inaccuracy at 13% win prob, so following the facts is reasonable."
+      }
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 0,
+      "coached_side": "black",
+      "note": "multiple blunders in one game (2 blunders + a mistake)",
+      "coaching": "Let's start with the big one: **59...Kf7??**. That single move cost you about 68% of your winning chances \u2014 a huge swing in one move. The engine preferred **Bc5+**, which keeps the initiative and keeps your opponent under pressure. Instead, the king move let White off the hook and likely allowed a forcing sequence that turned a winning position into a much harder one. When you're in the endgame and have an active bishop, look for checks and forcing moves before making quiet king moves. A check like Bc5+ forces your opponent to respond, and that tempo can be the difference between converting and squandering the win.\n\nEarlier, **35...Qd5?** was your second most costly decision. The engine preferred **Nd5**, which centralizes the knight and likely creates threats while keeping your queen flexible. By putting the queen on d5 instead, you may have allowed White to gain time by attacking it, or you simply placed it on a square where it could be challenged. A good rule of thumb: when you have a choice between improving a minor piece or moving the queen, consider the minor piece first \u2014 queens are often better held back until the position is clearer.\n\nThere's a pattern in your other inaccuracies: **30...Qb3?!**, **37...Rc8?!**, and **42...Bf6?!** all involve moving a piece to a square that looks active but isn't quite the most effective. In each case, the engine preferred a more patient or more centralizing move (**Qd7**, **Rd8**, **Bb2**). This suggests you sometimes go for the \"obvious\" active-looking move without fully checking whether it actually improves your position or just invites counterplay. Before committing to a move, ask yourself: *Does this piece do more here than it did before? Does it create a concrete threat, or is it just visually active?*\n\nTo work on:  \n1. **Endgame king safety and activity** \u2014 in the endgame, the king is a fighting piece, but it still needs to be moved with care. Always check for forcing moves (checks, captures, threats) before a quiet king move.  \n2. **Piece placement over activity for its own sake** \u2014 when choosing between two reasonable-looking squares, prefer the one that improves the piece's long-term scope and coordination with your other pieces, not just the one that looks aggressive.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb2",
+          "Bc5",
+          "Bf6",
+          "Kf7",
+          "Nd5",
+          "Qb3",
+          "Qd5",
+          "Qd7",
+          "Rc8",
+          "Rd8"
+        ],
+        "allowed": [
+          "Bb2",
+          "Bc5",
+          "Bf6",
+          "Kf7",
+          "Nd5",
+          "Qb3",
+          "Qd5",
+          "Qd7",
+          "Rc8",
+          "Rd8"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 3,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "All moves and evaluations match the engine facts, no fabrication. Leads correctly with the 59...Kf7 blunder and covers the other flagged moves. The Nd5 explanation is somewhat speculative but hedged appropriately. Clear structure and concrete takeaways, though the pattern advice is a bit generic."
+      }
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 0,
+      "coached_side": "black",
+      "note": "death by many small inaccuracies; no blunder or mistake",
+      "coaching": "Let's break down your game. The good news first: you didn't make any outright blunders, and your overall accuracy was respectable. But a few inaccuracies quietly cost you winning chances, and the most expensive one came at a critical moment.\n\nThe move that hurt you most was **38...Ng2**. At that point, the position was still very much alive, but this knight move let your advantage slip away. The engine preferred **Qd7**, which keeps your queen active and coordinates your pieces for the final push. Instead, the knight wandered to g2 where it didn't contribute to your main plan, and you lost about 19% of your winning chances in one move. When you're in a tense endgame or late middlegame, always ask: *which piece is doing the least work, and how can I make it useful?* The knight on g2 wasn't doing useful work.\n\nEarlier, **21...Bxb5** was another moment where a quieter move would have served you better. Capturing on b5 may have felt natural, but **h6** was stronger \u2014 it gives your king a little breathing room and avoids any future back-rank or tactical issues. Small defensive moves like that are easy to skip when you're focused on your own plans, but they often matter more than a routine recapture.\n\nThere's a pattern here: several of your inaccuracies (**17...Nf6**, **31...cxb4**, and the two above) came from choosing the obvious or forcing move instead of pausing to find the move that improves your position most. None of them were terrible, but together they let a promising game drift toward a loss.\n\n**What to work on:**\n1. **In critical positions, compare the forcing move with the improving move.** Before you capture or push a pawn, ask what your opponent's best reply is \u2014 and whether a quieter move might leave you better coordinated.\n2. **Keep your pieces active in the endgame.** The Ng2 move is a classic example of a piece drifting out of the game. Before you move a piece, check whether it will be more or less active on its new square.\n\nYou're playing solid chess \u2014 now it's about converting those solid positions into wins by finding the *best* move, not just a reasonable one.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bxb5",
+          "Nf6",
+          "Ng2",
+          "Qd7",
+          "cxb4",
+          "h6"
+        ],
+        "allowed": [
+          "Bxb5",
+          "Nf6",
+          "Ng2",
+          "Nxd5",
+          "Qd7",
+          "cxb4",
+          "f3",
+          "h6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "All moves and win-probability figures match the facts; no fabrication. Correctly leads with 38...Ng2 as the costliest move and covers the other three inaccuracies. Well-organized and clear, with actionable habits. Advice is somewhat general but reasonable; minor speculation about back-rank issues on 21...h6 is framed cautiously."
+      }
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 0,
+      "coached_side": "white",
+      "note": "a couple of mistakes, no blunder",
+      "coaching": "Let's break down your game. The overall numbers show a competitive fight \u2014 no outright blunders, which is good \u2014 but a few decisions quietly let the position slip away from you.\n\nThe most important moment was **16.Qc5?**. This move cost you about a quarter of your winning chances. The problem is that the queen went to a square where it could be challenged or pushed around, and it didn't help your main plan. The engine preferred **g4**, which makes sense in this Dragon structure: you want to expand on the kingside, gain space, and start creating threats against Black's king. Instead, the queen sortie gave Black time to organize and defuse your initiative. When you have a space or attack advantage, use it \u2014 don't just make a move because it looks active.\n\nThe second big one was **22.g4?**, which is interesting because g4 was the right idea earlier, but here it was mistimed. By this point the position had changed, and the engine preferred **Rd2**, a consolidating move that keeps your pieces coordinated and defends key points. The lesson isn't \"don't play g4\" \u2014 it's that the same move can be great or bad depending on the context. You have to re-evaluate the position move by move.\n\nYour two inaccuracies, **17.Bxd5?!** and **21.Rd1?!**, fit a similar pattern: moves that look reasonable but don't address the most urgent need of the position. In both cases the engine wanted you to either shore up your position (**g3**) or create a concrete threat (**Nb5**). You were drifting slightly instead of playing with a clear purpose.\n\n**What to work on:**\n1. **Timing and context.** Before playing a move, ask: \"What is my opponent threatening right now, and does my move improve my worst-placed piece or advance my plan?\" A move that was good two moves ago may not be good now.\n2. **Coordination over activity.** Several of your mistakes involved moving a piece to an \"active\" square without full support. Focus on keeping your pieces working together, especially in sharp openings like the Dragon where one loose move can hand the initiative to Black.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bxd5",
+          "Nb5",
+          "Qc5",
+          "Rd1",
+          "Rd2",
+          "g3",
+          "g4"
+        ],
+        "allowed": [
+          "Bxd5",
+          "Nb5",
+          "Qc5",
+          "Rd1",
+          "Rd2",
+          "g3",
+          "g4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 4
+        },
+        "overall": 4.5,
+        "rationale": "All moves and engine preferences match the facts (16.Qc5/g4, 22.g4/Rd2, 17.Bxd5/g3, 21.Rd1/Nb5), no fabrication. Clear and well-organized. Actionable advice on timing and coordination, though somewhat generic. Leads with 16.Qc5 as the key mistake, which is defensible, though 22.g4 actually had the highest cp loss (399 vs 279); this ordering is a minor miss."
+      }
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 1,
+      "coached_side": "white",
+      "note": "auto-curated into 'slow_loss' (coached side: white)",
+      "coaching": "I know the engine didn't flag any single blunder or mistake in your game, but the numbers still tell a clear story: your average centipawn loss was 47.2, while your opponent's was just 6.5. That's a big gap, and it means you weren't losing because of one bad move \u2014 you were losing a little bit at a time, almost every move, while your opponent played very cleanly.\n\nSince there's no single move to point to, the honest takeaway is this: you were likely defending a position that got gradually worse, and each small concession added up. Your opponent didn't need a knockout punch; they just kept applying steady pressure and you kept giving ground in small ways \u2014 slightly passive moves, slightly worse piece placement, small concessions that felt okay in the moment but accumulated into a lost game.\n\nWhat to work on:\n\n1. **Recognize when you're drifting.** If you feel like you're just responding to your opponent's ideas move after move, pause and look for a way to create counterplay or improve your worst-placed piece. Small passive moves are how positions quietly slip away.\n\n2. **Compare your moves to your opponent's.** In this game, your opponent's average loss was tiny \u2014 they almost never gave anything back. That's the standard to aim for: not just avoiding big mistakes, but making every move count. Review the game and ask yourself on each move, \"What was my plan here, and did this move actually improve my position?\"\n\nYou didn't lose this game in one moment \u2014 you lost it in many small ones. That's actually encouraging, because it means the fix isn't about finding one magic tactic; it's about tightening up your overall decision-making, which will pay off in every game you play.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "Accurately reflects the engine facts: high average loss vs low opponent loss, no flagged blunders, gradual decline. No fabricated moves or evaluations. Correctly frames the absence of a single key mistake. Advice is sound and general but lacks concrete positional/opening specifics, which is understandable given no flagged moments."
+      }
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 2,
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Let's look at your game. The headline is that you played a very solid game overall \u2014 no blunders, no mistakes, and only one inaccuracy across the entire contest. That's genuinely good discipline, especially against an opponent who kept their own error count extremely low.\n\nThe one moment worth examining is **13...a6**. It wasn't a losing move, but it was the clearest place where you gave away some of your position's potential. The engine preferred **f5** instead. The idea behind f5 is that it fights for space and control in the center immediately \u2014 it challenges White's setup and gives your pieces more room to breathe. By playing a6, you spent a tempo on a quiet pawn move that didn't address the central tension or improve your piece activity. It's a small thing, but in a game where both sides are playing accurately, those small choices decide who gets the chances.\n\nThe pattern here isn't about hanging pieces or tactical oversights \u2014 you avoided those entirely. The lesson is more about **prioritizing active, central play over passive preparation moves**. When you have a chance to make a move that directly contests the center or activates your pieces, that's usually worth more than a precautionary pawn push on the wing.\n\nFor your next games, I'd suggest one concrete focus: **before playing a quiet pawn move like a6 or h6, ask yourself whether there's a more active move in the center or with a piece.** If the answer is yes, lean toward the active option. Your accuracy is already high \u2014 now it's about converting that solidity into initiative.",
+      "grounding": {
+        "score": 0.667,
+        "grounded": false,
+        "hallucinated": [
+          "h6"
+        ],
+        "cited": [
+          "a6",
+          "f5",
+          "h6"
+        ],
+        "allowed": [
+          "a6",
+          "f5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "Accurately reflects the single inaccuracy 13...a6 vs preferred f5, the clean error record, and doesn't fabricate moves or evals. Clear and well-organized. Advice is reasonable and tied to the mistake, though somewhat general. Correctly leads with and identifies the key moment."
+      }
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 3,
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "You didn't make any single catastrophic error \u2014 no blunders, no outright mistakes. But your average centipawn loss of 72.2 tells the real story: you lost ground gradually, move after move, through many small imprecisions. Against an opponent who played at 11.4, that steady drip of small concessions was enough to lose the game.\n\nThis is actually a common pattern when defending a slightly worse position. Each individual move looks reasonable, but collectively you're giving up a little space, a little activity, or a little coordination each time. The position slowly slides from \"slightly worse\" to \"clearly worse\" to \"lost\" \u2014 without any single moment where you can point and say \"there it is.\"\n\nSince the engine flagged no specific moves, the most useful thing you can do is work on your general defensive technique and positional awareness:\n\n1. **When you're slightly worse, fight for activity.** Don't just make safe-looking moves that slowly concede ground. Look for ways to create counterplay, trade off your opponent's active pieces, or at least make them prove their advantage.\n\n2. **Review this game move by move with an engine.** Since there's no single mistake to fix, go through and look at the small evaluation drops. Ask yourself at each point: what did the engine prefer, and why? What was the idea behind the better move? That will help you recognize these small positional concessions before you make them.\n\nThe good news: no blunders means your tactical alertness held up. The next step is tightening up the small decisions that decide games at this level.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "Accurately reflects the facts: no blunders/mistakes, high average loss, gradual decline defending a worse position. Correctly recognizes there's no single key error and frames the lesson accordingly. Advice is sound though somewhat general given no specific moves were flagged. Clear and well-organized."
+      }
+    },
+    {
+      "pgn": "slow_loss.pgn",
+      "game_index": 4,
+      "coached_side": "black",
+      "note": "auto-curated into 'slow_loss' (coached side: black)",
+      "coaching": "Let's talk about your game against EricRosen. The good news first: this was a clean game by the numbers \u2014 no blunders, no outright mistakes, and only one inaccuracy across the entire game for both sides combined. That's genuinely solid, especially against a strong opponent.\n\nThe one moment worth examining is **11...g6**. The engine preferred **e5** instead, and this choice cost you about 11% of your winning chances. What's likely going on here is that g6 is a slightly passive way to develop \u2014 it prepares to fianchetto the bishop, but it doesn't fight for the center or challenge White's setup. Playing e5 would have staked a claim in the middle of the board and given your pieces more active squares. When you have a chance to grab central space safely, it's usually worth taking.\n\nBeyond that single inaccuracy, there isn't a recurring pattern of errors to flag \u2014 no hanging pieces, no tactical oversights, no structural collapses. Your average centipawn loss of 38.3 is respectable, though it's about double your opponent's 19.4, which mostly reflects that you were gradually outplayed in a quiet position rather than losing to any one big mistake.\n\nFor your next games, I'd focus on two things: first, look for active central pawn breaks like e5 or d5 when the position allows \u2014 they're often the difference between a comfortable position and a passive one. Second, keep doing whatever you're doing tactically, because you clearly didn't give your opponent any easy targets.",
+      "grounding": {
+        "score": 0.667,
+        "grounded": false,
+        "hallucinated": [
+          "d5"
+        ],
+        "cited": [
+          "d5",
+          "e5",
+          "g6"
+        ],
+        "allowed": [
+          "e5",
+          "g6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "Accurately reflects all engine facts: clean game, one inaccuracy at 11...g6, preferred e5, ~11% cost, correct ACPL figures. No fabricated moves or evals. Clear and well-organized, leads with the key moment. Advice is reasonable though somewhat general since there was only one flagged move to work with."
+      }
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 1,
+      "coached_side": "black",
+      "note": "auto-curated into 'inaccuracies' (coached side: black)",
+      "coaching": "Let's look at your game. The good news first: you didn't make any outright blunders or mistakes \u2014 no hanging pieces, no catastrophic tactical oversights. Your play was solid overall, and the game stayed competitive. But the engine did flag a few inaccuracies, and they tell a clear story about where the game slipped away from you.\n\nThe most costly moment was **12...Rb8**. You spent a tempo putting your rook on the b-file, but the engine says the position called for **Bc6** instead. Why does that matter? Your rook on b8 isn't really doing anything yet \u2014 there's no open file, no immediate pressure on b2, and the rook isn't helping your development or king safety. Meanwhile, Bc6 would have put your bishop on a strong diagonal, improved your piece coordination, and kept your options flexible. That one move cost you about 16% of your winning chances, which is significant for a single quiet move.\n\nRight after that, **13...Bc6** was also flagged. It's a bit ironic \u2014 the engine wanted Bc6 a move earlier, but now that you played it, it preferred **Rc8** instead. The point is that the position had shifted: after 12...Rb8, the rook was already committed to the b-file, so the bishop going to c6 no longer fit as well. This is a good lesson in move order \u2014 a move that's strong one turn can be much weaker the next if the position has changed.\n\nEarlier, **10...a6** was also a small inaccuracy. The engine preferred **dxc3**, which would have opened the center and created more dynamic play. Instead, a6 was a bit slow \u2014 it's a useful move in many Sicilian positions, but here it gave White time to consolidate.\n\nThe pattern I see is one of **tempo and piece coordination**. None of these moves were terrible on their own, but each one was slightly less purposeful than the alternative. You weren't losing material or walking into tactics \u2014 you were just giving your opponent small opportunities to improve their position while your own pieces weren't quite working together.\n\n**What to work on:**\n1. **Before moving a rook or bishop to a \"natural\" square, ask what it actually does there.** Is there an open file? A target? A threat? If not, look for a move that improves coordination instead.\n2. **Pay attention to move order.** When the engine suggests a move, ask *why now* \u2014 the same move a turn later may be much weaker.\n\nYou played a clean game with no big errors. Tightening up these small inaccuracies is exactly how you turn solid losses into draws and wins.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc6",
+          "Rb8",
+          "Rc8",
+          "a6",
+          "dxc3"
+        ],
+        "allowed": [
+          "Bc6",
+          "Rb8",
+          "Rc8",
+          "a6",
+          "dxc3"
+        ]
+      },
+      "claims": {
+        "score": 0.667,
+        "ok": false,
+        "checked": 3,
+        "violations": [
+          {
+            "kind": "role_inversion",
+            "move": "Rc8",
+            "claimed": "played",
+            "actual": "engine-preferred",
+            "excerpt": ", but now that you played it, it preferred **Rc8** instead. The point is that the position ha"
+          }
+        ]
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "All moves, evaluations, and win-probability figures match the engine facts precisely, with no fabrication. The write-up leads with the correct top inaccuracy (12...Rb8) and covers the other two in order. Clear structure with a solid move-order insight. Advice is concrete though somewhat general; the dxc3 explanation is reasonable extrapolation. Correctly frames the game as having no blunders."
+      }
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 2,
+      "coached_side": "white",
+      "note": "auto-curated into 'inaccuracies' (coached side: white)",
+      "coaching": "Let's focus on the two moments where the position slipped away from you.\n\n**10.Qd2?!** was the most costly decision of the game. The queen looks natural on d2, but it actually steps into a slightly awkward square \u2014 it blocks your own dark-squared bishop's retreat and doesn't put any real pressure on Black's setup. The engine preferred **Qe2**, which keeps the queen flexible, supports the e4-pawn, and leaves the d-file open for your rook. It's a small positional difference, but it cost you nearly a fifth of your winning chances.\n\n**12.Nxe4?!** was the second slip. Recapturing on e4 feels automatic, but the engine preferred **Qe1** \u2014 a quieter move that keeps your pieces coordinated and avoids allowing Black to simplify into a comfortable structure. By taking immediately, you let Black dictate the character of the position.\n\nThe good news: no blunders, no outright mistakes. Your average centipawn loss of 56.8 is higher than your opponent's 33.7, but that gap came from small inaccuracies, not catastrophic errors. The pattern here is subtle \u2014 both of your costly moves were \"natural-looking\" moves that slightly misjudged piece coordination. You weren't hanging material or missing tactics; you were just a touch too eager to make the obvious move instead of the most harmonious one.\n\n**To work on:** slow down in the early middlegame and ask yourself, \"Does this move improve my worst-placed piece, or just look normal?\" Also, when you have a choice between a forcing recapture and a quieter developing move, take an extra moment to compare them \u2014 the quiet move is often stronger.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nxe4",
+          "Qd2",
+          "Qe1",
+          "Qe2"
+        ],
+        "allowed": [
+          "Nxe4",
+          "Qd2",
+          "Qe1",
+          "Qe2"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "Accurately cites both inaccuracies, engine preferences, and stats without fabrication. Positional explanations are plausible interpretation, not contradicting facts. Correctly leads with 10.Qd2 as the key mistake. Advice is clear and reasonably actionable, though somewhat generic."
+      }
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'inaccuracies' (coached side: white)",
+      "coaching": "Let\u2019s focus on the two moments where the engine says your play drifted, because overall this was a clean game \u2014 no blunders, no outright mistakes, just two inaccuracies that quietly let the advantage slip.\n\nThe bigger one was **12.Nf5**. It\u2019s an attractive-looking move \u2014 the knight jumps forward, feels active \u2014 but the engine says it cost you about 17% of your winning chances. The problem is that the knight on f5 isn\u2019t actually doing much there. It can be challenged or simply ignored, and meanwhile you\u2019re not fighting for the center. The engine preferred **d4**, which strikes immediately in the middle, opens lines for your pieces, and challenges Black\u2019s setup before they get fully coordinated. The lesson here: a move can look aggressive without actually creating problems for your opponent. Ask yourself what the piece is *doing* on its new square, not just whether the move feels energetic.\n\nThe earlier slip was **7.d3**, where the engine preferred **c3**. This is a smaller issue, but it\u2019s the same theme \u2014 **d3** is solid but a little passive. It doesn\u2019t prepare the central break **d4** as effectively as **c3** does, and it gives Black an easier time equalizing. You lost about 14% of your win probability there, not because the move is bad, but because it lets the position drift toward equality when you could have kept more tension and ambition.\n\nThe pattern across both moves is worth noticing: in each case, you chose a move that was safe and reasonable, but not the one that fought hardest for the center or created the most concrete problems for your opponent. That\u2019s a common habit \u2014 playing \u201cgood enough\u201d moves instead of the most challenging ones.\n\nFor your next games, try this: before you play a developing or \u201cactive-looking\u201d move, pause and ask, *\u201cDoes this move fight for the center or create a threat my opponent has to answer?\u201d* If the answer is no, look for a more forcing or central option. And when you have a choice between a solid move and one that keeps more tension, lean toward the one that makes your opponent prove they can handle it.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nf5",
+          "c3",
+          "d3",
+          "d4"
+        ],
+        "allowed": [
+          "Nf5",
+          "c3",
+          "d3",
+          "d4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 3,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 5,
+          "identifies_key_mistake": 5
+        },
+        "overall": 5.0,
+        "rationale": "Coaching accurately reflects the two inaccuracies, their move preferences (d4 and c3), and win-probability costs without fabricating anything. It correctly leads with the more costly 12.Nf5. Clear structure, concrete and actionable advice with a useful recurring theme. The characterization of d3 vs c3 preparing d4 is plausible interpretation grounded in the facts."
+      }
+    },
+    {
+      "pgn": "inaccuracies.pgn",
+      "game_index": 4,
+      "coached_side": "black",
+      "note": "auto-curated into 'inaccuracies' (coached side: black)",
+      "coaching": "Let's look at your game. The good news first: you didn't make any outright blunders or mistakes \u2014 no hanging pieces, no catastrophic tactical oversights. Your average centipawn loss of 45.6 is respectable, and the game stayed competitive throughout. But there were a few inaccuracies that quietly cost you ground, and the most important one came at a critical moment.\n\n**The key moment: 11...O-O?!**\n\nThis was your most costly decision of the game, costing you about 17% win probability. The engine preferred **Bf8** instead. Why does castling here hurt? In this Sicilian structure, your king isn't in immediate danger in the center \u2014 White hasn't opened lines against it yet. By committing the king to the kingside so early, you gave White a clear target to attack, and you also lost flexibility. **Bf8** keeps the king's options open and, more importantly, keeps the bishop on a useful diagonal while you continue developing. Castling felt natural, but it was premature \u2014 you telegraphed where your king would be and let White start aiming at it.\n\n**The pattern: small positional slips, not tactical errors**\n\nYour other inaccuracies tell a similar story. **17...Nb6?!** (preferred **Bc6**) put the knight on a square where it wasn't doing much, while **Bc6** would have kept pressure on the center and supported your pawn structure. **3...Nc6?!** (preferred **cxd4**) was a slightly inflexible move order \u2014 taking on d4 first would have given you more control over the pawn structure. And **10...Bc5?!** (preferred **c5**) developed the bishop to a square where it could be challenged, rather than striking at the center directly.\n\nNone of these were disasters. But together, they show a pattern: you sometimes chose the \"natural-looking\" move over the move that best fits the specific demands of the position. In the Sicilian, timing and pawn structure matter enormously \u2014 a move that looks fine can be subtly wrong if it doesn't address the central tension or gives your opponent a clear plan.\n\n**What to work on:**\n\n1. **Before castling, ask: \"Is my king actually in danger here?\"** If the center is closed and your opponent hasn't opened lines, you often have time to delay castling and keep your options open. Don't castle just because it's \"the rule.\"\n\n2. **In the opening, prioritize pawn structure and central control over piece development that looks natural but doesn't fight for the key squares.** Moves like **cxd4** and **c5** directly challenge White's center \u2014 those are the moves that keep you in the game in the Sicilian.\n\nYou played a solid game with no major errors. Tighten up these small positional decisions and you'll convert more of these competitive positions into wins.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc5",
+          "Bc6",
+          "Bf8",
+          "Nb6",
+          "Nc6",
+          "O-O",
+          "c5",
+          "cxd4"
+        ],
+        "allowed": [
+          "Bc5",
+          "Bc6",
+          "Bf8",
+          "Nb6",
+          "Nc6",
+          "O-O",
+          "c5",
+          "cxd4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 5,
+          "identifies_key_mistake": 5
+        },
+        "overall": 5.0,
+        "rationale": "All four inaccuracies and their engine-preferred alternatives, win-probability costs, and the no-blunder/no-mistake summary match the facts exactly. No fabrications. Correctly leads with 11...O-O as the most costly move. Clear structure and concrete, position-relevant advice. Some positional explanations are plausible interpolation but grounded in the given preferred moves."
+      }
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 1,
+      "coached_side": "black",
+      "note": "auto-curated into 'two_mistakes' (coached side: black)",
+      "coaching": "Let's start with the move that hurt you the most: **14...b4**. This was a mistake. In plain terms, you pushed a pawn forward to gain space or kick a piece, but it actually created long-term weaknesses in your position and gave White a clear target. The engine preferred **d6** instead, which would have kept your structure solid and your options flexible. The cost was significant \u2014 about a quarter of your winning chances disappeared in one move.\n\nThe second big moment was **19...Nc3**. Again, the engine preferred **d6**. This suggests a pattern: you were looking for active, aggressive knight maneuvers, but the position really called for consolidating with a quiet pawn move. The knight jump may have looked tempting, but it didn't accomplish enough and left your position harder to coordinate.\n\nThere was also **38...Nc5**, an inaccuracy. By this point the game was likely already difficult, but the engine preferred **Rc8** \u2014 keeping the rook active and defending key squares rather than committing the knight to a square where it could be challenged.\n\nThe overall picture: your average centipawn loss was about double your opponent's, which means White was finding more accurate moves more consistently. But there was no single catastrophic blunder \u2014 just a few moments where you chose activity over solidity, and it cost you.\n\n**What to work on:**\n1. **Before making an aggressive pawn or knight move, ask what it actually threatens.** If the answer is \"not much,\" prefer a quiet improving move like **d6** that keeps your position compact.\n2. **Watch for structural weaknesses.** Moves like **14...b4** can feel active but leave permanent targets. Pawns don't move backward \u2014 once you push, you're committed.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nc3",
+          "Nc5",
+          "Rc8",
+          "b4",
+          "d6"
+        ],
+        "allowed": [
+          "Nc3",
+          "Nc5",
+          "Rc8",
+          "b4",
+          "d6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 3,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "All moves, evaluations, and preferred alternatives match the facts; correctly leads with 14...b4 as the most costly move. The recurring d6 theme is well-drawn. Advice is concrete though somewhat repetitive. The 38...Nc5 cp loss (9466) is a bit oddly labeled as merely an inaccuracy in facts, but coaching handles it reasonably as an endgame slip without fabricating detail."
+      }
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 2,
+      "coached_side": "black",
+      "note": "auto-curated into 'two_mistakes' (coached side: black)",
+      "coaching": "Let's focus on the key moment of your game: **22...Kg7**.\n\nThis was your one real mistake, and it was costly. The engine preferred **Kh8** instead. The difference is subtle but important \u2014 by stepping to g7, your king moved onto a more exposed square, likely giving White tactical or attacking possibilities that wouldn't have existed with the king tucked safely in the corner. In practical terms, this single decision cost you about 22% of your winning chances. When you're defending, small king placement details matter enormously.\n\nEarlier, **16...c5** was a slight inaccuracy. The engine preferred **d6**. This suggests you committed to a pawn break or structure change a bit too early, or in a way that created a long-term weakness. It wasn't a blunder, but it made your position a little harder to play.\n\nThe good news: you had **no blunders** in this game. Your average centipawn loss of 56.2 is higher than your opponent's 22.5, but that gap was driven mostly by the one king move. Your play was otherwise quite solid.\n\n**What to work on:**\n1. **King safety in the middlegame and endgame transitions.** Before moving your king, ask: which square is safest, and does this move create any immediate tactical problems?\n2. **Pawn breaks and structure decisions.** When you play moves like ...c5, pause and consider whether it actually improves your position or just creates weaknesses. Sometimes the quieter move (like ...d6) keeps more options open.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Kg7",
+          "Kh8",
+          "c5",
+          "d6"
+        ],
+        "allowed": [
+          "Kg7",
+          "Kh8",
+          "c5",
+          "d6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "Accurately reports both flagged moves, the preferred alternatives, the win-probability cost, and the no-blunders/ACPL figures without fabrication. The tactical explanations are appropriately hedged ('likely'). Clear structure and leads with the key mistake. Advice is concrete though somewhat general."
+      }
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'two_mistakes' (coached side: white)",
+      "coaching": "Let's talk about the key moment in your game: **46.Kf6??**.\n\nThis was the one true blunder of the game, and it cost you roughly a third of your winning chances in a single move. The engine preferred **Kd4** instead. The likely issue is that your king stepped into a position where it could be checked or where it no longer supported your pawns effectively. In an endgame, the king is your most powerful piece \u2014 but it needs to be *active and safe* at the same time. Kf6 probably looked aggressive, but it likely allowed your opponent's king or pieces to gain counterplay. Kd4 keeps your king centralized and flexible, supporting your pawns while staying out of trouble.\n\nEarlier, **15.Bxb7?!** was also costly. Grabbing that pawn felt natural, but the engine preferred **c5** \u2014 a move that fights for space and restricts Black's pieces. The bishop capture probably gave your opponent time to consolidate or activate their pieces, while c5 would have kept the pressure on.\n\nThere's a smaller pattern here: **3.c4?!** and **11.Ne5?!** both show a tendency to make active-looking moves before your development is finished. In both cases, the engine preferred a quieter developing move (**Nc3** and **O-O**). When you push pawns or jump a knight early without full king safety or piece coordination, you can create weaknesses that linger into the middlegame.\n\n**What to work on:**\n\n1. **Endgame king placement.** Before moving your king in an endgame, ask: *Does this square keep me active while staying safe from checks?* Centralizing the king is usually better than pushing it forward aggressively.\n\n2. **Finish development before starting operations.** Moves like c4 and Ne5 are tempting, but if your king isn't castled and your rooks aren't connected, those \"active\" moves often backfire. Prioritize getting safe first.\n\nYou played a solid game overall \u2014 no mistakes besides that one blunder, and your average centipawn loss was close to your opponent's. Tighten up those endgame king decisions and you'll convert more of these positions into wins.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bxb7",
+          "Kd4",
+          "Kf6",
+          "Nc3",
+          "Ne5",
+          "O-O",
+          "c4",
+          "c5"
+        ],
+        "allowed": [
+          "Bxb7",
+          "Kd4",
+          "Kf6",
+          "Nc3",
+          "Ne5",
+          "O-O",
+          "c4",
+          "c5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 4,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "All moves and evaluations match the facts; the speculative reasoning is hedged appropriately and doesn't invent concrete lines. Leads correctly with the 46.Kf6 blunder. Clear and well-organized with actionable advice, though endgame guidance is somewhat generic since specifics aren't in the facts."
+      }
+    },
+    {
+      "pgn": "two_mistakes.pgn",
+      "game_index": 4,
+      "coached_side": "white",
+      "note": "auto-curated into 'two_mistakes' (coached side: white)",
+      "coaching": "Let's look at your game. The good news first: you didn't make any outright blunders, and the engine only flagged one true mistake. But that one mistake was costly, and it came very early.\n\n**The key moment: 5.Qf3?**\n\nThis was your biggest error, costing you about a quarter of your winning chances. The problem is that bringing the queen out this early doesn't really accomplish anything concrete. It exposes your queen to potential harassment, and more importantly, it doesn't help you finish your development or control the center. The engine preferred **d3**, a quiet move that supports your center and prepares to develop your bishop. At move 5, your priority should be getting your pieces out and castling \u2014 not moving the queen a second time.\n\n**The pattern: rushing in the opening**\n\nYour other two inaccuracies tell the same story. **4.Ng5** moved the knight a second time before you'd finished developing, and **6.d4** opened the center while your king was still in the middle. The engine's suggestions \u2014 **c3** and **O-O** \u2014 are both about solid, patient development. You were trying to make things happen too quickly, and each premature move handed your opponent a little more of the advantage.\n\n**What to work on**\n\n1. **Follow opening principles strictly for the first 8\u201310 moves:** develop knights and bishops, castle, and only then start active operations. If you're tempted to move a piece twice or bring the queen out early, ask yourself: \"Does this help me castle or control the center?\"\n2. **Before playing an aggressive move, check your king's safety.** In this game, you opened the center before castling, which is a classic recipe for trouble. Castle first, then fight.\n\nYou didn't lose because of one catastrophic blunder \u2014 you lost because small early inaccuracies added up against a very solid opponent. Tighten up your opening, and you'll give yourself much better positions to work with.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Ng5",
+          "O-O",
+          "Qf3",
+          "c3",
+          "d3",
+          "d4"
+        ],
+        "allowed": [
+          "Ng5",
+          "O-O",
+          "Qf3",
+          "c3",
+          "d3",
+          "d4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 5,
+          "identifies_key_mistake": 5
+        },
+        "overall": 5.0,
+        "rationale": "All moves, evaluations, and engine suggestions match the facts exactly (5.Qf3 as key mistake, d3 preferred; 4.Ng5 and c3; 6.d4 and O-O). Correctly leads with the costliest move. Clear structure and concrete, actionable opening advice grounded in the identified errors."
+      }
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 1,
+      "coached_side": "black",
+      "note": "auto-curated into 'one_blunder' (coached side: black)",
+      "coaching": "Let's focus on the moment that really changed the game: **9...Bxc2**. This was the big one. You had a choice between capturing with the bishop or the knight, and taking with the bishop cost you about a third of your winning chances. The problem is that after Bxc2, your bishop ends up on a square where it can be challenged or trapped, and you lose time untangling it. The engine's preference, **Nxc2**, keeps your pieces coordinated and your bishop flexible. When you have two ways to capture on the same square, always ask which piece is better placed after the capture \u2014 not just which one grabs material.\n\nThe next few moves show a pattern worth noticing. **10...Nxa2** and **11...Qf5** both look active, but they pull your pieces away from the center and leave them vulnerable. After Nxa2, your knight is deep in enemy territory with no support, and after Qf5, your queen is out early and can become a target. The engine preferred quieter, more solid moves \u2014 **a5** and **Bxb3** \u2014 that keep your position compact and your pieces safe. Earlier, **8...Nb4** had a similar issue: it looks aggressive, but **Bh3** would have challenged White's bishop and kept your development smooth.\n\nThe overall numbers tell the same story: your average centipawn loss was more than double your opponent's. That doesn't mean you played badly everywhere \u2014 it means the game swung on a few moments where you chose activity over safety, and the activity didn't pay off.\n\n**What to work on:**\n1. **Before a capture, check the follow-up.** Ask where your piece will stand after the capture and whether it can be attacked or trapped. If it can, look for a different capture or a different move entirely.\n2. **Be careful with early queen and knight adventures.** A piece deep in enemy territory is only good if it has support or a clear escape route. If not, it's a liability, not an asset.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bh3",
+          "Bxb3",
+          "Bxc2",
+          "Nb4",
+          "Nxa2",
+          "Nxc2",
+          "Qf5",
+          "a5"
+        ],
+        "allowed": [
+          "Bh3",
+          "Bxb3",
+          "Bxc2",
+          "Nb4",
+          "Nxa2",
+          "Nxc2",
+          "Qf5",
+          "a5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "All moves and evaluations match the facts, correctly leads with 9...Bxc2 blunder and covers the other inaccuracies accurately. Tactical explanations are plausible generalizations not contradicting facts. Clear structure and concrete takeaways, though advice is somewhat general."
+      }
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 2,
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Let's talk about the moment that decided the game: **37.Rxh7??**.\n\nThat capture looks natural \u2014 you're grabbing a pawn and attacking the king. But the engine says it was a full blunder, costing you about half your winning chances in one move. The problem is that after taking on h7, your rook likely gets trapped or your king gets exposed to a counterattack. The recommended **Rg7+** keeps the initiative: it forces the black king to move while your rook stays active and safe. When you're attacking, the priority is keeping your pieces coordinated and your own king protected \u2014 not just collecting material.\n\nEarlier, **15.cxd5?!** was a small inaccuracy. It opens the position, but **Be5** would have kept more tension and given your pieces better squares. The pattern here is that you sometimes release tension or simplify when keeping the pressure on would serve you better.\n\n**30.Kg1?!** and **26.Rf1?!** are similar in nature \u2014 slightly passive choices. In both cases, the engine preferred a more active rook move (**R1f2** and **Re1**). When you have a choice between a \"safe\" move and one that improves your worst-placed piece or creates a threat, lean toward the active one.\n\n**What to work on:**\n1. **Before capturing in an attack, check your opponent's counterplay.** Ask: \"After I take, what can they do to my king or my rook?\" If the answer is uncomfortable, look for a forcing move like a check first.\n2. **Favor active piece placement over \"safe\" or simplifying moves.** When you're ahead or pressing, keep your rooks on open files and your pieces coordinated \u2014 don't let the tension fizzle out.\n\nYou played a solid game overall \u2014 one blunder at a critical moment was the difference. Tighten up those attacking decisions and you'll convert more of these positions.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Be5",
+          "Kg1",
+          "R1f2",
+          "Re1",
+          "Rf1",
+          "Rg7",
+          "Rxh7",
+          "cxd5"
+        ],
+        "allowed": [
+          "Be5",
+          "Kg1",
+          "R1f2",
+          "Re1",
+          "Rf1",
+          "Rg7",
+          "Rxh7",
+          "cxd5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 5,
+          "identifies_key_mistake": 5
+        },
+        "overall": 5.0,
+        "rationale": "All moves and evaluations match the facts; correctly leads with 37.Rxh7?? as the key blunder and covers the inaccuracies accurately. The trapped-rook/counterplay explanation is a reasonable inference not contradicting facts. Clear structure and concrete, actionable advice."
+      }
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Let\u2019s focus on the moment that really decided the game: **28.Qe4+**. That check felt natural, but it was the big blunder. The engine wanted **Qf5+** instead, and the difference was huge \u2014 about a 38% swing in your winning chances. The key idea is that not every check is equally useful. Qe4+ let your opponent escape or improve their position, while Qf5+ would have kept the pressure on and limited their options. When you have a forcing move, ask yourself: *does this check actually improve my position, or am I just giving a check because I can?*\n\nEarlier, **13.Qd2** and **14.Nd5** were both small inaccuracies that pointed to the same theme: your pieces were drifting instead of coordinating. The engine preferred **Nd5** on move 13 and **Nd1** on move 14 \u2014 both knight moves aimed at improving piece placement rather than making a routine-looking queen move. These weren\u2019t losing moves, but they cost you a little control and made your position harder to play.\n\nThe pattern here is that your mistakes weren\u2019t about hanging pieces \u2014 they were about choosing moves that looked active but didn\u2019t actually improve your position. That\u2019s a good sign, because it means your tactical awareness is solid, but your strategic move selection needs sharpening.\n\n**To work on:**\n1. Before playing a check or a forcing move, ask what it *achieves* after your opponent\u2019s best reply. If it doesn\u2019t improve your position or create a real threat, look for a quieter improving move instead.\n2. Practice spotting when a piece (especially a knight) is poorly placed and needs rerouting \u2014 like the Nd5/Nd1 ideas the engine suggested.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Nd1",
+          "Nd5",
+          "Qd2",
+          "Qe4",
+          "Qf5"
+        ],
+        "allowed": [
+          "Nd1",
+          "Nd5",
+          "Qd2",
+          "Qe4",
+          "Qf5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "All moves and evaluations match the facts, including the 28.Qe4+ blunder and the two inaccuracies with correct engine preferences. Leads correctly with the key mistake. Clear and well-organized. Actionable advice is reasonable though the check-analysis point is somewhat generic; the '28.Qe4+ let opponent escape' explanation is mild speculation but plausible and not contradicting facts."
+      }
+    },
+    {
+      "pgn": "one_blunder.pgn",
+      "game_index": 4,
+      "coached_side": "white",
+      "note": "auto-curated into 'one_blunder' (coached side: white)",
+      "coaching": "Let's talk about the game. The single moment that decided everything was **21.Nd2**. That was a huge blunder \u2014 it cost you almost the entire game in one move. The engine wanted **g3**, which would have kept your position solid and your king safe. Instead, after Nd2, your position collapsed. When a move costs 79% of your winning chances, it's usually because it allows a direct tactical blow or leaves a piece or key square undefended. That's the move to remember from this game.\n\nEarlier, **6.Nxf7** was also a mistake. It looks tempting to grab a pawn and attack the queen, but the engine preferred **Be2**, keeping your development smooth and your knight safe. After Nxf7, you probably ended up with your knight misplaced or lost time while Black consolidated. And even earlier, **5.Ne5** was a slight inaccuracy \u2014 **Bb5+** would have put more immediate pressure on Black's position.\n\nThe pattern here is clear: you were looking for active, tactical play in the opening and middlegame, but the moves weren't backed up by enough support. The knight jumps (Ne5, Nxf7, and later Nd2) kept getting you into trouble. A knight on an advanced square is only strong if it can't be kicked away or trapped.\n\nFor your next games, focus on two things: before moving a piece to an aggressive square, ask yourself what your opponent's best reply is \u2014 especially if that piece can be attacked or trapped. And when you're ahead or equal, prioritize king safety and piece coordination over flashy tactics. One solid developing move is often worth more than a risky pawn grab.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb5",
+          "Be2",
+          "Nd2",
+          "Ne5",
+          "Nxf7",
+          "g3"
+        ],
+        "allowed": [
+          "Bb5",
+          "Be2",
+          "Nd2",
+          "Ne5",
+          "Nxf7",
+          "g3"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 5,
+          "identifies_key_mistake": 5
+        },
+        "overall": 5.0,
+        "rationale": "All three cited moves and their engine-preferred alternatives match the facts exactly, with correct evaluations. The write-up leads with the 21.Nd2 blunder as the decisive moment. Clear structure, and gives concrete, actionable habits. Minor speculation about consequences is framed cautiously and doesn't fabricate specific moves."
+      }
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 1,
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Let's break down what happened in your game. The biggest moment was **19.Bc5**, and it's worth understanding why it hurt so much. The engine wanted you to play **Qxc4** instead \u2014 grabbing a pawn and keeping material in your favor. By playing Bc5, you not only missed that gain, but you also gave your opponent a chance to stabilize and eventually turn the game around. That single move cost you roughly half your winning chances.\n\nEarlier, **3.Nxe5** was also a serious problem. In the Philidor, taking on e5 that early looks tempting, but it lets Black develop with tempo and leaves your knight exposed. The engine preferred **d4**, which fights for the center properly and keeps your position flexible. This is a common trap in the Philidor \u2014 the early capture often backfires.\n\nThere's a clear pattern in your other costly moves: **18.Qe2**, **23.Rae1**, and **24.R1e4** all show hesitation to take material or create active threats. The engine repeatedly wanted you to capture something (Qxd4, Bxb2) or play a more forcing move (Rg8). Instead, you made quieter, defensive-looking moves that let your advantage slip away. When you have a chance to win material or force your opponent to react, take it \u2014 passive moves in sharp positions are expensive.\n\n**What to work on:**\n\n1. **Tactical awareness in the opening.** Study the Philidor specifically \u2014 know why d4 is the principled response and why Nxe5 is premature. A little opening knowledge here saves a lot of pain.\n\n2. **When ahead, stay active.** Several of your mistakes came from not converting your advantage into concrete gains. Practice looking for captures and forcing moves first, before considering quiet moves. Ask yourself: \"What can I take right now, and what does my opponent have to do about it?\"",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bc5",
+          "Bxb2",
+          "Nxe5",
+          "Qe2",
+          "Qxc4",
+          "Qxd4",
+          "R1e4",
+          "Rae1",
+          "Rg8",
+          "d4"
+        ],
+        "allowed": [
+          "Bc5",
+          "Bxb2",
+          "Nxe5",
+          "Qd1",
+          "Qe2",
+          "Qxc4",
+          "Qxd4",
+          "R1e4",
+          "Rae1",
+          "Rg8",
+          "d4",
+          "exf6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 5,
+          "identifies_key_mistake": 5
+        },
+        "overall": 5.0,
+        "rationale": "All moves and engine preferences (Qxc4, d4, Qxd4, Bxb2, Rg8) match the facts exactly, with no fabrication. Correctly leads with 19.Bc5 as the biggest blunder and covers 3.Nxe5 and the pattern of missed captures. Clear structure and specific, actionable advice on opening study and staying active."
+      }
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 2,
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Let's look at the key moments from your game. The biggest issue came late, in a sequence around moves 29\u201331, where the position slipped away from you.\n\nThe single most costly decision was **29.Kh1**. The engine preferred **Rf2**, and the difference was enormous \u2014 roughly 41% of your winning chances. In plain terms, moving the king to the corner didn't address the real problem on the board. **Rf2** would have kept your rook active and defended critical squares, whereas **Kh1** put your king on a passive square and let your opponent take over the initiative. Right after that, **30.Rb1** compounded the problem. The engine wanted **Kg1**, bringing the king back toward the center and keeping your pieces coordinated. Instead, the rook retreat to b1 cost you another 40% of your winning chances. These two moves back-to-back turned what was likely a playable or even favorable position into a losing one.\n\nEarlier in the game, **12.Bc4** was also a significant blunder. The engine preferred **Bxc6**, capturing the knight and damaging Black's pawn structure. By retreating the bishop to c4 instead, you let Black keep a solid position and lost about 32% of your win probability. The pattern here is worth noting: in several of these moments, you chose a \"safe-looking\" retreat or passive move when a more active or forcing continuation was available. **11.Bb5** and **10.f3** were smaller inaccuracies, but they point in the same direction \u2014 the engine wanted **b5** in both cases, pushing forward and gaining space, rather than making quiet developing moves.\n\nThe main takeaway: when you have a chance to make a forcing move or keep your pieces active, lean toward that option. Passive retreats, especially with the king or rook in the late middlegame, can cost you the game in just a couple of moves. A good exercise is to review positions where you played a retreating move and ask: \"What was the most active alternative, and what would it have achieved?\" That habit will help you avoid the kind of collapse that happened here.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb5",
+          "Bc4",
+          "Bxc6",
+          "Kg1",
+          "Kh1",
+          "Rb1",
+          "Rf2",
+          "b5",
+          "f3"
+        ],
+        "allowed": [
+          "Bb5",
+          "Bc4",
+          "Bxc6",
+          "Kg1",
+          "Kh1",
+          "Rb1",
+          "Rb2",
+          "Rbe1",
+          "Rf2",
+          "b5",
+          "f3"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 5,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "All moves and evaluations match the facts, including preferred engine alternatives and win-probability costs. Correctly leads with 29.Kh1 as the biggest blunder and covers 30.Rb1 and 12.Bc4. The 'passive retreat vs active move' theme is a reasonable synthesis. Advice is concrete and clear. Minor: 11.Bb5 was a bishop move (not strictly a quiet developing move) and the 31.Rb2 inaccuracy was omitted, but these are trivial."
+      }
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 3,
+      "coached_side": "black",
+      "note": "auto-curated into 'multi_blunder' (coached side: black)",
+      "coaching": "Let's talk about the endgame, because that's where the game really got away from you.\n\nThe single biggest moment was **40...Ra4**. This was a blunder that cost you roughly half your winning chances in one move. The engine wanted **Ka7** \u2014 bringing your king into the action and keeping your rook flexible. Instead, the rook went to a4 and essentially took itself out of the game at the worst possible time. In rook endgames, activity is everything: a passive rook is often as bad as being down material. One move later, **41...a2** compounded the problem. The engine preferred **c5**, trying to create counterplay and give your rook something to fight for. Pushing the a-pawn looked natural, but it actually just gave White a clear target and let their pieces coordinate against it.\n\nEarlier, there were a few smaller inaccuracies worth noting. **28...Nxc4** (preferred: **Ne4**) and **31...Rc5** (preferred: **c6**) both show a pattern of grabbing material or making a move that looks active, but actually lets your opponent improve their position. **39...Rc4** (preferred: **b5**) fits the same theme \u2014 the rook kept moving to squares where it looked busy but wasn't actually doing anything useful. And **12...Bb4** (preferred: **Nf5**) was a minor positional slip in the opening.\n\nThe recurring lesson here is **rook activity and endgame patience**. When you reach a rook endgame, ask yourself before every move: *Is my rook doing a job? Is my king active? Am I creating threats, or just reacting?* A quiet king move like Ka7 can be far stronger than a flashy-looking rook move.\n\nFor concrete practice: work on basic rook endgames \u2014 especially positions with passed pawns on both sides \u2014 and focus on keeping your rook active and your king centralized. And when you're ahead or equal in the endgame, slow down. The two blunders came back-to-back, which suggests time pressure or frustration. Take a breath before each endgame move.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb4",
+          "Ka7",
+          "Ne4",
+          "Nf5",
+          "Nxc4",
+          "Ra4",
+          "Rc4",
+          "Rc5",
+          "a2",
+          "b5",
+          "c5",
+          "c6"
+        ],
+        "allowed": [
+          "Bb4",
+          "Ka7",
+          "Ne4",
+          "Nf5",
+          "Nxc4",
+          "Ra4",
+          "Rc4",
+          "Rc5",
+          "a2",
+          "b5",
+          "c5",
+          "c6"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 5,
+          "identifies_key_mistake": 5
+        },
+        "overall": 5.0,
+        "rationale": "All moves and engine preferences match the facts exactly, no fabrication. Leads with the correct top blunder 40...Ra4 and covers 41...a2 and the inaccuracies accurately. Clear organization and concrete, relevant advice on rook endgames. The time-pressure inference is a mild speculation but reasonable given back-to-back blunders."
+      }
+    },
+    {
+      "pgn": "multi_blunder.pgn",
+      "game_index": 4,
+      "coached_side": "white",
+      "note": "auto-curated into 'multi_blunder' (coached side: white)",
+      "coaching": "Let's talk about the two big moments in your game, because they tell a clear story.\n\nThe first one is **12.Kxh2**. You captured a piece with your king, and on the surface that looks natural \u2014 you're winning material. But the engine preferred **Qh5**, and the reason matters: by moving your king to h2, you walked it toward the open board and away from safety. Your king became a target, and that's exactly what your opponent exploited. Capturing with the queen instead would have kept your king tucked away while still dealing with the threat.\n\nThe second one is the real turning point: **14.Kf3**. This was a massive blunder \u2014 the engine says it cost you almost the entire game in one move. You brought your king even further out, into the middle of the board, with pieces still on. The engine wanted **Bg5**, which develops a piece and keeps pressure on while your king stays safe. Instead, your king ended up exposed in the center, and against a decent opponent that's almost always fatal. Your opponent's low centipawn loss (29.1) shows they didn't need to do anything special \u2014 they just punished the exposed king.\n\nThe pattern here is clear: **king safety**. Both of your big errors involved moving the king out into danger. In the opening and middlegame, your king should almost never be the piece doing the work. Let your pieces handle threats and captures; keep the king behind pawns or castled until the board clears out.\n\nTo work on: before moving your king, ask yourself, \"Is there any other piece that can do this job?\" And if the answer is yes, use that piece instead. Also, practice spotting when your king is being drawn forward \u2014 if you're moving the king more than once in the first 20 moves, something has usually gone wrong.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bg5",
+          "Kf3",
+          "Kxh2",
+          "Qh5"
+        ],
+        "allowed": [
+          "Bg5",
+          "Kf3",
+          "Kxh2",
+          "Qh5"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 3,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 5,
+          "identifies_key_mistake": 5
+        },
+        "overall": 5.0,
+        "rationale": "Both blunders (12.Kxh2 and 14.Kf3) and their engine-preferred alternatives (Qh5, Bg5) are accurately cited, and the coaching correctly leads with the most costly moment. It cites the opponent's cpl accurately and does not fabricate moves or evaluations. The king-safety theme is a coherent, well-grounded takeaway with concrete, actionable advice."
+      }
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 1,
+      "coached_side": "white",
+      "note": "auto-curated into 'clean_draw' (coached side: white)",
+      "coaching": "That was a very clean game \u2014 the engine found no inaccuracies, mistakes, or blunders from either side, and your average centipawn loss of 13.0 is solid. In practical terms, that means you consistently found good moves and never gave your opponent a clear opening to turn the game.\n\nSince there are no specific errors to point to, the main takeaway is simply: keep doing what you're doing. You handled the Ruy Lopez Exchange Variation well and converted your chances without any major slip.\n\nIf you want to keep improving from here, one useful next step is to compare your moves with the engine's top choices in the middlegame \u2014 not because you made mistakes, but to see where a slightly more ambitious plan might have been available. At this level of accuracy, progress often comes from finding those small improvements rather than fixing big errors.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 4,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.75,
+        "rationale": "Accurately reflects the clean game with no errors and correct opening/ACPL stats. Clear and well-organized. Actionable advice is reasonable but somewhat generic. Correctly recognizes there was no single key mistake."
+      }
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 2,
+      "coached_side": "black",
+      "note": "auto-curated into 'clean_draw' (coached side: black)",
+      "coaching": "Let's talk about that one moment that mattered most: **9...d4**.\n\nIt wasn't a blunder, and it didn't lose material \u2014 but it was the one move where you gave away a meaningful chunk of your position. You pushed the pawn to d4, probably hoping to gain space and cramp White. The problem is that after this, the center becomes fixed, and your light-squared bishop on c8 loses its natural diagonal. The engine preferred **Bb7**, which develops the bishop to its best square and keeps the tension in the center. By closing things down with d4, you made it easier for White to play around the locked pawns, and you lost about 13% of your winning chances in one move.\n\nThe good news: that was your only real slip. Across the whole game, you played with no blunders and no outright mistakes \u2014 just that one inaccuracy. Your average centipawn loss of 28.4 is solid, and the fact that you held a draw against an opponent who played slightly more accurately (21.0) says a lot about your resilience.\n\nThe pattern here isn't about hanging pieces or missing tactics \u2014 it's about **pawn breaks and when to release tension**. When you have a choice between pushing a pawn to gain space or developing a piece to its best square, ask yourself: does this pawn push help my pieces or just close the position? In this case, Bb7 would have kept your options open and your bishop active.\n\n**To work on:**  \n1. Before pushing a central pawn, check whether it helps or hurts your bishops \u2014 especially the one still on its starting square.  \n2. Practice holding tension in the center a move or two longer. Often the threat of a pawn break is stronger than the break itself.\n\nYou played a clean game overall \u2014 now it's about turning those small inaccuracies into precise, purposeful moves.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [
+          "Bb7",
+          "d4"
+        ],
+        "allowed": [
+          "Bb7",
+          "d4"
+        ]
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
+      },
+      "identifies_worst_move": true,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 5,
+          "identifies_key_mistake": 5
+        },
+        "overall": 5.0,
+        "rationale": "Accurately reports the single inaccuracy 9...d4, the preferred Bb7, the ~13% win prob cost, and the ACL stats. The positional explanation is plausible and grounded. Clear, well-organized, with concrete actionable advice about pawn breaks and tension. Correctly leads with and frames the one key moment."
+      }
+    },
+    {
+      "pgn": "clean_draw.pgn",
+      "game_index": 3,
+      "coached_side": "white",
+      "note": "auto-curated into 'clean_draw' (coached side: white)",
+      "coaching": "That was a very clean game from you \u2014 no blunders, no mistakes, no inaccuracies flagged at all. Your average centipawn loss of 16 is low, which means you consistently found solid moves and didn't give your opponent any real chances to turn the game around.\n\nSince there were no specific errors to point to, the main takeaway here is simply: keep doing what you're doing. You played a controlled, disciplined game and converted it into a win without any major slip-ups.\n\nFor continued growth, I'd suggest two things:\n\n1. **Review the moments where you had to make a decision between two reasonable-looking moves.** Even in a clean game, there are usually a few spots where a slightly stronger plan existed. Look for those and ask yourself what the engine preferred and why.\n\n2. **Try to raise the bar on your \"clean\" games.** A low average loss is great, but the next step is doing that against stronger opposition or in sharper positions where the margin for error is smaller.\n\nWell played \u2014 that's the kind of game you can be proud of.",
+      "grounding": {
+        "score": 1.0,
+        "grounded": true,
+        "hallucinated": [],
+        "cited": [],
+        "allowed": []
+      },
+      "claims": {
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
+      },
+      "identifies_worst_move": false,
+      "rubric": {
+        "scores": {
+          "factual_correctness": 5,
+          "clarity": 5,
+          "actionability": 3,
+          "identifies_key_mistake": 5
+        },
+        "overall": 4.5,
+        "rationale": "Accurately reflects the clean game with no fabricated moves or evals. Correctly recognizes there was no single big error. Advice is reasonable but somewhat generic given no specific positions were available; still appropriate for the situation."
+      }
+    }
+  ]
+}

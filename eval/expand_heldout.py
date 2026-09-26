@@ -223,13 +223,14 @@ def main(
     users = list(args.user) or list(corpus.DEFAULT_USERS)
 
     raw: list[str] = []
-    for user in users:
+    for user in corpus._paced(users):
         print(f"Fetching up to {args.max} candidates for '{user}'...", file=sys.stderr)
         raw.extend(corpus.split_pgn(fetch_fn(user, args.max)))
     print(f"Analyzing {len(raw)} candidate games (depth {args.depth})...", file=sys.stderr)
 
     candidates: list[tuple[str, dict]] = []
     for i, pgn in enumerate(raw, 1):
+        print(f"  [{i}/{len(raw)}] {corpus.game_key(pgn)}...", file=sys.stderr, flush=True)
         try:
             candidates.append((pgn, analyze_fn(pgn)))
         except Exception as exc:  # noqa: BLE001 - skip anything the engine can't handle

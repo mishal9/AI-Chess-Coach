@@ -42,8 +42,13 @@ def read_jsonl(path: Path) -> list[dict]:
         return [json.loads(line) for line in fh if line.strip()]
 
 
-def _bucket(key: str, seed: int) -> float:
-    """Map a key to a stable, uniform value in ``[0, 1)`` via SHA-256 (no per-run state)."""
+def bucket_value(key: str, seed: int) -> float:
+    """Map a key to a stable, uniform value in ``[0, 1)`` via SHA-256 (no per-run state).
+
+    Public because ``training.corpus.canonical_order`` reuses it for the same reason
+    ``assign_split`` does: a deterministic ordering derived from identity alone, so it
+    doesn't drift with fetch time or manifest order.
+    """
     h = hashlib.sha256(f"{seed}:{key}".encode()).hexdigest()
     return int(h[:16], 16) / 16**16
 
@@ -51,7 +56,7 @@ def _bucket(key: str, seed: int) -> float:
 def assign_split(key: str, ratios=DEFAULT_RATIOS, seed: int = 0) -> str:
     """Which split a game key belongs to. Same key + seed -> always the same split."""
     r_train, r_val, _ = ratios
-    x = _bucket(key, seed)
+    x = bucket_value(key, seed)
     if x < r_train:
         return "train"
     if x < r_train + r_val:
