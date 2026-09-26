@@ -54,6 +54,52 @@ Your data: 53 `mshah509` games (25 Jun – 6 Sep 2026). Tagged mistakes so far: 
 - App: you can read about a game, but you can't see the board. Coaching covers one game at a
   time, never your habits across games, and nothing makes you practise.
 
+## Checkpoint 26 Sep (start here next session)
+
+Branch `feat/analysis-depth-18` (pushed, not merged; no PR yet). PR #71 (DeepSeek teacher,
+91-game held-out set) is merged into `master`.
+
+**Done on 26 Sep**
+
+- **One analysis depth: 18** for training data, held-out labels and every evaluation; the
+  app uses 15. Old reports are re-checked at the depth they record (all 15).
+  `paper-protocol.md`, "Analysis depth".
+- **Analysis cache** (`engine/cache.py`, `data/analysis/<depth>/`): each game is analysed
+  once per depth. The 91 held-out games are cached at 15 (first 29), 18 and 20.
+- **Held-out relabelled at depth 18** (`eval.expand_heldout --relabel`): 14 of 91 labels
+  changed; counts clean_draw 5, slow_loss 12, inaccuracies 19, two_mistakes 18,
+  one_blunder 19, multi_blunder 16, unsorted 2.
+- **Depth-20 stability check** (pre-registered): 8% of rule-sorted labels change 18 → 20 and
+  labels oscillate. Depth stays 18. 73 games are `label_stable` in the manifest and every
+  report repeats its headline for them. `docs/experiments/2026-09-26-depth-20-label-stability.md`.
+- **N2 teacher gate: DeepSeek-V4 Pro passes.** Factual 4.74 on 91 games (4.77 on the stable
+  73), overall 4.77. `docs/experiments/2026-09-26-deepseek-teacher-91-games-d18.md`.
+- **Claim checker v2**: 5 false-positive patterns fixed. On DeepSeek, 7 flags → 2 (both
+  real); across all reports 25 → 18, 0 added; Opus rows still 0/604.
+
+**Next, in order**
+
+1. Rebuild the training corpus so it excludes all 91 held-out games:
+   `python -m training.corpus --canonical-seed 0`.
+2. Generate DeepSeek training rows at depth 18 (`training.distill --teacher deepseek`),
+   QC-filtered with checker v2 (`training/qc.py`). Rows now record `source.depth`.
+3. Fine-tune the sweep (4 sizes × 3 seeds), then score every arm together on 91 games with
+   Opus and Gemini.
+
+**Open items**
+
+- N1 licence: still no request or reply recorded.
+- Human ratings round 1: 0 ratings; redraw the sample from 91 games with the template
+  replacing v2 (`eval.human_rating` now stratifies on manifest labels).
+- Judge-drift check: re-judge the 25 Sep depth-15 texts against depth-15 facts. The original
+  29 fell from factual 5.00 (depth 15) to 4.72 (depth 18); this separates text from judge.
+- `eval.recheck` CLI refuses reports written after #41 (its alignment check uses the legacy
+  parser). The DeepSeek report was re-scored via `recheck.recheck_report` directly.
+- Re-analyse the 53 app games at depth 15 (stored at 12).
+- Local backup of git-ignored data: `~/Backups/chess_analyzer-untracked-2026-09-26.tar.gz`;
+  not yet copied off the machine. The two ablation GGUFs exist only inside Ollama.
+- Several commits titled "updates" hold mid-work changes; squash before a PR if wanted.
+
 ## Next steps (picked up from 20 Sep)
 
 N1, N2, N3 and N4 round 1 can all start now and run in parallel; none waits on another. Later steps wait on the gates. Each gate decides whether the next step is needed.
