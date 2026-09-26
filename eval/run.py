@@ -27,6 +27,7 @@ from typing import Callable
 
 from coach import client as coach_client, prompts
 from engine.analyzer import DEFAULT_DEPTH
+from engine.cache import engine_label
 from eval import backends, claims, grounding, template_coach
 from eval import judge as judge_mod
 from eval.rubric import RUBRIC_AXES
@@ -97,15 +98,15 @@ def make_judge_fn(backend, model: str | None) -> JudgeFn:
 
 
 def analyze_case(case: EvalCase, depth: int) -> dict:
-    """Run Stockfish over a case's game and return the report dict (imported lazily so
-    the rest of the module needs no engine)."""
-    from engine.analyzer import analyze_game
+    """Run Stockfish over a case's game and return the report dict, reusing a saved
+    analysis when there is one (imported lazily so the rest of the module needs no engine)."""
+    from engine.cache import analyze_cached
     from engine.pgn import load_game
 
     game = load_game(case.pgn, case.game_index)
     if game is None:
         raise SystemExit(f"No game at index {case.game_index} in {case.pgn}")
-    return analyze_game(game, depth=depth).to_dict()
+    return analyze_cached(game, depth)
 
 
 def evaluate_case(
@@ -333,6 +334,7 @@ def main(argv: list[str] | None = None) -> int:
             "judge": args.judge if not args.no_judge else None,
             "judge_model": judge_desc if not args.no_judge else None,
             "depth": args.depth,
+            "stockfish": engine_label(),
             # Which semantics produced the deterministic scores. Without this, eval.compare
             # cannot tell that two reports' numbers are not subtractable — it once diffed a
             # post-#41 grounding mean against a pre-#41 one and inverted the sign.

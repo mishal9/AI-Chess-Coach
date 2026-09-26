@@ -193,12 +193,12 @@ def _default_analyze(depth: int) -> AnalyzeFn:
 
         import chess.pgn
 
-        from engine.analyzer import analyze_game
+        from engine.cache import analyze_cached
 
         game = chess.pgn.read_game(io.StringIO(pgn))
         if game is None:
             raise ValueError("unparseable PGN")
-        return analyze_game(game, depth=depth).to_dict()
+        return analyze_cached(game, depth)
 
     return analyze
 

@@ -67,7 +67,7 @@ def analyze_manifest(manifest_path: Path, depth: int) -> list[dict]:
     Returns one ``{pgn, game_index, coached_side, report, facts}`` per entry. The engine
     is imported lazily so importing this module needs no Stockfish.
     """
-    from engine.analyzer import analyze_game
+    from engine.cache import analyze_cached
     from engine.pgn import load_game
 
     entries = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -78,7 +78,7 @@ def analyze_manifest(manifest_path: Path, depth: int) -> list[dict]:
         game = load_game(base / entry["pgn"], game_index)
         if game is None:
             raise SystemExit(f"No game at index {game_index} in {entry['pgn']}")
-        report = analyze_game(game, depth=depth).to_dict()
+        report = analyze_cached(game, depth)
         side = entry.get("coached_side") or prompts.choose_coached_side(report)
         out.append({
             "pgn": entry["pgn"],

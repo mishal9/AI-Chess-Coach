@@ -25,6 +25,7 @@ from pathlib import Path
 
 from coach import prompts
 from engine.analyzer import DEFAULT_DEPTH
+from engine.cache import engine_label
 from eval import backends, claims, grounding
 from eval.run import (
     DEFAULT_MANIFEST, aggregate, analyze_case, append_partial, evaluate_case,
@@ -110,6 +111,7 @@ def main(argv: list[str] | None = None) -> int:
         "judge": "anthropic" if judge_fn else None,
         "judge_model": judge_desc if judge_fn else None,
         "depth": args.depth,
+        "stockfish": engine_label(),
         "metric_versions": {"grounding": grounding.METRIC_VERSION,
                             "claims": claims.METRIC_VERSION},
         "date": date.today().isoformat(),

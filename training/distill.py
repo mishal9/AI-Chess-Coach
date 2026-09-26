@@ -89,13 +89,13 @@ def load_sources(path: Path) -> list[SourceGame]:
 def analyze_source(source: SourceGame, depth: int) -> dict:
     """Run Stockfish over a source game and return the report dict (engine imported lazily
     so the rest of the module needs no engine)."""
-    from engine.analyzer import analyze_game
+    from engine.cache import analyze_cached
     from engine.report import load_game
 
     game = load_game(source.pgn, source.game_index)
     if game is None:
         raise SystemExit(f"No game at index {source.game_index} in {source.pgn}")
-    return analyze_game(game, depth=depth).to_dict()
+    return analyze_cached(game, depth)
 
 
 def _difficulty(report: dict, coached_side: str) -> dict:
