@@ -110,3 +110,11 @@ def test_recheck_stamps_the_current_claims_version():
     report = {"games": [_game("You played Re8, and the engine preferred Nh5.")]}
     out = recheck.recheck_report(report, [_analyzed()])
     assert out["metric_versions"]["claims"] == claims.METRIC_VERSION
+
+
+def test_recheck_refreshes_the_label_stable_subset():
+    game = dict(_game("You played Bg5."), label_stable=True, identifies_worst_move=True)
+    report = {"games": [game], "aggregate": {"label_stable_subset": {"claims_ok_rate": 0.0}}}
+    out = recheck.recheck_report(report, [_analyzed()])
+    assert out["aggregate"]["label_stable_subset"]["games"] == 1
+    assert out["aggregate"]["label_stable_subset"]["claims_ok_rate"] == out["aggregate"]["claims_ok_rate"]

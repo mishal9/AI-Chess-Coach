@@ -46,7 +46,13 @@ from eval import grounding
 # contract. Bump whenever a check is added, removed, or retuned, since any of those change
 # what a score means.
 #   1  (#43, #45) role inversion, invented castling, invented placement.
-METRIC_VERSION = 1
+#   2  (2026-09-26) fewer false accusations, found by hand-auditing DeepSeek-V4 Pro text:
+#      a role claim naming the opponent ("after White played 7.Nxe4") is not checked
+#      against the coached side's roles; placement claims skip hypotheticals ("the queen
+#      on e2 would have been..."), targeting ("pointing the knight at f7"), conditional
+#      advice ("when your opponent has a pawn on d5") and -ing forms of advice verbs
+#      ("getting the bishop to e7").
+METRIC_VERSION = 2
 
 # A flagged-mistake line from the facts block, e.g.
 #   - 12...Re8?! (inaccuracy): the engine preferred Nh5; cost about 10% win probability...
@@ -131,14 +137,30 @@ _PIECE_CLAIM_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Recommendations, not observations: "knights belong on f3", "put your rook on d1".
-# Same trap as the role cues — a suggestion about where a piece *should* go says nothing
-# false about where it *was*.
+# Recommendations, not observations: "knights belong on f3", "put your rook on d1",
+# "getting the bishop to e7". Same trap as the role cues — a suggestion about where a
+# piece *should* go says nothing false about where it *was*. "keeping" is deliberately
+# absent: "the engine preferred keeping the bishop on f4" asserts the bishop was on f4.
 _ADVICE_RE = re.compile(
-    r"\b(?:belong|belongs|put|place|should|could|would|want|wants|wanted|try|aim|bring|"
-    r"develop|reroute|swing|maneuver|manoeuvre|prefer|prefers|better|ideally|instead|"
-    r"consider|imagine|keep|get|route)\b[^.;:!?]{0,40}\Z",
+    r"\b(?:belong|belongs|put|putting|place|placing|should|could|would|want|wants|wanted|"
+    r"try|trying|aim|aiming|bring|bringing|develop|developing|reroute|rerouting|swing|"
+    r"swinging|maneuver|maneuvering|manoeuvre|manoeuvring|prefer|prefers|better|ideally|"
+    r"instead|consider|considering|imagine|keep|get|getting|route|routing)"
+    r"\b[^.;:!?]{0,40}\Z",
     re.IGNORECASE,
+)
+
+# A piece pointed *at* a square is a target, not a placement: "pointing the knight at f7".
+_TARGETING_RE = re.compile(
+    r"\b(?:point|points|pointing|pointed|aim|aims|aimed|eye|eyes|eyeing|target|targets|"
+    r"targeting|targeted)\b[^.;:!?]{0,20}\Z",
+    re.IGNORECASE,
+)
+
+# A modal right after the claim makes it hypothetical: "the queen on e2 would have been
+# more harmonious" describes the engine's alternative, not the game.
+_HYPOTHETICAL_AFTER_RE = re.compile(
+    r"\A[^.;:!?]{0,15}?\b(?:would|could|might|should)\b", re.IGNORECASE
 )
 
 
@@ -207,7 +229,10 @@ def parse_roles(facts_text: str) -> tuple[set[str], set[str]]:
     return played - ambiguous, preferred - ambiguous
 
 
-def _cue_before(text: str, start: int) -> str:
+_COACHED_SIDE_RE = re.compile(r"You are coaching the (WHITE|BLACK) player")
+
+
+def _cue_before(text: str, start: int) -> tuple[str, str]:
     """The role cue governing the move at ``start``, or ``""`` if none governs it.
 
     The cue need not be adjacent — "you chose a passive rook move (Rc8)" puts a whole noun
@@ -216,6 +241,8 @@ def _cue_before(text: str, start: int) -> str:
     the "preferred" and Re8 is left ungoverned rather than mis-attributed. It also stops at
     a clause boundary, and the cue must carry a named agent. Coordination is stripped
     first, so "you played Nf3 or g3" still governs both.
+
+    Returns ``(cue, agent)``, or ``("", "")`` when nothing governs the move.
     """
     before = text[:start]
     coord = _COORD_RE.search(before)
@@ -229,7 +256,7 @@ def _cue_before(text: str, start: int) -> str:
     for i, cue_match in reversed(list(enumerate(words))):
         word = cue_match.group(1).lower()
         if word in _CLAUSE_BREAK:
-            return ""
+            return "", ""
         if word not in _PLAYED_CUES and word not in _PREFERRED_CUES:
             continue
         agent = words[i - 1].group(1).lower() if i else ""
@@ -238,9 +265,9 @@ def _cue_before(text: str, start: int) -> str:
         if agent not in expected:
             continue
         if any(grounding.iter_move_citations(window[cue_match.end():])):
-            return ""
-        return word
-    return ""
+            return "", ""
+        return word, agent
+    return "", ""
 
 
 def _excerpt(text: str, start: int, end: int, pad: int = 45) -> str:
@@ -253,9 +280,16 @@ def check_roles(coaching_text: str, facts_text: str) -> ClaimResult:
     result = ClaimResult()
     if not played and not preferred:
         return result
+    side = _COACHED_SIDE_RE.search(facts_text)
+    opponent = ({"WHITE": "black", "BLACK": "white"}[side.group(1)] if side else "")
 
     for move, match in grounding.iter_move_citations(coaching_text):
-        cue = _cue_before(coaching_text, match.start())
+        cue, agent = _cue_before(coaching_text, match.start())
+        if opponent and agent == opponent:
+            # The facts only assign roles to the coached side's moves. "After White played
+            # 7.Nxe4" describes the opponent's move, which can share its SAN with the
+            # coached side's engine-preferred move.
+            continue
         if cue in _PLAYED_CUES:
             claimed = "played"
         elif cue in _PREFERRED_CUES:
@@ -361,8 +395,9 @@ def check_board_state(
       point in the game, not merely at the moment under discussion;
     * "the rook on b7" (no possessive) is checked against **both** colours, and passes if
       either could have stood there;
-    * advice is skipped — "knights belong on f3", "put your rook on d1" say nothing about
-      where a piece actually was.
+    * advice, hypotheticals and targets are skipped — "knights belong on f3", "when your
+      opponent has a pawn on d5", "the queen on e2 would have been better", "pointing the
+      knight at f7" say nothing about where a piece actually was.
     """
     result = ClaimResult()
     occupancy = occupied_squares(report)
@@ -371,7 +406,13 @@ def check_board_state(
     coached_white = coached_side == "white"
 
     for match in _PIECE_CLAIM_RE.finditer(coaching_text):
-        if _ADVICE_RE.search(coaching_text[: match.start()]):
+        before = coaching_text[: match.start()]
+        if (
+            _ADVICE_RE.search(before)
+            or _HYPOTHETICAL_RE.search(before)
+            or (match.group("prep").lower() == "at" and _TARGETING_RE.search(before))
+            or _HYPOTHETICAL_AFTER_RE.search(coaching_text[match.end():])
+        ):
             continue
         piece = _PIECES[match.group("piece").lower()]
         square = match.group("square").lower()

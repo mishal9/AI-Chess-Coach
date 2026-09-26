@@ -77,8 +77,61 @@ differ slightly, DeepSeek wrote different text, and it contained the error.
   phrasing should not count as a placement claim, and move matching should respect SAN
   disambiguation and the side to move.
 
-## Decision needed
+## Claim checker v2 (same day)
 
-Whether DeepSeek passes N2 depends on how the zero-violation criterion is read. As
-written it fails; on confirmed errors it has a ~4% slip rate that the row-level QC filter
-(`training/qc.py`: grounding, claims, structure) would partly remove. See `PLAN.md` N2.
+The audit above found five false-positive patterns. `eval/claims.py` METRIC_VERSION 2 fixes
+them, each with a regression test in `tests/test_eval_claims.py`:
+
+- a role claim naming the opponent ("After White played 7.Nxe4") is not checked against
+  the coached side's roles, which a SAN collision can otherwise match;
+- placement claims followed by a modal ("the queen on e2 **would** have been…") are
+  hypothetical;
+- a piece pointed **at** a square is a target, not a placement ("pointing the knight at f7");
+- conditional general advice ("**When** your opponent has a pawn on d5…") is skipped;
+- -ing advice verbs count as advice ("**getting** the bishop to e7"). "keeping" is
+  deliberately excluded: "the engine preferred keeping the bishop on f4" asserts the
+  bishop was on f4, and that is one of the two real errors.
+
+**Before and after, on every stored report** (v1 and v2 run on the same coaching text and
+the same analysis):
+
+| Report | v1 flags | v2 flags |
+|---|---|---|
+| deepseek_v4_pro_d18_2026-09-26 | 7 | **2** |
+| baseline_29g_2026-07-10 | 6 | 5 |
+| abl_pos_only_2026-08-10 | 3 | 2 |
+| 8b_v1, 8b_v2 (both judges) | 2 each | 2 each |
+| deepseek_v4_pro_2026-09-25, prompted_8b (both judges) | 1 each | 1 each |
+| **Total** | **25** | **18** |
+
+- **7 flags removed, all false positives:** the 5 DeepSeek ones above, plus two older
+  hypotheticals ("the queen on d7, which would have been more advantageous", where Qd7 was
+  the engine's move; "A rook on e1 would have been much more active").
+- **0 flags added.** Every change only skips a pattern, so v2 cannot flag anything v1
+  did not.
+- **Both real DeepSeek errors are still caught** (`slow_loss` #14 and #16).
+- **Opus teacher rows (604, v1 + v2 datasets): 0 role flags under v1 and v2.**
+
+On the DeepSeek report, precision on the hand-audited flags goes from 2 of 7 to **2 of 2**.
+The report was re-scored in place with checker v2 (`metric_versions.claims` = 2): claims
+clean 92% → **97.8%** (89/91), label-stable subset 98.6% (72/73). Rubric scores are
+unchanged.
+
+`eval.recheck`'s CLI refuses this report: its alignment check replays grounding with the
+pre-#41 parser, so it only accepts reports written before #41. The re-score used
+`recheck.recheck_report` directly, after checking that every game joins to its manifest
+entry by file, index and side.
+
+Recall is unchanged and still low. The three judge-caught errors (`slow_loss` #1,
+`clean_draw` #3, `one_blunder` #15) are a wrong capture, a wrong game outcome and an
+invented narrative, none of which the checker models.
+
+## Decision (2026-09-26)
+
+**DeepSeek-V4 Pro passes the N2 teacher gate** under this reading: factual ≥ 4.5 (4.74 on
+91, 4.77 on the stable 73), and every **confirmed** claim violation audited. The
+"zero claim violations" criterion was written when the checker had shown no false
+positives on teacher text (0/467 on Opus rows); on DeepSeek text v1 did not hold that.
+With v2, 2 of 91 games are flagged and both are real. Rows the checker flags are dropped by
+`training/qc.py` during data generation, and checker v2 stops that filter from discarding
+correct rows for hypothetical wording.

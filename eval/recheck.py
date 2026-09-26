@@ -144,6 +144,11 @@ def recheck_report(report: dict, analyzed: list[dict]) -> dict:
     aggregate = dict(report.get("aggregate", {}))
     aggregate["claims_mean"] = round(sum(g["claims"]["score"] for g in games) / n, 3)
     aggregate["claims_ok_rate"] = round(sum(g["claims"]["ok"] for g in games) / n, 3)
+    if "label_stable_subset" in aggregate:
+        # The subset repeats the headline vector, so it must move with it.
+        from eval.run import aggregate as full_aggregate
+
+        aggregate["label_stable_subset"] = full_aggregate(games)["label_stable_subset"]
     # Same reason as eval.rescore: mark which semantics these claim scores are on.
     versions = dict(report.get("metric_versions") or {})
     versions["claims"] = claims.METRIC_VERSION

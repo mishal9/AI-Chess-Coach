@@ -12,7 +12,7 @@
   "stockfish": "Stockfish 18",
   "metric_versions": {
     "grounding": 2,
-    "claims": 1
+    "claims": 2
   },
   "date": "2026-09-26",
   "aggregate": {
@@ -20,8 +20,8 @@
     "grounding_mean": 0.978,
     "grounded_rate": 0.923,
     "worst_move_identified_rate": 0.824,
-    "claims_mean": 0.952,
-    "claims_ok_rate": 0.923,
+    "claims_mean": 0.984,
+    "claims_ok_rate": 0.978,
     "rubric_axis_means": {
       "factual_correctness": 4.74,
       "clarity": 5.0,
@@ -34,8 +34,8 @@
       "grounding_mean": 0.973,
       "grounded_rate": 0.904,
       "worst_move_identified_rate": 0.795,
-      "claims_mean": 0.961,
-      "claims_ok_rate": 0.945,
+      "claims_mean": 0.986,
+      "claims_ok_rate": 0.986,
       "rubric_axis_means": {
         "factual_correctness": 4.77,
         "clarity": 5.0,
@@ -209,7 +209,7 @@
       "claims": {
         "score": 1.0,
         "ok": true,
-        "checked": 4,
+        "checked": 3,
         "violations": []
       },
       "identifies_worst_move": true,
@@ -554,18 +554,10 @@
         ]
       },
       "claims": {
-        "score": 0.5,
-        "ok": false,
-        "checked": 2,
-        "violations": [
-          {
-            "kind": "invented_placement",
-            "move": "",
-            "claimed": "a queen on e2",
-            "actual": "no queen ever stood on e2",
-            "excerpt": "ifferences in piece placement matter a lot \u2014 the queen on e2 would have been more harmonious with your ov"
-          }
-        ]
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
       },
       "identifies_worst_move": true,
       "rubric": {
@@ -1323,7 +1315,7 @@
       "claims": {
         "score": 1.0,
         "ok": true,
-        "checked": 2,
+        "checked": 1,
         "violations": []
       },
       "identifies_worst_move": true,
@@ -1733,18 +1725,10 @@
         ]
       },
       "claims": {
-        "score": 0.0,
-        "ok": false,
-        "checked": 1,
-        "violations": [
-          {
-            "kind": "role_inversion",
-            "move": "Nxe4",
-            "claimed": "played",
-            "actual": "engine-preferred",
-            "excerpt": "t was a meaningful one. After White played 7.Nxe4 (or the position around there), you had a ch"
-          }
-        ]
+        "score": 1.0,
+        "ok": true,
+        "checked": 0,
+        "violations": []
       },
       "identifies_worst_move": true,
       "rubric": {
@@ -2729,7 +2713,7 @@
       "claims": {
         "score": 1.0,
         "ok": true,
-        "checked": 1,
+        "checked": 0,
         "violations": []
       },
       "identifies_worst_move": true,
@@ -2766,18 +2750,10 @@
         ]
       },
       "claims": {
-        "score": 0.5,
-        "ok": false,
-        "checked": 2,
-        "violations": [
-          {
-            "kind": "invented_placement",
-            "move": "",
-            "claimed": "a knight on f7",
-            "actual": "no knight ever stood on f7",
-            "excerpt": "10.Ng5, and while it looks active \u2014 pointing the knight at f7 and h7 \u2014 the engine much preferred 10.Be3. T"
-          }
-        ]
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
       },
       "identifies_worst_move": true,
       "rubric": {
@@ -2819,7 +2795,7 @@
       "claims": {
         "score": 1.0,
         "ok": true,
-        "checked": 2,
+        "checked": 1,
         "violations": []
       },
       "identifies_worst_move": true,
@@ -2911,18 +2887,10 @@
         ]
       },
       "claims": {
-        "score": 0.5,
-        "ok": false,
-        "checked": 2,
-        "violations": [
-          {
-            "kind": "invented_placement",
-            "move": "",
-            "claimed": "a bishop on e7",
-            "actual": "no bishop ever stood on e7",
-            "excerpt": "e. Completing your development (like getting the bishop to e7) often matters more than winning material or"
-          }
-        ]
+        "score": 1.0,
+        "ok": true,
+        "checked": 1,
+        "violations": []
       },
       "identifies_worst_move": true,
       "rubric": {
@@ -3668,18 +3636,10 @@
         ]
       },
       "claims": {
-        "score": 0.667,
-        "ok": false,
-        "checked": 3,
-        "violations": [
-          {
-            "kind": "invented_placement",
-            "move": "",
-            "claimed": "a pawn on d5",
-            "actual": "no pawn ever stood on d5",
-            "excerpt": "ntral pawn tension.** When your opponent has a pawn on d5 or e5, always ask yourself: can I capture it"
-          }
-        ]
+        "score": 1.0,
+        "ok": true,
+        "checked": 2,
+        "violations": []
       },
       "identifies_worst_move": true,
       "rubric": {
@@ -4138,7 +4098,7 @@
       "claims": {
         "score": 1.0,
         "ok": true,
-        "checked": 7,
+        "checked": 6,
         "violations": []
       },
       "identifies_worst_move": true,
@@ -4251,5 +4211,6 @@
         "rationale": "All moves and engine preferences match the facts (Rxd1/Nxe7+, Rd7/Bxf6, 4.e5/Be3, 19.Bb3/Ba6). Leads with the two consecutive blunders, the actual key mistakes. Clear structure and concrete advice. The 'rook vs minor piece' pattern is a slight overgeneralization but reasonable given the facts."
       }
     }
-  ]
+  ],
+  "rechecked_from": "deepseek_v4_pro_d18_2026-09-26.json"
 }
