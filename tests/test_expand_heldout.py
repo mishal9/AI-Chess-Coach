@@ -8,7 +8,18 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from eval import expand_heldout as ex
+from training import corpus
+
+
+@pytest.fixture(autouse=True)
+def _no_real_pacing_delay(monkeypatch):
+    """Same fixture as tests/test_training_corpus.py: fake fetchers hit no real API, so
+    the inter-user pacing delay (shared with training.corpus) would only slow the suite
+    down for nothing."""
+    monkeypatch.setattr(corpus, "FETCH_PACING_SECONDS", 0)
 
 
 def make_report(acpl_white, acpl_black, white_q=(), black_q=(), result="*"):
@@ -142,6 +153,44 @@ def test_main_writes_games_and_extends_manifest(tmp_path, monkeypatch):
     for e in manifest:
         assert e["coached_side"] in ("white", "black")
         assert e["white"] and "note" in e
+
+
+def test_main_paces_between_users(tmp_path, monkeypatch):
+    monkeypatch.setattr(ex, "HELDOUT_DIR", tmp_path)
+    (tmp_path / "manifest.json").write_text("[]")
+    monkeypatch.setattr(corpus, "FETCH_PACING_SECONDS", 4.0)
+    slept = []
+    monkeypatch.setattr(corpus.time, "sleep", lambda s: slept.append(s))
+
+    ex.main(
+        ["--per-bucket", "1"],  # default roster: corpus.DEFAULT_USERS, 5 users
+        fetch_fn=lambda user, mx: "",
+        analyze_fn=lambda pgn: make_report(15, 10, result="1/2-1/2"),
+    )
+    assert slept == [4.0] * (len(corpus.DEFAULT_USERS) - 1)
+
+
+def test_main_logs_progress_for_every_candidate_not_only_failures(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(ex, "HELDOUT_DIR", tmp_path)
+    (tmp_path / "manifest.json").write_text("[]")
+
+    g_ok = _pgn("1. e4 e5 2. Nf3 ok")
+    g_bad = _pgn("1. d4 d5 2. c4 bad")
+
+    def analyze(pgn: str) -> dict:
+        if pgn == g_bad:
+            raise ValueError("boom")
+        return make_report(15, 10, result="1/2-1/2")
+
+    ex.main(["--per-bucket", "1", "--user", "someone"],
+            fetch_fn=lambda user, mx: g_ok + "\n\n" + g_bad, analyze_fn=analyze)
+
+    err = capsys.readouterr().err
+    # every candidate gets a "[i/N] <identity>" line before it's attempted, win or lose —
+    # not just the ones that fail, which is all the old logging ever showed.
+    assert f"[1/2] {ex.corpus.game_key(g_ok)}" in err
+    assert f"[2/2] {ex.corpus.game_key(g_bad)}" in err
+    assert "[2/2] skipped (boom)" in err
 
 
 def test_lichess_fetch_perf_passes_perf_type(monkeypatch):

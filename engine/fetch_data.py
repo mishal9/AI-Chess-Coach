@@ -24,8 +24,13 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
 LICHESS_API = "https://lichess.org/api/games/user/{user}"
 CHESSCOM_ARCHIVES = "https://api.chess.com/pub/player/{user}/games/archives"
 
-# chess.com's Published-Data API rejects requests without a User-Agent (HTTP 403).
-CHESSCOM_HEADERS = {"User-Agent": "chess-analyzer (github.com/mishal9/chess-analyzer)"}
+# chess.com's Published-Data API rejects requests without a User-Agent (HTTP 403). Lichess
+# started doing the same as of 2026-08 (lichess-org/api#667): an anonymous games/user call
+# now falls through to the generic site 404 page instead of a real API response or error,
+# which reads as "no games" rather than "you forgot a header" unless you already know this.
+_USER_AGENT = "chess-analyzer (github.com/mishal9/chess-analyzer)"
+CHESSCOM_HEADERS = {"User-Agent": _USER_AGENT}
+LICHESS_HEADERS = {"Accept": "application/x-chess-pgn", "User-Agent": _USER_AGENT}
 
 
 def fetch_lichess_games(
@@ -45,10 +50,9 @@ def fetch_lichess_games(
     }
     if perf_type:
         params["perfType"] = perf_type
-    headers = {"Accept": "application/x-chess-pgn"}
     url = LICHESS_API.format(user=user)
     print(f"Fetching up to {max_games} games for '{user}' from Lichess...", file=sys.stderr)
-    resp = requests.get(url, params=params, headers=headers, timeout=60)
+    resp = requests.get(url, params=params, headers=LICHESS_HEADERS, timeout=60)
     resp.raise_for_status()
     text = resp.text.strip()
     if not text:

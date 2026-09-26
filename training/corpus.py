@@ -25,12 +25,29 @@ import argparse
 import json
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Callable
 
 from engine import fetch_data
 from engine.pgn import game_key, movetext_hash, split_pgn
 from engine.pgn import normalized_movetext as _normalized_movetext
+
+# Lichess's own guidance is "only run 1 request at a time" — this is the gap between
+# sequential per-user fetches in a multi-user loop (here, and in eval.expand_heldout,
+# which fetches the same way). A burst of back-to-back calls with no gap is exactly what
+# earns a 429, and repeated 429s into an active block have been observed to extend it far
+# past the base ~1-minute cooldown, rather than reset it. Tests monkeypatch this to 0 so
+# an injected fake fetcher doesn't slow the suite down.
+FETCH_PACING_SECONDS = 3.0
+
+
+def _paced(users: list[str]):
+    """Yield ``users``, sleeping ``FETCH_PACING_SECONDS`` before every one after the first."""
+    for i, user in enumerate(users):
+        if i > 0:
+            time.sleep(FETCH_PACING_SECONDS)
+        yield user
 
 HELDOUT_DIR = Path(__file__).resolve().parent.parent / "eval" / "heldout"
 DEFAULT_OUT_DIR = Path(__file__).resolve().parent.parent / "data" / "games"
@@ -98,6 +115,23 @@ def assemble(
     return kept
 
 
+def canonical_order(games: list[str], seed: int = 0) -> list[str]:
+    """Order ``games`` by a stable hash of each game's own identity, not fetch order.
+
+    ``assemble`` orders games however the fetcher happened to return them — for Lichess,
+    newest-first on the day of the call, which drifts as a player keeps playing. A data-scale
+    sweep needs its sizes **nested** (the 1,000-row tier is a superset of the 400-row tier)
+    and **reproducible** months later against a corpus that has moved on. Sorting by
+    :func:`training.dataset.bucket_value` of each game's :func:`~engine.pgn.game_key` gives
+    an order that depends only on each game's own identity, so row-count prefixes of a raw
+    JSONL distilled in this order are the same games every time, regardless of when the
+    corpus was fetched or reassembled. See ``docs/experiments/paper-protocol.md``.
+    """
+    from training.dataset import bucket_value
+
+    return sorted(games, key=lambda pgn: bucket_value(game_key(pgn), seed))
+
+
 def write_corpus(games: list[str], out_dir: Path) -> Path:
     """Write ``games`` to ``out_dir/corpus.pgn`` + a distill-ready ``manifest.json``.
 
@@ -138,6 +172,13 @@ def build_parser() -> argparse.ArgumentParser:
                         help="drop games shorter than this many half-moves (default: 10)")
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR,
                         help="write corpus.pgn + manifest.json here (default: data/games/)")
+    parser.add_argument(
+        "--canonical-seed", type=int, default=None,
+        help="order games by a stable hash of game identity (see canonical_order) instead "
+        "of fetch order, seeded by this value — for a reproducible data-scale sweep, "
+        "where row-count prefixes of the resulting raw JSONL must stay the same games "
+        "across re-fetches. Default: keep fetch order (unset).",
+    )
     return parser
 
 
@@ -152,7 +193,7 @@ def main(argv: list[str] | None = None, fetch_fn: FetchFn = _lichess_fetch) -> i
     raw: list[str] = []
     for path in args.input:
         raw.extend(split_pgn(path.read_text(encoding="utf-8")))
-    for user in users:
+    for user in _paced(users):
         print(f"Fetching up to {args.max} games for '{user}'...", file=sys.stderr)
         raw.extend(split_pgn(fetch_fn(user, args.max)))
 
@@ -161,6 +202,8 @@ def main(argv: list[str] | None = None, fetch_fn: FetchFn = _lichess_fetch) -> i
     if not games:
         print(f"No games survived assembly ({len(raw)} fetched).", file=sys.stderr)
         return 1
+    if args.canonical_seed is not None:
+        games = canonical_order(games, args.canonical_seed)
 
     dropped = len(raw) - len(games)
     manifest_path = write_corpus(games, args.out_dir)

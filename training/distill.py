@@ -225,8 +225,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="write the raw record JSONL here (default: data/distill/raw.jsonl)",
     )
     parser.add_argument("--teacher", default="anthropic",
-                        choices=["ollama", "anthropic", "gemini"])
+                        choices=["ollama", "anthropic", "gemini", "deepseek"])
     parser.add_argument("--teacher-model", default=None, help="override the teacher's model")
+    parser.add_argument(
+        "--teacher-thinking", choices=["enabled", "disabled"], default=None,
+        help="deepseek only: send an explicit thinking mode (default: the API's own); "
+        "recorded in each row's teacher metadata",
+    )
     parser.add_argument("--depth", type=int, default=18, help="Stockfish search depth")
     parser.add_argument(
         "--positions-per-game", type=int, default=4,
@@ -274,9 +279,14 @@ def main(argv: list[str] | None = None) -> int:
         "model": args.teacher_model or (
             teacher_mod.backends.DEFAULT_ANTHROPIC_MODEL if args.teacher == "anthropic"
             else teacher_mod.backends.DEFAULT_GEMINI_MODEL if args.teacher == "gemini"
+            else teacher_mod.DEFAULT_DEEPSEEK_MODEL if args.teacher == "deepseek"
             else "qwen2.5:3b-instruct"
         ),
     }
+    if args.teacher == "deepseek":
+        teacher_mod.DEEPSEEK_THINKING = args.teacher_thinking
+        teacher_desc["temperature"] = teacher_mod.DEEPSEEK_TEMPERATURE
+        teacher_desc["thinking"] = args.teacher_thinking or "api-default"
     teacher_fn = teacher_mod.make_teacher_fn(args.teacher, args.teacher_model)
     position_teacher_fn = teacher_mod.make_position_teacher_fn(
         args.teacher, args.teacher_model
@@ -315,6 +325,15 @@ def main(argv: list[str] | None = None) -> int:
                                                position_teacher_fn, teacher_desc,
                                                retries=args.retries))
 
+    if args.teacher == "deepseek":
+        u = teacher_mod.DEEPSEEK_USAGE
+        print(
+            f"DeepSeek usage: {u['calls']} calls, {u['prompt_tokens']} prompt + "
+            f"{u['completion_tokens']} completion tokens "
+            f"({u['reasoning_tokens']} of them reasoning); "
+            f"model(s) reported: {sorted(u['models']) or 'none'}.",
+            file=sys.stderr,
+        )
     total_kept = sum(kept.values())
     total_grounded = sum(grounded.values())
     print(
