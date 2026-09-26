@@ -93,6 +93,35 @@ def test_aggregate_computes_means():
     assert agg["rubric_overall_mean"] == 3.0
 
 
+_SCORES_HI = {"factual_correctness": 5, "clarity": 5, "actionability": 5, "identifies_key_mistake": 5}
+_SCORES_LO = {"factual_correctness": 1, "clarity": 1, "actionability": 1, "identifies_key_mistake": 1}
+
+
+def test_aggregate_repeats_the_vector_for_the_label_stable_subset():
+    records = [
+        {**_record(1.0, True, True, 5.0, _SCORES_HI), "label_stable": True},
+        {**_record(0.0, False, False, 1.0, _SCORES_LO), "label_stable": False},
+    ]
+    agg = run.aggregate(records)
+    assert agg["games"] == 2 and agg["rubric_overall_mean"] == 3.0
+    stable = agg["label_stable_subset"]
+    assert stable["games"] == 1
+    assert stable["rubric_overall_mean"] == 5.0
+    assert "label_stable_subset" not in stable
+    assert "Label-stable subset (1 games)" in run.format_summary(agg, "m", "j")
+
+
+def test_aggregate_has_no_subset_when_stability_was_never_assessed():
+    agg = run.aggregate([_record(1.0, True, True, 5.0, _SCORES_HI)])
+    assert "label_stable_subset" not in agg
+
+
+def test_the_manifest_marks_73_label_stable_games():
+    cases = run.load_cases()
+    assert all(c.label_stable is not None for c in cases)
+    assert sum(c.label_stable for c in cases) == 73
+
+
 def test_aggregate_without_rubric_skips_rubric_keys():
     records = [
         {"grounding": {"score": 1.0, "grounded": True, "hallucinated": []},

@@ -97,5 +97,9 @@ The 18 games outside the stable subset:
 Stable subset by depth-18 bucket: clean_draw 5, slow_loss 10, inaccuracies 14,
 two_mistakes 14, one_blunder 15, multi_blunder 15.
 
+Each manifest entry carries `label_stable` (true for these 73). `eval.run` and
+`training.n2_eval` copy it into every record and repeat the headline vector for the stable
+subset under `aggregate.label_stable_subset`.
+
 The depth-20 analyses are saved in the analysis cache (`data/analysis/20/`), so this
 comparison can be re-run in seconds.

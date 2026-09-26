@@ -7,7 +7,8 @@
     "black": "PseudoBenko",
     "note": "near-clean game (both sides low ACPL, nothing flagged) \u2014 the coach must recognize a clean game, not invent errors",
     "bucket": "clean_draw",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -18,7 +19,8 @@
     "note": "gradual loss: high ACPL but no discrete blunder (Opera-like) \u2014 the case where a small model tends to hallucinate",
     "bucket": "two_mistakes",
     "bucket_depth": 18,
-    "bucket_previous": "slow_loss"
+    "bucket_previous": "slow_loss",
+    "label_stable": false
   },
   {
     "pgn": "one_blunder.pgn",
@@ -29,7 +31,8 @@
     "note": "a single clear blunder plus high ACPL",
     "bucket": "two_mistakes",
     "bucket_depth": 18,
-    "bucket_previous": "one_blunder"
+    "bucket_previous": "one_blunder",
+    "label_stable": false
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -40,7 +43,8 @@
     "note": "multiple blunders in one game (2 blunders + a mistake)",
     "bucket": "one_blunder",
     "bucket_depth": 18,
-    "bucket_previous": "multi_blunder"
+    "bucket_previous": "multi_blunder",
+    "label_stable": false
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -51,7 +55,8 @@
     "note": "death by many small inaccuracies; no blunder or mistake",
     "bucket": "two_mistakes",
     "bucket_depth": 18,
-    "bucket_previous": "inaccuracies"
+    "bucket_previous": "inaccuracies",
+    "label_stable": false
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -61,7 +66,8 @@
     "black": "DrNykterstein",
     "note": "a couple of mistakes, no blunder",
     "bucket": "two_mistakes",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -71,7 +77,8 @@
     "black": "BWVolker",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -81,7 +88,8 @@
     "black": "maia5",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -91,7 +99,8 @@
     "black": "Kirill_Zh",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -102,7 +111,8 @@
     "bucket": "inaccuracies",
     "note": "auto-curated into 'slow_loss' (coached side: black)",
     "bucket_depth": 18,
-    "bucket_previous": "slow_loss"
+    "bucket_previous": "slow_loss",
+    "label_stable": false
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -112,7 +122,8 @@
     "black": "skyhound",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -122,7 +133,8 @@
     "black": "maia5",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -132,7 +144,8 @@
     "black": "maia5",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -142,7 +155,8 @@
     "black": "maia5",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -152,7 +166,8 @@
     "black": "Insane_Cookie",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -162,7 +177,8 @@
     "black": "rchamizo",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -173,7 +189,8 @@
     "bucket": "one_blunder",
     "note": "auto-curated into 'two_mistakes' (coached side: white)",
     "bucket_depth": 18,
-    "bucket_previous": "two_mistakes"
+    "bucket_previous": "two_mistakes",
+    "label_stable": false
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -183,7 +200,8 @@
     "black": "maia1",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -193,7 +211,8 @@
     "black": "Advitj",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -203,7 +222,8 @@
     "black": "maia1",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -213,7 +233,8 @@
     "black": "Sinrakin",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -223,7 +244,8 @@
     "black": "maia1",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -233,7 +255,8 @@
     "black": "maia1",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -243,7 +266,8 @@
     "black": "maia1",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -253,7 +277,8 @@
     "black": "maia1",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -263,7 +288,8 @@
     "black": "ZValeryi",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": false
   },
   {
     "pgn": "clean_draw.pgn",
@@ -273,7 +299,8 @@
     "black": "penguingm1",
     "bucket": "clean_draw",
     "note": "auto-curated into 'clean_draw' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "clean_draw.pgn",
@@ -284,7 +311,8 @@
     "bucket": "unsorted",
     "note": "auto-curated into 'clean_draw' (coached side: black)",
     "bucket_depth": 18,
-    "bucket_previous": "clean_draw"
+    "bucket_previous": "clean_draw",
+    "label_stable": false
   },
   {
     "pgn": "clean_draw.pgn",
@@ -294,7 +322,8 @@
     "black": "penguingm1",
     "bucket": "clean_draw",
     "note": "auto-curated into 'clean_draw' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "clean_draw.pgn",
@@ -304,7 +333,8 @@
     "black": "Rajesh230340",
     "bucket": "clean_draw",
     "note": "auto-curated into 'clean_draw' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "clean_draw.pgn",
@@ -314,7 +344,8 @@
     "black": "ankbarn11",
     "bucket": "clean_draw",
     "note": "auto-curated into 'clean_draw' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -325,7 +356,8 @@
     "bucket": "inaccuracies",
     "note": "auto-curated into 'slow_loss' (coached side: white)",
     "bucket_depth": 18,
-    "bucket_previous": "slow_loss"
+    "bucket_previous": "slow_loss",
+    "label_stable": false
   },
   {
     "pgn": "slow_loss.pgn",
@@ -335,7 +367,8 @@
     "black": "maia5",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -345,7 +378,8 @@
     "black": "mikesmcc",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -356,7 +390,8 @@
     "bucket": "unsorted",
     "note": "auto-curated into 'slow_loss' (coached side: white)",
     "bucket_depth": 18,
-    "bucket_previous": "slow_loss"
+    "bucket_previous": "slow_loss",
+    "label_stable": false
   },
   {
     "pgn": "slow_loss.pgn",
@@ -366,7 +401,8 @@
     "black": "ChrisMayDev",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -376,7 +412,8 @@
     "black": "Zelessi",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -386,7 +423,8 @@
     "black": "Zelessi",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": false
   },
   {
     "pgn": "slow_loss.pgn",
@@ -396,7 +434,8 @@
     "black": "ap87",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -407,7 +446,8 @@
     "bucket": "inaccuracies",
     "note": "auto-curated into 'slow_loss' (coached side: white)",
     "bucket_depth": 18,
-    "bucket_previous": "slow_loss"
+    "bucket_previous": "slow_loss",
+    "label_stable": false
   },
   {
     "pgn": "slow_loss.pgn",
@@ -418,7 +458,8 @@
     "bucket": "inaccuracies",
     "note": "auto-curated into 'slow_loss' (coached side: white)",
     "bucket_depth": 18,
-    "bucket_previous": "slow_loss"
+    "bucket_previous": "slow_loss",
+    "label_stable": false
   },
   {
     "pgn": "slow_loss.pgn",
@@ -428,7 +469,8 @@
     "black": "oikoS_09",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "slow_loss.pgn",
@@ -438,7 +480,8 @@
     "black": "Happysanta",
     "bucket": "slow_loss",
     "note": "auto-curated into 'slow_loss' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -448,7 +491,8 @@
     "black": "zxinws",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -459,7 +503,8 @@
     "bucket": "two_mistakes",
     "note": "auto-curated into 'inaccuracies' (coached side: black)",
     "bucket_depth": 18,
-    "bucket_previous": "inaccuracies"
+    "bucket_previous": "inaccuracies",
+    "label_stable": false
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -469,7 +514,8 @@
     "black": "Zelessi",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -479,7 +525,8 @@
     "black": "Zelessi",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -489,7 +536,8 @@
     "black": "deucalion51",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -499,7 +547,8 @@
     "black": "heyckie",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -509,7 +558,8 @@
     "black": "maia5",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -519,7 +569,8 @@
     "black": "maia5",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -529,7 +580,8 @@
     "black": "maia5",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": false
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -539,7 +591,8 @@
     "black": "mikesmcc",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -549,7 +602,8 @@
     "black": "maia5",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "inaccuracies.pgn",
@@ -559,7 +613,8 @@
     "black": "Vijilio",
     "bucket": "inaccuracies",
     "note": "auto-curated into 'inaccuracies' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -569,7 +624,8 @@
     "black": "millerbomb",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -579,7 +635,8 @@
     "black": "maia1",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -589,7 +646,8 @@
     "black": "maia1",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -599,7 +657,8 @@
     "black": "maia1",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -609,7 +668,8 @@
     "black": "maia1",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -620,7 +680,8 @@
     "bucket": "slow_loss",
     "note": "auto-curated into 'two_mistakes' (coached side: white)",
     "bucket_depth": 18,
-    "bucket_previous": "two_mistakes"
+    "bucket_previous": "two_mistakes",
+    "label_stable": false
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -630,7 +691,8 @@
     "black": "Zelessi",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -640,7 +702,8 @@
     "black": "maia1",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -651,7 +714,8 @@
     "bucket": "one_blunder",
     "note": "auto-curated into 'two_mistakes' (coached side: black)",
     "bucket_depth": 18,
-    "bucket_previous": "two_mistakes"
+    "bucket_previous": "two_mistakes",
+    "label_stable": false
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -661,7 +725,8 @@
     "black": "Gaurav677",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -671,7 +736,8 @@
     "black": "hoverbub",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "two_mistakes.pgn",
@@ -681,7 +747,8 @@
     "black": "maia1",
     "bucket": "two_mistakes",
     "note": "auto-curated into 'two_mistakes' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -691,7 +758,8 @@
     "black": "cartolo",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -701,7 +769,8 @@
     "black": "DrThanh",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -711,7 +780,8 @@
     "black": "Zelessi",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -721,7 +791,8 @@
     "black": "maia1",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -731,7 +802,8 @@
     "black": "maia1",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -741,7 +813,8 @@
     "black": "maia1",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -751,7 +824,8 @@
     "black": "maia1",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -761,7 +835,8 @@
     "black": "maia1",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -771,7 +846,8 @@
     "black": "Chugg3rz",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -781,7 +857,8 @@
     "black": "maia1",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": false
   },
   {
     "pgn": "one_blunder.pgn",
@@ -791,7 +868,8 @@
     "black": "maia1",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "one_blunder.pgn",
@@ -801,7 +879,8 @@
     "black": "Zelessi",
     "bucket": "one_blunder",
     "note": "auto-curated into 'one_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -811,7 +890,8 @@
     "black": "Zelessi",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -821,7 +901,8 @@
     "black": "Pompoupopoppum",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -831,7 +912,8 @@
     "black": "maia1",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -841,7 +923,8 @@
     "black": "maia1",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -851,7 +934,8 @@
     "black": "Zelessi",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -861,7 +945,8 @@
     "black": "maia1",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -871,7 +956,8 @@
     "black": "domnicJOE2013",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -881,7 +967,8 @@
     "black": "Zelessi",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -891,7 +978,8 @@
     "black": "gornag",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -901,7 +989,8 @@
     "black": "maia5",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -911,7 +1000,8 @@
     "black": "maia5",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: black)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   },
   {
     "pgn": "multi_blunder.pgn",
@@ -921,6 +1011,7 @@
     "black": "jeas29",
     "bucket": "multi_blunder",
     "note": "auto-curated into 'multi_blunder' (coached side: white)",
-    "bucket_depth": 18
+    "bucket_depth": 18,
+    "label_stable": true
   }
 ]
