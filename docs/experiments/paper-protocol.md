@@ -82,8 +82,32 @@ change.
 default was 18 from 5 Jul and the v2 data was generated on 9 Aug, so it was almost
 certainly 18. State it as inferred. Rows generated from now on store `source.depth`.
 
-**Order.** Re-bucket the held-out set at depth 18 before any arm is scored on the 91 games,
-and before any DeepSeek training rows are generated.
+**Held-out labels at depth 18 (applied 2026-09-26).** `python -m eval.expand_heldout
+--relabel` re-derived every game's bucket at depth 18. 14 of 91 labels changed:
+
+- 10 of the 85 games that `expand_heldout` had sorted at depth 16 changed with depth alone
+  (about 12%).
+- Of the 6 hand-picked originals, 4 no longer match. `inaccuracies` #0 changed with depth
+  (inaccuracies at 15 and 16, two_mistakes at 18). `slow_loss` #0, `one_blunder` #0 and
+  `multi_blunder` #0 never fit the rules at depth 15, 16 or 18: the hand-picked
+  "slow loss" contains a real mistake at every depth.
+- `slow_loss` is the least stable bucket: 6 of its 17 games moved, mostly to
+  `inaccuracies`, because a game with no single bad move sits on the thresholds.
+
+Counts at depth 18: clean_draw 5, slow_loss 12, inaccuracies 19, two_mistakes 18,
+one_blunder 19, multi_blunder 16, unsorted 2. No top-up.
+
+How the change was applied: only the manifest's `bucket` label changed. Games stay in their
+original PGN file at the same `game_index`, so every existing report still joins to its
+games and the original 29 stay a prefix. Coached sides are unchanged; in `one_blunder` #9
+the worse-playing side is black at depth 18 but the manifest still coaches white. The two
+games that fit no bucket are labelled `unsorted`: they count in overall scores and are
+left out of per-bucket results. Each changed entry keeps its old label in
+`bucket_previous`. Per-bucket results come from the manifest label, never the file name
+(`eval.run` records it per game; `eval.human_rating` stratifies on it).
+
+Per-bucket results for `slow_loss` and `inaccuracies` carry label uncertainty of this
+size, and the paper says so.
 
 ## Data-scale sweep and held-out expansion (pre-registered 2026-09-25)
 

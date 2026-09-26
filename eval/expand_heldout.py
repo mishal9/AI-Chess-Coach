@@ -115,6 +115,46 @@ def classify(report: dict) -> tuple[str, str] | None:
     return None
 
 
+# Label for a held-out game that fits no bucket at the current depth. It stays in the set
+# (and in every overall score) but is left out of per-bucket results.
+UNSORTED = "unsorted"
+
+
+def relabel_entry(entry: dict, report: dict, depth: int) -> dict:
+    """Return ``entry`` with its bucket re-derived from ``report`` at ``depth``.
+
+    The game stays in its PGN file and keeps its coached side: moving it would change its
+    ``game_index`` and break every report already joined to it, and any side is a valid
+    coaching task. Only the label changes. The label it replaces is kept in
+    ``bucket_previous`` when the two differ.
+    """
+    result = classify(report)
+    previous = entry.get("bucket") or Path(entry["pgn"]).stem
+    new = dict(entry)
+    new["bucket"] = result[0] if result else UNSORTED
+    new["bucket_depth"] = depth
+    if new["bucket"] != previous and "bucket_previous" not in entry:
+        new["bucket_previous"] = previous
+    return new
+
+
+def relabel_manifest(manifest: list[dict], heldout_dir: Path, analyze_fn: AnalyzeFn,
+                     depth: int) -> list[dict]:
+    """Relabel every entry of ``manifest`` from a fresh analysis of its game."""
+    out = []
+    files: dict[str, list[str]] = {}
+    for i, entry in enumerate(manifest, 1):
+        if entry["pgn"] not in files:
+            files[entry["pgn"]] = corpus.split_pgn(
+                (heldout_dir / entry["pgn"]).read_text(encoding="utf-8")
+            )
+        pgn = files[entry["pgn"]][entry.get("game_index", 0)]
+        print(f"  [{i}/{len(manifest)}] {entry['pgn']}#{entry.get('game_index', 0)}",
+              file=sys.stderr, flush=True)
+        out.append(relabel_entry(entry, analyze_fn(pgn), depth))
+    return out
+
+
 def existing_counts(manifest: list[dict]) -> dict[str, int]:
     """How many games each bucket already has. Original entries infer bucket from filename."""
     counts = {b: 0 for b in BUCKETS}
@@ -182,6 +222,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--depth", type=int, default=DEFAULT_DEPTH,
                         help="Stockfish depth for bucketing; keep it equal to the eval depth "
                         f"(default: {DEFAULT_DEPTH})")
+    parser.add_argument("--relabel", action="store_true",
+                        help="re-derive every existing game's bucket at --depth and rewrite "
+                        "the manifest's labels; fetches nothing and moves no game")
     parser.add_argument("--dry-run", action="store_true",
                         help="analyze and show the bucket table, but write nothing")
     return parser
@@ -220,6 +263,8 @@ def main(
 ) -> int:
     args = build_parser().parse_args(argv)
     analyze_fn = analyze_fn or _default_analyze(args.depth)
+    if args.relabel:
+        return _relabel(args, analyze_fn)
     if fetch_fn is None:
         fetch_fn = _lichess_fetch_perf(args.perf_type) if args.perf_type else corpus._lichess_fetch
     users = list(args.user) or list(corpus.DEFAULT_USERS)
@@ -279,6 +324,33 @@ def main(
     print(f"\nAdded {total_new} games -> {len(manifest) + total_new} held-out total.\n"
           f"IMPORTANT: re-run `python -m training.corpus` so the corpus drops any game now "
           f"in the held-out set.", file=sys.stderr)
+    return 0
+
+
+def _relabel(args, analyze_fn: AnalyzeFn) -> int:
+    manifest_path = HELDOUT_DIR / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    print(f"Relabelling {len(manifest)} held-out games at depth {args.depth}...",
+          file=sys.stderr)
+    relabelled = relabel_manifest(manifest, HELDOUT_DIR, analyze_fn, args.depth)
+
+    changed = [(old, new) for old, new in zip(manifest, relabelled)
+               if (old.get("bucket") or Path(old["pgn"]).stem) != new["bucket"]]
+    for old, new in changed:
+        print(f"  {old['pgn']}#{old.get('game_index', 0)}: "
+              f"{old.get('bucket') or Path(old['pgn']).stem} -> {new['bucket']}",
+              file=sys.stderr)
+    counts = {b: 0 for b in [*BUCKETS, UNSORTED]}
+    for e in relabelled:
+        counts[e["bucket"]] += 1
+    print(f"{len(changed)} of {len(manifest)} labels change. Counts: {counts}",
+          file=sys.stderr)
+
+    if args.dry_run:
+        print("[dry-run] manifest not written.", file=sys.stderr)
+        return 0
+    manifest_path.write_text(json.dumps(relabelled, indent=2) + "\n", encoding="utf-8")
+    print(f"Wrote {manifest_path}", file=sys.stderr)
     return 0
 
 

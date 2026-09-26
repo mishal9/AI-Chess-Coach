@@ -217,3 +217,56 @@ def test_main_dry_run_writes_nothing(tmp_path, monkeypatch):
     )
     assert rc == 0
     assert json.loads((tmp_path / "manifest.json").read_text()) == []  # untouched
+
+
+# --- relabel -----------------------------------------------------------------------
+
+def test_relabel_changes_only_the_label_and_keeps_the_old_one():
+    entry = {"pgn": "slow_loss.pgn", "game_index": 3, "coached_side": "black", "note": "n"}
+    report = make_report(20, 40, black_q=("inaccuracy", "inaccuracy"), result="1-0")
+    new = ex.relabel_entry(entry, report, 18)
+    assert new["bucket"] == "inaccuracies"
+    assert new["bucket_previous"] == "slow_loss"
+    assert new["bucket_depth"] == 18
+    assert {k: new[k] for k in entry} == entry   # file, index, side and note untouched
+
+
+def test_relabel_marks_a_game_that_fits_no_bucket_as_unsorted():
+    entry = {"pgn": "clean_draw.pgn", "game_index": 0, "coached_side": "white",
+             "bucket": "clean_draw"}
+    new = ex.relabel_entry(entry, make_report(30, 20, result="1/2-1/2"), 18)
+    assert new["bucket"] == ex.UNSORTED
+    assert new["bucket_previous"] == "clean_draw"
+
+
+def test_relabel_keeps_no_previous_label_when_nothing_changes():
+    entry = {"pgn": "one_blunder.pgn", "game_index": 0, "coached_side": "white"}
+    new = ex.relabel_entry(entry, make_report(60, 20, white_q=("blunder",)), 18)
+    assert new["bucket"] == "one_blunder"
+    assert "bucket_previous" not in new
+
+
+def test_relabel_keeps_the_first_previous_label_across_reruns():
+    entry = {"pgn": "slow_loss.pgn", "game_index": 0, "coached_side": "white",
+             "bucket": "inaccuracies", "bucket_previous": "slow_loss"}
+    report = make_report(40, 20, white_q=("mistake",))
+    assert ex.relabel_entry(entry, report, 20)["bucket_previous"] == "slow_loss"
+
+
+def test_main_relabel_rewrites_labels_without_moving_games(tmp_path, monkeypatch):
+    monkeypatch.setattr(ex, "HELDOUT_DIR", tmp_path)
+    games = [_pgn("1. e4 e5 2. Nf3 first"), _pgn("1. d4 d5 2. c4 second")]
+    (tmp_path / "slow_loss.pgn").write_text("\n\n".join(games) + "\n")
+    manifest = [{"pgn": "slow_loss.pgn", "game_index": i, "coached_side": "white"}
+                for i in range(2)]
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest))
+    before = (tmp_path / "slow_loss.pgn").read_text()
+
+    reports = {games[0]: make_report(50, 20, result="0-1"),
+               games[1]: make_report(50, 20, white_q=("mistake",), result="0-1")}
+    rc = ex.main(["--relabel", "--depth", "18"], fetch_fn=lambda u, n: "",
+                 analyze_fn=lambda pgn: reports[pgn.strip()])
+    assert rc == 0
+    out = json.loads((tmp_path / "manifest.json").read_text())
+    assert [e["bucket"] for e in out] == ["slow_loss", "two_mistakes"]
+    assert (tmp_path / "slow_loss.pgn").read_text() == before

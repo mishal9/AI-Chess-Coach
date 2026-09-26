@@ -54,6 +54,7 @@ class EvalCase:
     game_index: int
     coached_side: str
     note: str = ""
+    bucket: str = ""
 
 
 def load_cases(manifest_path: Path = DEFAULT_MANIFEST) -> list[EvalCase]:
@@ -66,6 +67,7 @@ def load_cases(manifest_path: Path = DEFAULT_MANIFEST) -> list[EvalCase]:
             game_index=e.get("game_index", 0),
             coached_side=e["coached_side"],
             note=e.get("note", ""),
+            bucket=e.get("bucket") or Path(e["pgn"]).stem,
         )
         for e in data
     ]
@@ -126,6 +128,7 @@ def evaluate_case(
         "game_index": case.game_index,
         "coached_side": case.coached_side,
         "note": case.note,
+        "bucket": case.bucket,
         "coaching": coaching,
         "grounding": {
             "score": round(g.score, 3),
