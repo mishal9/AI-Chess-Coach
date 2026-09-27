@@ -173,6 +173,30 @@ specific to the DeepSeek arm. What must and does reproduce is *which* games and 
 up each tier, and the train/val/test split of whatever text they end up holding
 (`training.dataset.assign_split`, seed 0).
 
+### Training corpus source (decided 2026-09-27)
+
+The sweep corpus is sampled from the Lichess database export for August 2026 (CC0), not
+from a roster of named players, which gave only as many skill levels as there were players
+and was dominated by five accounts. Command:
+`python -m training.corpus --from-db 2026-08 --canonical-seed 0`. `data/games/source.json`
+records the URL, every filter and the per-cell counts, so the corpus can be rebuilt exactly.
+
+- **Balanced, not proportional.** Five rating bands by the mean of both players' ratings
+  (<1200, 1200–1599, 1600–1999, 2000–2399, 2400+), 400 games each. Inside a band, blitz,
+  rapid and classical share the 400 equally; a time control with too few games gives its
+  unused share equally to the others. On Lichess 2400+ is ~1% of eligible games and
+  1200–1999 ~70%, so the corpus deliberately over-represents the ends of the ladder. State
+  this in the paper, with the population shares from `source.json` `candidates` alongside.
+- **Filters:** rated; standard start (no FEN, no variants); no bullet (base + 40 × increment
+  under 180 s) or correspondence; no bots; no abandoned or rules-infraction games; players
+  within 200 points; at least 20 half-moves; disjoint from the held-out set.
+- **Spread over the month:** 128 slices of 6 MB spaced evenly through the file, at most
+  4 games per cell per slice, and picks spaced evenly through each cell's candidates.
+- **Result (2,000 games):** 133–134 per time control in every band except 2400+, which has
+  199 blitz, 198 rapid, 3 classical (classical above 2400 is almost absent on Lichess).
+  All 31 days and 24 hours covered, 3,788 distinct players (at most 6 games each), 252 ECO
+  codes, 7% draws, median 65 half-moves.
+
 ### Training-size sweep
 
 Four **nested** train-row sizes, each a superset of the smaller ones so only size varies:

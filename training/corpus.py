@@ -22,12 +22,16 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import re
 import sys
 import time
+from collections import Counter
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable, Iterator
+
+import requests
 
 from engine import fetch_data
 from engine.pgn import game_key, movetext_hash, split_pgn
@@ -152,6 +156,220 @@ def write_corpus(games: list[str], out_dir: Path) -> Path:
     return manifest_path
 
 
+# --- Sampling by rating band from a Lichess monthly database export -----------------------
+#
+# A roster of named players gives as many skill levels as there are players on it. The
+# monthly export (database.lichess.org, CC0) holds every rated game played on Lichess that
+# month, at every level. It is ~30 GB compressed, but it is written as a series of
+# independently compressed zstd frames of a few MB each, so any part of it can be read with
+# an HTTP range request that starts at the next frame. The sampler reads ``DB_SLICES`` small
+# slices spaced evenly through the file, so the games span the whole month (every day and
+# hour) instead of its first few hours. The slice offsets depend only on the file size, so
+# the same command gives the same games.
+#
+# Games are sorted into cells of (rating band, time control). Every band gets the same
+# number of games, and inside a band the time controls share it equally. A time control
+# with too few games (classical above 2000 barely exists on Lichess) gives its unused share
+# to the others equally, so no one time control dominates a band.
+
+DB_URL = "https://database.lichess.org/standard/lichess_db_standard_rated_{month}.pgn.zst"
+
+# Rating bands by the mean of the two players' ratings: (label, lowest mean rating). A band
+# runs up to the next band's lowest rating.
+RATING_BANDS = [
+    ("<1200", 0),
+    ("1200-1599", 1200),
+    ("1600-1999", 1600),
+    ("2000-2399", 2000),
+    ("2400+", 2400),
+]
+
+# Lichess's time-control categories by estimated duration, base + 40 x increment seconds:
+# (label, lowest estimate). Bullet (under 180 s) is decided by the clock more than by the
+# moves, so it is not sampled.
+SPEEDS = [
+    ("blitz", 180),
+    ("rapid", 480),
+    ("classical", 1500),
+]
+MIN_ESTIMATED_SECONDS = SPEEDS[0][1]
+# Both players must be near the same level, so a game belongs to one band.
+MAX_RATING_GAP = 200
+_BAD_TERMINATIONS = {"Abandoned", "Rules infraction", "Unterminated"}
+# Games shorter than this have too little play to coach (quick resignations, early draws).
+DB_MIN_PLIES = 20
+DB_SLICES = 128
+DB_SLICE_BYTES = 6_000_000
+_ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
+_TAG_RE = re.compile(r'^\[(\w+) "(.*)"\]$', re.MULTILINE)
+
+
+def _tags(pgn: str) -> dict[str, str]:
+    return dict(_TAG_RE.findall(pgn))
+
+
+Cell = tuple[str, str]   # (rating band, speed)
+
+
+def db_cell(pgn: str) -> Cell | None:
+    """The (rating band, speed) of a game worth sampling, or ``None`` if it is skipped.
+
+    Skips unrated, bullet, correspondence, non-standard-start, abandoned and bot games, and
+    games between players more than ``MAX_RATING_GAP`` apart.
+    """
+    tags = _tags(pgn)
+    if not tags.get("Event", "").startswith("Rated"):
+        return None
+    if "BOT" in (tags.get("WhiteTitle"), tags.get("BlackTitle")):
+        return None
+    if "FEN" in tags or tags.get("Variant", "Standard") != "Standard":
+        return None
+    if tags.get("Termination") in _BAD_TERMINATIONS:
+        return None
+    try:
+        base, inc = (int(x) for x in tags["TimeControl"].split("+"))
+        white, black = int(tags["WhiteElo"]), int(tags["BlackElo"])
+    except (KeyError, ValueError):   # "-" time control (correspondence) or "?" rating
+        return None
+    seconds = base + 40 * inc
+    if seconds < MIN_ESTIMATED_SECONDS or abs(white - black) > MAX_RATING_GAP:
+        return None
+    mean = (white + black) / 2
+    band = [label for label, lo in RATING_BANDS if mean >= lo][-1]
+    speed = [label for label, lo in SPEEDS if seconds >= lo][-1]
+    return band, speed
+
+
+def collect_cells(
+    slices: Iterable[list[str]],
+    per_slice: int,
+    cap: int,
+    heldout: set[str],
+    *,
+    min_plies: int = 10,
+    progress: Callable[[int, dict[Cell, list[str]]], None] | None = None,
+) -> dict[Cell, list[str]]:
+    """Candidates for every cell: at most ``per_slice`` from each slice, ``cap`` in all.
+
+    The per-slice limit keeps each cell spread across the month. Held-out games, duplicates
+    and games shorter than ``min_plies`` are skipped, as in :func:`assemble`.
+    """
+    cells: dict[Cell, list[str]] = {
+        (band, speed): [] for band, _ in RATING_BANDS for speed, _ in SPEEDS
+    }
+    seen = set(heldout)
+    for k, games in enumerate(slices, 1):
+        taken: Counter = Counter()
+        for game in games:
+            cell = db_cell(game)
+            if cell is None or taken[cell] >= per_slice or len(cells[cell]) >= cap:
+                continue
+            key, move_key = game_key(game), f"moves:{movetext_hash(game)}"
+            if key in seen or move_key in seen or _ply_count(game) < min_plies:
+                continue
+            seen.update((key, move_key))
+            cells[cell].append(game)
+            taken[cell] += 1
+        if progress:
+            progress(k, cells)
+    return cells
+
+
+def allocate(available: dict[str, int], total: int) -> dict[str, int]:
+    """Split ``total`` as equally as ``available`` allows (water-filling).
+
+    A key with fewer than its equal share gets all it has; the rest is shared equally by
+    the others. E.g. ``{"a": 1000, "b": 1000, "c": 10}`` with 300 gives c 10, a 145, b 145.
+    """
+    alloc: dict[str, int] = {}
+    remaining = total
+    ordered = sorted(available, key=available.get)
+    for i, key in enumerate(ordered):
+        alloc[key] = min(available[key], remaining // (len(ordered) - i))
+        remaining -= alloc[key]
+    # Rounding can leave a few games; give them to keys with room, largest first.
+    for key in reversed(ordered):
+        extra = min(remaining, available[key] - alloc[key])
+        alloc[key] += extra
+        remaining -= extra
+    return alloc
+
+
+def _spread(items: list[str], k: int) -> list[str]:
+    """``k`` items evenly spaced through ``items`` (all of them if ``k`` is enough)."""
+    if k >= len(items):
+        return list(items)
+    return [items[i * len(items) // k] for i in range(k)]
+
+
+def select_balanced(cells: dict[Cell, list[str]], per_band: int) -> dict[Cell, list[str]]:
+    """``per_band`` games per band, shared across its speeds by :func:`allocate`.
+
+    Candidates are in slice order, so picks spaced evenly through a cell's list stay spread
+    across the month.
+    """
+    chosen: dict[Cell, list[str]] = {}
+    for band, _ in RATING_BANDS:
+        alloc = allocate({speed: len(cells[band, speed]) for speed, _ in SPEEDS}, per_band)
+        for speed, n in alloc.items():
+            chosen[band, speed] = _spread(cells[band, speed], n)
+    return chosen
+
+
+def split_decoded_slice(text: str) -> list[str]:
+    """Whole games in a slice of decoded export text.
+
+    A slice starts and ends mid-game, so the text before the first ``[Event`` tag and the
+    last game (which may be cut short) are both dropped.
+    """
+    start = text.find("\n[Event ")
+    if start < 0:
+        return []
+    return split_pgn(text[start + 1:])[:-1]
+
+
+def _decode_slice(data: bytes) -> str:
+    """Decode ``data`` from its first zstd frame onward, up to where the bytes run out."""
+    import zstandard
+
+    for start in _frame_starts(data):
+        reader = zstandard.ZstdDecompressor().stream_reader(
+            io.BytesIO(data[start:]), read_across_frames=True)
+        out = bytearray()
+        try:
+            while chunk := reader.read(1 << 20):
+                out += chunk
+        except zstandard.ZstdError:
+            pass   # the slice ends mid-frame; keep what decoded
+        if out:
+            return out.decode("utf-8", errors="replace")
+    return ""
+
+
+def _frame_starts(data: bytes) -> Iterator[int]:
+    """Offsets in ``data`` that look like a zstd frame start (the magic can occur by chance,
+    so callers try each in turn)."""
+    i = data.find(_ZSTD_MAGIC)
+    while i >= 0:
+        yield i
+        i = data.find(_ZSTD_MAGIC, i + 1)
+
+
+def fetch_db_slices(url: str, slices: int = DB_SLICES,
+                    slice_bytes: int = DB_SLICE_BYTES) -> Iterator[list[str]]:
+    """Yield the whole games in each of ``slices`` evenly spaced slices of the export."""
+    headers = {"User-Agent": fetch_data._USER_AGENT}
+    size = int(requests.head(url, headers=headers, timeout=60).headers["Content-Length"])
+    step = size // slices
+    for k in range(slices):
+        start = k * step
+        end = min(start + slice_bytes, size) - 1
+        resp = requests.get(url, timeout=120,
+                            headers={**headers, "Range": f"bytes={start}-{end}"})
+        resp.raise_for_status()
+        yield split_decoded_slice(_decode_slice(resp.content))
+
+
 def _lichess_fetch(user: str, max_games: int) -> str:
     """Default fetcher: pull a user's games as PGN via Lichess."""
     return fetch_data.fetch_lichess_games(user, max_games)
@@ -168,8 +386,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="use an existing .pgn file instead of fetching (repeatable)")
     parser.add_argument("--max", type=int, default=20,
                         help="max games to fetch per --user (default: 20)")
-    parser.add_argument("--min-plies", type=int, default=10,
-                        help="drop games shorter than this many half-moves (default: 10)")
+    parser.add_argument("--min-plies", type=int, default=None,
+                        help="drop games shorter than this many half-moves "
+                             f"(default: 10, or {DB_MIN_PLIES} with --from-db)")
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR,
                         help="write corpus.pgn + manifest.json here (default: data/games/)")
     parser.add_argument(
@@ -179,11 +398,52 @@ def build_parser() -> argparse.ArgumentParser:
         "where row-count prefixes of the resulting raw JSONL must stay the same games "
         "across re-fetches. Default: keep fetch order (unset).",
     )
+    parser.add_argument(
+        "--from-db", metavar="YYYY-MM",
+        help="sample by rating band from this month's Lichess database export instead of "
+        "fetching players (streamed; reading stops once every band is full)",
+    )
+    parser.add_argument("--per-band", type=int, default=400,
+                        help="games per rating band with --from-db, shared across time controls "
+                             "(default: 400)")
+    parser.add_argument("--slices", type=int, default=DB_SLICES,
+                        help="evenly spaced slices of the export to read with --from-db "
+                             f"(default: {DB_SLICES})")
     return parser
+
+
+def _write_db_source(out_dir: Path, url: str, cells: dict[Cell, list[str]],
+                     chosen: dict[Cell, list[str]], args) -> None:
+    """Record where a --from-db corpus came from and what it holds, to rebuild it exactly."""
+    table = lambda d: {band: {speed: len(d[band, speed]) for speed, _ in SPEEDS}
+                       for band, _ in RATING_BANDS}
+    source = {
+        "url": url,
+        "per_band": args.per_band,
+        "min_plies": args.min_plies,
+        "slices": args.slices,
+        "slice_bytes": DB_SLICE_BYTES,
+        "canonical_seed": args.canonical_seed,
+        "games": table(chosen),
+        "candidates": table(cells),
+        "filters": {
+            "rated_only": True,
+            "standard_start_only": True,
+            "bots_excluded": True,
+            "min_estimated_seconds": MIN_ESTIMATED_SECONDS,
+            "max_rating_gap": MAX_RATING_GAP,
+            "skipped_terminations": sorted(_BAD_TERMINATIONS),
+        },
+    }
+    (out_dir / "source.json").write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
 
 
 def main(argv: list[str] | None = None, fetch_fn: FetchFn = _lichess_fetch) -> int:
     args = build_parser().parse_args(argv)
+    if args.from_db:
+        return _main_from_db(args)
+    if args.min_plies is None:
+        args.min_plies = 10
     users = list(args.user)
     if not users and not args.input:
         users = list(DEFAULT_USERS)
@@ -214,6 +474,49 @@ def main(argv: list[str] | None = None, fetch_fn: FetchFn = _lichess_fetch) -> i
         f"`python -m training.distill --sources {manifest_path}`.",
         file=sys.stderr,
     )
+    return 0
+
+
+def _main_from_db(args, fetch_fn: Callable[..., Iterable[list[str]]] = fetch_db_slices) -> int:
+    url = DB_URL.format(month=args.from_db)
+    if args.min_plies is None:
+        args.min_plies = DB_MIN_PLIES
+    print(f"Reading {args.slices} slices of {url}\nfor {args.per_band} games in each of "
+          f"{len(RATING_BANDS)} rating bands, shared across {len(SPEEDS)} time controls...",
+          file=sys.stderr)
+
+    def progress(k: int, cells: dict[Cell, list[str]]) -> None:
+        if k % 16 == 0 or k == args.slices:
+            print(f"  slice {k}/{args.slices}: {sum(map(len, cells.values()))} candidates",
+                  file=sys.stderr)
+
+    # Any one cell may have to fill a whole band, so it collects up to per_band candidates.
+    per_slice = -(-args.per_band // args.slices)
+    cells = collect_cells(fetch_fn(url, args.slices), per_slice, args.per_band,
+                          heldout_fingerprints(), min_plies=args.min_plies,
+                          progress=progress)
+    chosen = select_balanced(cells, args.per_band)
+    games = [g for cell_games in chosen.values() for g in cell_games]
+    if not games:
+        print("No games sampled.", file=sys.stderr)
+        return 1
+    if args.canonical_seed is not None:
+        games = canonical_order(games, args.canonical_seed)
+
+    manifest_path = write_corpus(games, args.out_dir)
+    _write_db_source(args.out_dir, url, cells, chosen, args)
+    print(f"{'band':<10}" + "".join(f"{speed:>10}" for speed, _ in SPEEDS), file=sys.stderr)
+    short = []
+    for band, _ in RATING_BANDS:
+        counts = [len(chosen[band, speed]) for speed, _ in SPEEDS]
+        print(f"{band:<10}" + "".join(f"{n:>10}" for n in counts), file=sys.stderr)
+        if sum(counts) < args.per_band:
+            short.append(band)
+    if short:
+        print(f"WARNING: bands short of {args.per_band}: {', '.join(short)}. "
+              f"Use more --slices.", file=sys.stderr)
+    print(f"Wrote {len(games)} games to {args.out_dir / 'corpus.pgn'}.\n"
+          f"Manifest: {manifest_path}", file=sys.stderr)
     return 0
 
 

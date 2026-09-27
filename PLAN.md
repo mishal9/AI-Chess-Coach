@@ -79,8 +79,10 @@ Branch `feat/analysis-depth-18` (pushed, not merged; no PR yet). PR #71 (DeepSee
 
 **Next, in order**
 
-1. Rebuild the training corpus so it excludes all 91 held-out games:
-   `python -m training.corpus --canonical-seed 0`.
+1. ~~Rebuild the training corpus so it excludes all 91 held-out games.~~ Done 27 Sep:
+   2,000 games from the August 2026 Lichess export, balanced by rating band and time
+   control (`training.corpus --from-db 2026-08 --canonical-seed 0`). `paper-protocol.md`,
+   "Training corpus source".
 2. Generate DeepSeek training rows at depth 18 (`training.distill --teacher deepseek`),
    QC-filtered with checker v2 (`training/qc.py`). Rows now record `source.depth`.
 3. Fine-tune the sweep (4 sizes × 3 seeds), then score every arm together on 91 games with
@@ -89,6 +91,9 @@ Branch `feat/analysis-depth-18` (pushed, not merged; no PR yet). PR #71 (DeepSee
 **Open items**
 
 - N1 licence: still no request or reply recorded.
+- Publishing the training set (goal raised 27 Sep): the games are CC0 and can be released.
+  The coaching text needs a check of DeepSeek's hosted-API terms first; N1 below still says
+  not to release distilled data (written for an Opus teacher).
 - Human ratings round 1: 0 ratings; redraw the sample from 91 games with the template
   replacing v2 (`eval.human_rating` now stratifies on manifest labels).
 - Judge-drift check: re-judge the 25 Sep depth-15 texts against depth-15 facts. The original
