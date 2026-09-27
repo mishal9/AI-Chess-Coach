@@ -111,6 +111,18 @@ def test_summarize_counts_per_kind(corpus_dir):
     assert summary["game"]["structure_problems"] == {"empty": 1}
 
 
+def test_passed_out_keeps_only_passing_rows(corpus_dir, tmp_path):
+    rows = tmp_path / "rows.jsonl"
+    good = _record(GOOD)
+    bad = _record(GOOD + " Notice your rook on h5 was doing nothing.", move_number=4)
+    rows.write_text("".join(json.dumps(r.to_dict()) + "\n" for r in (good, bad)),
+                    encoding="utf-8")
+    kept = tmp_path / "kept.jsonl"
+    qc.main([str(rows), "--corpus-dir", str(corpus_dir), "--passed-out", str(kept)])
+    [line] = kept.read_text(encoding="utf-8").splitlines()
+    assert json.loads(line) == good.to_dict()
+
+
 def test_paired_baseline_compares_shared_rows_only(corpus_dir, tmp_path, capsys):
     mine, base = tmp_path / "mine.jsonl", tmp_path / "base.jsonl"
     mine.write_text(json.dumps(_record(GOOD).to_dict()) + "\n", encoding="utf-8")

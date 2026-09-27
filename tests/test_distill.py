@@ -192,3 +192,120 @@ def test_no_game_rows_emits_positions_only(tmp_path, monkeypatch):
     assert rc == 0
     rows = [json.loads(line) for line in out.read_text().splitlines()]
     assert [r["kind"] for r in rows] == ["position", "position"]
+
+
+# --- per-attempt temperature ---------------------------------------------------------
+
+def test_first_attempt_and_retries_use_their_own_temperatures():
+    seen = []
+
+    def teacher(r, s, temperature=None):
+        seen.append(temperature)
+        return ("You blundered with Nf7." if len(seen) == 1
+                else "Your 17...Nxd4 was the blunder; Qe7 held.")
+
+    rec = distill.build_record(_source(), SAMPLE_REPORT, teacher,
+                               {"backend": "deepseek", "model": "m"}, retries=2,
+                               temperatures=(0.0, 0.7))
+    assert seen == [0.0, 0.7]                    # stops at the first grounded re-roll
+    assert rec.teacher["temperature"] == 0.7     # the kept attempt's temperature
+    assert rec.quality["attempt"] == 1
+
+
+def test_a_clean_first_attempt_is_recorded_at_the_gate_temperature():
+    rec = distill.build_position_record(
+        _source(), SAMPLE_REPORT,
+        next(m for m in SAMPLE_REPORT["moves"] if m["san"] == "Nxd4"),
+        lambda r, s, m, temperature=None: f"{m['san']} was costly.",
+        {"backend": "deepseek", "model": "m"}, retries=1, temperatures=(0.0, 0.7),
+    )
+    assert rec.teacher["temperature"] == 0.0
+    assert rec.quality["attempt"] == 0
+
+
+def test_temperature_is_refused_for_backends_without_one():
+    from training import teacher
+
+    with pytest.raises(ValueError):
+        teacher._temperature_kw("anthropic", 0.0)
+    assert teacher._temperature_kw("anthropic", None) == {}
+
+
+# --- resume ----------------------------------------------------------------------------
+
+def _two_game_manifest(tmp_path: Path) -> Path:
+    manifest = tmp_path / "m.json"
+    manifest.write_text(json.dumps([
+        {"pgn": "a.pgn", "game_index": 0, "coached_side": "black"},
+        {"pgn": "a.pgn", "game_index": 1, "coached_side": "black"},
+    ]))
+    return manifest
+
+
+def _fake_teachers(monkeypatch, calls: list):
+    monkeypatch.setattr(distill, "analyze_source", lambda src, depth: SAMPLE_REPORT)
+
+    def game_teacher(r, s):
+        calls.append("game")
+        return "Your 17...Nxd4 was the blunder."
+
+    monkeypatch.setattr(distill.teacher_mod, "make_teacher_fn", lambda *a, **k: game_teacher)
+    monkeypatch.setattr(distill.teacher_mod, "make_position_teacher_fn",
+                        lambda *a, **k: lambda r, s, m: f"{m['san']} was costly.")
+
+
+def test_resume_skips_finished_games_and_redoes_a_torn_one(tmp_path, monkeypatch):
+    manifest = _two_game_manifest(tmp_path)
+    out = tmp_path / "raw.jsonl"
+    calls: list = []
+    _fake_teachers(monkeypatch, calls)
+    assert distill.main(["--sources", str(manifest), "--out", str(out),
+                         "--positions-per-game", "0"]) == 0
+    assert len(calls) == 2
+
+    # Simulate a kill after game #1's row was written but before its ledger line.
+    ledger = distill.ledger_path(out)
+    ledger.write_text(ledger.read_text().splitlines()[0] + "\n")
+    first_key = json.loads(ledger.read_text())["key"]
+
+    calls.clear()
+    assert distill.main(["--sources", str(manifest), "--out", str(out),
+                         "--positions-per-game", "0", "--resume"]) == 0
+    assert len(calls) == 1                        # only the unfinished game is redone
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    keys = sorted(f"{r['source']['pgn']}#{r['source']['game_index']}" for r in rows)
+    assert keys == ["a.pgn#0", "a.pgn#1"]        # no duplicate of the torn game
+    assert first_key in keys
+    assert len(ledger.read_text().splitlines()) == 2
+
+
+def test_without_resume_the_run_starts_fresh(tmp_path, monkeypatch):
+    manifest = _two_game_manifest(tmp_path)
+    out = tmp_path / "raw.jsonl"
+    calls: list = []
+    _fake_teachers(monkeypatch, calls)
+    for _ in range(2):
+        assert distill.main(["--sources", str(manifest), "--out", str(out),
+                             "--positions-per-game", "0"]) == 0
+    assert len(out.read_text().splitlines()) == 2
+    assert len(calls) == 4
+
+
+def test_a_failed_game_is_left_out_of_the_ledger(tmp_path, monkeypatch, capsys):
+    manifest = _two_game_manifest(tmp_path)
+    out = tmp_path / "raw.jsonl"
+    calls: list = []
+    _fake_teachers(monkeypatch, calls)
+
+    def analyze(src, depth):
+        if src.game_index == 1:
+            raise RuntimeError("engine died")
+        return SAMPLE_REPORT
+
+    monkeypatch.setattr(distill, "analyze_source", analyze)
+    rc = distill.main(["--sources", str(manifest), "--out", str(out),
+                       "--positions-per-game", "0", "--workers", "2"])
+    assert rc == 2
+    assert "a.pgn#1 FAILED" in capsys.readouterr().err
+    assert [json.loads(l)["key"] for l in distill.ledger_path(out).read_text().splitlines()] \
+        == ["a.pgn#0"]

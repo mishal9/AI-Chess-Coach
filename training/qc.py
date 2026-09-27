@@ -23,6 +23,8 @@ so two teachers are compared on identical positions.
 Usage:
     python -m training.qc data/distill/raw_deepseek.jsonl
     python -m training.qc data/distill/raw_deepseek.jsonl --baseline data/distill/raw_v2.jsonl
+    python -m training.qc data/distill/raw_deepseek.jsonl \
+        --passed-out data/distill/deepseek_qc.jsonl --out data/distill/deepseek_qc_report.json
 """
 
 from __future__ import annotations
@@ -223,6 +225,15 @@ def load_records(path: Path) -> list[DistillRecord]:
         return [DistillRecord.from_dict(json.loads(line)) for line in fh if line.strip()]
 
 
+def write_passed(records: list[DistillRecord], results: list[dict], path: Path) -> None:
+    """Write the records whose QC result passed, in their original order."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as fh:
+        for rec, result in zip(records, results, strict=True):
+            if result["passed"]:
+                fh.write(json.dumps(rec.to_dict(), ensure_ascii=False) + "\n")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Quality-control distilled rows.")
     parser.add_argument("rows", type=Path, help="raw record JSONL from training.distill")
@@ -232,6 +243,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="directory holding the corpus.pgn the rows came from")
     parser.add_argument("--out", type=Path, default=None,
                         help="write per-row results and the summary as JSON here")
+    parser.add_argument("--passed-out", type=Path, default=None,
+                        help="write the rows that pass every check here, unchanged, as the "
+                        "QC-filtered raw JSONL for training.dataset")
     return parser
 
 
@@ -254,6 +268,11 @@ def main(argv: list[str] | None = None) -> int:
             print(format_summary(label, summarize([table[k] for k in shared])))
         payload["baseline"] = {"file": str(args.baseline), "shared": len(shared),
                                "summary": summarize(base_results)}
+
+    if args.passed_out:
+        write_passed(records, results, args.passed_out)
+        n = sum(r["passed"] for r in results)
+        print(f"\nWrote {n} of {len(records)} rows to {args.passed_out}", file=sys.stderr)
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)

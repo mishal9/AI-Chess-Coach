@@ -14,6 +14,7 @@ Claude (``anthropic``) but can be pointed at any backend without touching this m
 from __future__ import annotations
 
 import os
+import threading
 import time
 from typing import Callable
 
@@ -71,7 +72,10 @@ def build_teacher_position_messages(
 # ``deepseek-v4-pro``, not a dated snapshot, so the model the response reports is recorded.
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-pro"
-# Non-zero on purpose: a grounding retry only helps if a re-roll can differ.
+# The default when a caller passes no temperature (``training.n2_eval --temperature`` sets
+# it). ``training.distill`` passes one per attempt instead: 0 for the first attempt, the
+# setting the N2 gate scored, and non-zero for grounding retries, which only help if a
+# re-roll can differ.
 DEEPSEEK_TEMPERATURE = 0.7
 # ``None`` sends no ``thinking`` field and takes the API's default; "enabled"/"disabled"
 # sends it explicitly. Set by ``training.distill --teacher-thinking`` and recorded there.
@@ -84,9 +88,13 @@ DEEPSEEK_USAGE = {
     "calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "reasoning_tokens": 0,
     "models": set(),
 }
+# ``training.distill --workers`` calls the backend from several threads at once.
+_USAGE_LOCK = threading.Lock()
 
 
-def deepseek_backend(messages: list[dict], model: str | None = None) -> str:
+def deepseek_backend(
+    messages: list[dict], model: str | None = None, temperature: float | None = None
+) -> str:
     """Chat with DeepSeek via its OpenAI-compatible endpoint; return the answer text only.
 
     Needs ``DEEPSEEK_API_KEY`` (environment or ``.env``). Only ``message.content`` is used:
@@ -100,7 +108,7 @@ def deepseek_backend(messages: list[dict], model: str | None = None) -> str:
     body = {
         "model": model or DEFAULT_DEEPSEEK_MODEL,
         "messages": messages,
-        "temperature": DEEPSEEK_TEMPERATURE,
+        "temperature": DEEPSEEK_TEMPERATURE if temperature is None else temperature,
         "stream": False,
     }
     if DEEPSEEK_THINKING:
@@ -122,14 +130,15 @@ def deepseek_backend(messages: list[dict], model: str | None = None) -> str:
             raise RuntimeError(f"DeepSeek API {resp.status_code}: {resp.text[:300]}")
         data = resp.json()
         usage = data.get("usage") or {}
-        DEEPSEEK_USAGE["calls"] += 1
-        DEEPSEEK_USAGE["prompt_tokens"] += usage.get("prompt_tokens", 0)
-        DEEPSEEK_USAGE["completion_tokens"] += usage.get("completion_tokens", 0)
-        DEEPSEEK_USAGE["reasoning_tokens"] += (
-            (usage.get("completion_tokens_details") or {}).get("reasoning_tokens", 0)
-        )
-        if data.get("model"):
-            DEEPSEEK_USAGE["models"].add(data["model"])
+        with _USAGE_LOCK:
+            DEEPSEEK_USAGE["calls"] += 1
+            DEEPSEEK_USAGE["prompt_tokens"] += usage.get("prompt_tokens", 0)
+            DEEPSEEK_USAGE["completion_tokens"] += usage.get("completion_tokens", 0)
+            DEEPSEEK_USAGE["reasoning_tokens"] += (
+                (usage.get("completion_tokens_details") or {}).get("reasoning_tokens", 0)
+            )
+            if data.get("model"):
+                DEEPSEEK_USAGE["models"].add(data["model"])
         return (data["choices"][0]["message"].get("content") or "").strip()
     raise RuntimeError("unreachable")  # pragma: no cover
 
@@ -143,6 +152,15 @@ def _backend(backend_name: str):
     }[backend_name]
 
 
+def _temperature_kw(backend_name: str, temperature: float | None) -> dict:
+    """Only the DeepSeek backend takes a per-call temperature."""
+    if temperature is None:
+        return {}
+    if backend_name != "deepseek":
+        raise ValueError(f"the {backend_name} teacher does not take a temperature")
+    return {"temperature": temperature}
+
+
 def make_teacher_fn(backend_name: str = "anthropic", model: str | None = None) -> TeacherFn:
     """A teacher that generates coaching via the named ``eval.backends`` backend.
 
@@ -152,9 +170,9 @@ def make_teacher_fn(backend_name: str = "anthropic", model: str | None = None) -
     """
     backend = _backend(backend_name)
 
-    def teacher_fn(report: dict, coached_side: str) -> str:
+    def teacher_fn(report: dict, coached_side: str, temperature: float | None = None) -> str:
         messages = build_teacher_messages(report, coached_side)
-        return backend(messages, model=model)
+        return backend(messages, model=model, **_temperature_kw(backend_name, temperature))
 
     return teacher_fn
 
@@ -165,8 +183,10 @@ def make_position_teacher_fn(
     """Like :func:`make_teacher_fn`, for single-position (``kind="position"``) rows."""
     backend = _backend(backend_name)
 
-    def position_teacher_fn(report: dict, coached_side: str, move: dict) -> str:
+    def position_teacher_fn(
+        report: dict, coached_side: str, move: dict, temperature: float | None = None
+    ) -> str:
         messages = build_teacher_position_messages(report, coached_side, move)
-        return backend(messages, model=model)
+        return backend(messages, model=model, **_temperature_kw(backend_name, temperature))
 
     return position_teacher_fn
