@@ -43,6 +43,72 @@ Estimated one-time cost: ~$1 GPU + ~200 judge calls.
 Every number in the paper traces to a committed `eval/reports/*.json` plus the experiment
 record in this directory that produced it. No number in prose without its JSON.
 
+## Analysis depth (decided 2026-09-26)
+
+Every Stockfish analysis that feeds a result uses **depth 18**: training data, held-out
+bucketing, and every evaluation run. The constant is `engine.analyzer.DEFAULT_DEPTH`, and
+`tests/test_analysis_depth.py` fails if any research script defaults to anything else.
+
+**Why one depth.** The facts block a coach sees depends on depth: a borderline move can
+change label (the inaccuracy threshold is 0.10 win-probability loss) and the engine's
+preferred move can change. Before this decision the pipeline mixed four depths:
+
+| Where | Before | Now |
+|---|---|---|
+| Training data (`training.distill`) | 18 | 18 |
+| Held-out bucketing (`eval.expand_heldout`) | 16 | 18 |
+| Evaluation (`eval.run`, `training.n2_eval`) | 15 | 18 |
+| App (`memory.store.SYNC_DEPTH`) | 12 | 15 |
+
+A model was trained on depth-18 facts and scored on depth-15 facts, and some held-out games
+were bucketed on facts the coaches never saw.
+
+**Why 18.** It matches the depth v2's training data was generated at, so v2 needs no
+exception, and it matches ACT-Eval (Hebbar et al., 2026), the closest related work. The
+cost is time: about 1 s per move on the development machine, 4–5× depth 15.
+
+**The app stays at 15.** Syncing analyzes dozens of games while someone waits. The app is
+not part of any reported number. Deployment depth is stated once in the paper.
+
+**Existing reports.** Every report in `eval/reports/` up to this date was run at depth 15 on
+the 29-game set and records `"depth": 15`. They remain the historical record and are not
+compared with depth-18 results. `eval.recheck`, `eval.rejudge` and `eval.human_rating` now
+rebuild facts at the depth a report records, never at the current default, so re-judging
+an old report still gives the judge the facts its coach was given. The judge-drift check
+re-judges old depth-15 texts against depth-15 facts, which isolates the judge as the only
+change.
+
+**v2's depth is inferred.** v2's rows predate depth recording. The `training.distill`
+default was 18 from 5 Jul and the v2 data was generated on 9 Aug, so it was almost
+certainly 18. State it as inferred. Rows generated from now on store `source.depth`.
+
+**Held-out labels at depth 18 (applied 2026-09-26).** `python -m eval.expand_heldout
+--relabel` re-derived every game's bucket at depth 18. 14 of 91 labels changed:
+
+- 10 of the 85 games that `expand_heldout` had sorted at depth 16 changed with depth alone
+  (about 12%).
+- Of the 6 hand-picked originals, 4 no longer match. `inaccuracies` #0 changed with depth
+  (inaccuracies at 15 and 16, two_mistakes at 18). `slow_loss` #0, `one_blunder` #0 and
+  `multi_blunder` #0 never fit the rules at depth 15, 16 or 18: the hand-picked
+  "slow loss" contains a real mistake at every depth.
+- `slow_loss` is the least stable bucket: 6 of its 17 games moved, mostly to
+  `inaccuracies`, because a game with no single bad move sits on the thresholds.
+
+Counts at depth 18: clean_draw 5, slow_loss 12, inaccuracies 19, two_mistakes 18,
+one_blunder 19, multi_blunder 16, unsorted 2. No top-up.
+
+How the change was applied: only the manifest's `bucket` label changed. Games stay in their
+original PGN file at the same `game_index`, so every existing report still joins to its
+games and the original 29 stay a prefix. Coached sides are unchanged; in `one_blunder` #9
+the worse-playing side is black at depth 18 but the manifest still coaches white. The two
+games that fit no bucket are labelled `unsorted`: they count in overall scores and are
+left out of per-bucket results. Each changed entry keeps its old label in
+`bucket_previous`. Per-bucket results come from the manifest label, never the file name
+(`eval.run` records it per game; `eval.human_rating` stratifies on it).
+
+Per-bucket results for `slow_loss` and `inaccuracies` carry label uncertainty of this
+size, and the paper says so.
+
 ## Data-scale sweep and held-out expansion (pre-registered 2026-09-25)
 
 N3 asks whether more DeepSeek-taught training rows help. Pre-registering the design here,

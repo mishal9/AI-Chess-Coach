@@ -17,6 +17,7 @@ pytest.importorskip("scipy", reason="needs the `eval` extra")
 from eval.human_rating import (  # noqa: E402
     RatingItem,
     agreement,
+    bucket_of,
     collect,
     consensus_ratings,
     judge_scores_for,
@@ -258,3 +259,10 @@ class TestMultiRaterConsensus:
         result = mean_pairwise_r(pairwise)
         # (a,b)=+1, (a,c)=-1, (b,c)=-1 -> mean = -1/3
         assert result["clarity"] == pytest.approx(-1 / 3, abs=1e-3)
+
+
+def test_bucket_of_prefers_the_manifest_label_over_the_file_name():
+    game = {"pgn": "slow_loss.pgn", "game_index": 4}
+    assert bucket_of(game) == "slow_loss"
+    assert bucket_of(game, {("slow_loss.pgn", 4): "inaccuracies"}) == "inaccuracies"
+    assert bucket_of({**game, "bucket": "two_mistakes"}) == "two_mistakes"

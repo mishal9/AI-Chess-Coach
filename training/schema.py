@@ -24,7 +24,8 @@ class DistillRecord:
     """One teacher-written coaching example, plus the input and metadata that made it."""
 
     source: dict          # {"pgn": str, "game_index": int, "coached_side": str};
-                          # position rows add {"move_number": int, "move_san": str}
+                          # position rows add {"move_number": int, "move_san": str};
+                          # rows since the depth-18 switch add {"depth": int}
     coached_side: str
     facts: str            # deterministic facts block (the body the model was grounded on)
     prompt: list[dict]    # the student's exact [system, user] chat messages

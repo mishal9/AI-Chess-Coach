@@ -30,9 +30,10 @@ from memory.motifs import game_phase, tag_report
 DEFAULT_DB = Path(__file__).resolve().parent.parent / "data" / "memory.db"
 
 # Stockfish depth for the player's own games. Shallower than the engine's research default
-# (15) because a sync analyzes dozens of games while someone waits; coaching re-analyzes a
-# stored game at whatever depth it was stored with, so the two always agree.
-SYNC_DEPTH = 12
+# (18), which takes about a second per move: a sync analyzes dozens of games while someone
+# waits. Coaching re-analyzes a stored game at whatever depth it was stored with, so the
+# game page and the coaching always agree.
+SYNC_DEPTH = 15
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS games (

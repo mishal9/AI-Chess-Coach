@@ -258,3 +258,50 @@ def test_full_check_merges_all_three_families():
     )
     kinds = {v.kind for v in result.violations}
     assert kinds == {"invented_placement", "invented_castling"}
+
+
+# --- v2: false positives found by hand-auditing DeepSeek-V4 Pro coaching -----------
+
+@pytest.mark.parametrize("text", [
+    # hypothetical about the engine's alternative (inaccuracies #2)
+    "Small differences matter — the queen on e2 would have been more harmonious.",
+    # a target, not a placement (two_mistakes #10)
+    "10.Ng5 looks active, pointing the knight at f7 and h7.",
+    # an -ing advice verb (two_mistakes #13)
+    "Completing your development (like getting the bishop to e7) matters more.",
+    # conditional, general advice (multi_blunder #5)
+    "When your opponent has a pawn on d5 or e5, always ask whether you can capture it.",
+])
+def test_hypotheticals_targets_and_general_advice_are_not_placement_claims(text):
+    assert claims.check_board_state(text, OPENING, "white").ok
+
+
+@pytest.mark.parametrize("text, square", [
+    # the real errors from the same audit: stated as fact, so still flagged
+    ("The engine preferred Bxc5, taking the rook on c5.", "c5"),        # slow_loss #16 shape
+    ("You retreated instead of keeping calm; your bishop on h6 was lost.", "h6"),
+    ("You moved your rook from b7 to b8, which achieved little.", "b7"),
+    # "keeping" presupposes the piece was there (slow_loss #14 shape)
+    ("The engine preferred keeping the queen on h6.", "h6"),
+])
+def test_placement_stated_as_fact_is_still_checked(text, square):
+    result = claims.check_board_state(text, OPENING, "black")
+    assert [v.kind for v in result.violations] == ["invented_placement"]
+    assert square in result.violations[0].claimed
+
+
+def test_a_move_attributed_to_the_opponent_is_not_checked_against_the_coached_side():
+    # slow_loss #12: White really played 7.Ngxe4; Black's engine-preferred move was also
+    # a knight capture on e4, so the SAN collides. The facts only assign Black's roles.
+    facts = (
+        "You are coaching the BLACK player (b); the opponent is a.\n"
+        "- 7...Bg7?! (inaccuracy): the engine preferred Nxe4; cost about 8% win probability.\n"
+    )
+    assert claims.check_roles("After White played 7.Nxe4, you developed.", facts).ok
+    # ...while the same move attributed to the coached player is still an inversion.
+    flagged = claims.check_roles("You played Nxe4 here, which was a mistake.", facts)
+    assert [v.kind for v in flagged.violations] == ["role_inversion"]
+
+
+def test_metric_version_is_2():
+    assert claims.METRIC_VERSION == 2

@@ -30,7 +30,11 @@ from engine.scoring import (
     win_prob_loss,
 )
 
-DEFAULT_DEPTH = 15
+# The one Stockfish depth for all research analysis: training data, held-out bucketing and
+# every evaluation. Facts blocks differ with depth, so mixing depths would mean a model is
+# trained on one kind of facts and scored on another. Reports store the depth they were
+# run at; re-checks of an old report use that stored depth, never this default.
+DEFAULT_DEPTH = 18
 
 
 def find_stockfish() -> str:

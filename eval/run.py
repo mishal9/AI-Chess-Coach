@@ -26,6 +26,8 @@ from pathlib import Path
 from typing import Callable
 
 from coach import client as coach_client, prompts
+from engine.analyzer import DEFAULT_DEPTH
+from engine.cache import engine_label
 from eval import backends, claims, grounding, template_coach
 from eval import judge as judge_mod
 from eval.rubric import RUBRIC_AXES
@@ -52,6 +54,10 @@ class EvalCase:
     game_index: int
     coached_side: str
     note: str = ""
+    bucket: str = ""
+    # Whether the game's bucket is the same at depths 16, 18 and 20 (None: not assessed).
+    # See docs/experiments/2026-09-26-depth-20-label-stability.md.
+    label_stable: bool | None = None
 
 
 def load_cases(manifest_path: Path = DEFAULT_MANIFEST) -> list[EvalCase]:
@@ -64,6 +70,8 @@ def load_cases(manifest_path: Path = DEFAULT_MANIFEST) -> list[EvalCase]:
             game_index=e.get("game_index", 0),
             coached_side=e["coached_side"],
             note=e.get("note", ""),
+            bucket=e.get("bucket") or Path(e["pgn"]).stem,
+            label_stable=e.get("label_stable"),
         )
         for e in data
     ]
@@ -96,15 +104,15 @@ def make_judge_fn(backend, model: str | None) -> JudgeFn:
 
 
 def analyze_case(case: EvalCase, depth: int) -> dict:
-    """Run Stockfish over a case's game and return the report dict (imported lazily so
-    the rest of the module needs no engine)."""
-    from engine.analyzer import analyze_game
+    """Run Stockfish over a case's game and return the report dict, reusing a saved
+    analysis when there is one (imported lazily so the rest of the module needs no engine)."""
+    from engine.cache import analyze_cached
     from engine.pgn import load_game
 
     game = load_game(case.pgn, case.game_index)
     if game is None:
         raise SystemExit(f"No game at index {case.game_index} in {case.pgn}")
-    return analyze_game(game, depth=depth).to_dict()
+    return analyze_cached(game, depth)
 
 
 def evaluate_case(
@@ -124,6 +132,8 @@ def evaluate_case(
         "game_index": case.game_index,
         "coached_side": case.coached_side,
         "note": case.note,
+        "bucket": case.bucket,
+        "label_stable": case.label_stable,
         "coaching": coaching,
         "grounding": {
             "score": round(g.score, 3),
@@ -188,7 +198,20 @@ def append_partial(out: Path, record: dict, coach: str, judge: str) -> None:
 
 
 def aggregate(records: list[dict]) -> dict:
-    """Reduce per-game records to the headline baseline vector."""
+    """Reduce per-game records to the headline baseline vector.
+
+    When the records carry ``label_stable``, the same vector is repeated for the
+    label-stable subset under ``label_stable_subset``, so every report shows whether a
+    result holds on games whose bucket does not depend on the analysis depth.
+    """
+    agg = _aggregate(records)
+    stable = [r for r in records if r.get("label_stable") is True]
+    if agg and any(r.get("label_stable") is not None for r in records):
+        agg["label_stable_subset"] = _aggregate(stable)
+    return agg
+
+
+def _aggregate(records: list[dict]) -> dict:
     n = len(records)
     if n == 0:
         return {}
@@ -228,6 +251,16 @@ def format_summary(agg: dict, coach_model: str, judge_desc: str) -> str:
             f"clean {agg['claims_ok_rate'] * 100:.0f}%   "
             "(role inversion + invented castling)"
         )
+    stable = agg.get("label_stable_subset")
+    if stable:
+        line = (f"  Label-stable subset ({stable['games']} games): "
+                f"grounding {stable['grounding_mean']:.2f}")
+        if "claims_ok_rate" in stable:
+            line += f", claims clean {stable['claims_ok_rate'] * 100:.0f}%"
+        if "rubric_overall_mean" in stable:
+            line += (f", factual {stable['rubric_axis_means']['factual_correctness']:.2f}"
+                     f", overall {stable['rubric_overall_mean']:.2f}")
+        lines.append(line)
     if "rubric_overall_mean" in agg:
         lines.append("  Rubric (mean, 1-5):")
         for ax, val in agg["rubric_axis_means"].items():
@@ -252,7 +285,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--coach-temperature", type=float, default=0.0,
         help="coach sampling temperature (default 0 for a reproducible baseline)",
     )
-    parser.add_argument("--depth", type=int, default=15, help="Stockfish search depth")
+    parser.add_argument("--depth", type=int, default=DEFAULT_DEPTH, help="Stockfish search depth")
     parser.add_argument(
         "--max-judge-calls", type=int, default=50,
         help="refuse to start if the run would make more judge calls than this (spend guard)",
@@ -332,6 +365,7 @@ def main(argv: list[str] | None = None) -> int:
             "judge": args.judge if not args.no_judge else None,
             "judge_model": judge_desc if not args.no_judge else None,
             "depth": args.depth,
+            "stockfish": engine_label(),
             # Which semantics produced the deterministic scores. Without this, eval.compare
             # cannot tell that two reports' numbers are not subtractable — it once diffed a
             # post-#41 grounding mean against a pre-#41 one and inverted the sign.

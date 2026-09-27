@@ -97,12 +97,32 @@ class Sample:
         return counts
 
 
-def bucket_of(game: dict) -> str:
-    """The mistake-profile bucket, from the held-out file the game came from."""
-    return Path(game.get("pgn", "unknown")).stem
+def bucket_of(game: dict, buckets: dict[tuple[str, int], str] | None = None) -> str:
+    """The game's mistake-profile bucket.
+
+    The manifest's label wins, because a game can be relabelled at a new depth without
+    moving files. Reports written since then also carry it. The file name is the fallback
+    for older reports and manifests.
+    """
+    key = (game.get("pgn", ""), game.get("game_index", 0))
+    if buckets and key in buckets:
+        return buckets[key]
+    return game.get("bucket") or Path(game.get("pgn", "unknown")).stem
 
 
-def collect(reports: list[Path], facts_by_game: dict[tuple[str, int], str]) -> list[RatingItem]:
+def manifest_buckets(manifest_path: Path) -> dict[tuple[str, int], str]:
+    entries = json.loads(manifest_path.read_text(encoding="utf-8"))
+    return {
+        (e["pgn"], e.get("game_index", 0)): e.get("bucket") or Path(e["pgn"]).stem
+        for e in entries
+    }
+
+
+def collect(
+    reports: list[Path],
+    facts_by_game: dict[tuple[str, int], str],
+    buckets: dict[tuple[str, int], str] | None = None,
+) -> list[RatingItem]:
     """Every scoreable coaching text across the given reports."""
     items: list[RatingItem] = []
     for path in reports:
@@ -120,7 +140,7 @@ def collect(reports: list[Path], facts_by_game: dict[tuple[str, int], str]) -> l
                     source_report=path.stem,
                     pgn=game.get("pgn", ""),
                     game_index=game.get("game_index", 0),
-                    bucket=bucket_of(game),
+                    bucket=bucket_of(game, buckets),
                 )
             )
     return items
@@ -306,7 +326,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--manifest", type=Path, default=None,
                         help="held-out manifest, for rebuilding the facts blocks")
-    parser.add_argument("--depth", type=int, default=15)
+    parser.add_argument("--depth", type=int, default=None,
+                        help="Stockfish depth (default: the depth the reports record)")
 
     parser.add_argument(
         "--rater", action="append", metavar="NAME=PATH",
@@ -381,12 +402,26 @@ def main(argv: list[str] | None = None) -> int:
 
     # Facts are what make the factual axis answerable, and they are not stored in the
     # reports — rebuild them from the manifest exactly as the judge pipeline does.
-    from eval.recheck import DEFAULT_MANIFEST, analyze_manifest
+    from eval.recheck import DEFAULT_MANIFEST, analyze_manifest, report_depth
 
-    analyzed = analyze_manifest(args.manifest or DEFAULT_MANIFEST, depth=args.depth)
+    try:
+        depths = {
+            report_depth(json.loads(p.read_text(encoding="utf-8")), args.depth)
+            for p in args.report
+        }
+    except ValueError as exc:
+        print(str(exc))
+        return 1
+    if len(depths) > 1:
+        print(f"These reports were run at different depths {sorted(depths)}; "
+              "their facts blocks would not match.")
+        return 1
+
+    analyzed = analyze_manifest(args.manifest or DEFAULT_MANIFEST, depth=depths.pop())
     facts_by_game = {(e["pgn"], e["game_index"]): e["facts"] for e in analyzed}
 
-    items = collect(args.report, facts_by_game)
+    buckets = manifest_buckets(args.manifest or DEFAULT_MANIFEST)
+    items = collect(args.report, facts_by_game, buckets)
     if not items:
         print("No coaching texts found in those reports.")
         return 1

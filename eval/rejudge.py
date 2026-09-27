@@ -28,7 +28,7 @@ import sys
 from pathlib import Path
 
 from eval.judge import judge_coaching
-from eval.recheck import DEFAULT_MANIFEST, analyze_manifest
+from eval.recheck import DEFAULT_MANIFEST, analyze_manifest, report_depth
 from eval.run import _JUDGE_BACKENDS, aggregate
 
 # Judge names exactly as `eval.run` spells them, so `--judge gemini` means the same thing
@@ -41,7 +41,7 @@ def rejudge(
     manifest_path: Path = DEFAULT_MANIFEST,
     judge: str = "gemini",
     judge_model: str | None = None,
-    depth: int = 15,
+    depth: int | None = None,
     limit: int | None = None,
     progress=None,
     out_path: Path | None = None,
@@ -56,7 +56,7 @@ def rejudge(
     """
     backend = JUDGES[judge]
     games = report["games"]
-    analyzed = analyze_manifest(manifest_path, depth=depth)
+    analyzed = analyze_manifest(manifest_path, depth=report_depth(report, depth))
 
     if len(analyzed) != len(games):
         raise ValueError(
@@ -146,7 +146,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--judge", choices=sorted(JUDGES), default="gemini")
     parser.add_argument("--judge-model", default=None)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
-    parser.add_argument("--depth", type=int, default=15)
+    parser.add_argument("--depth", type=int, default=None,
+                        help="Stockfish depth (default: the depth the report records)")
     parser.add_argument("--limit", type=int, default=None,
                         help="judge only the first N games (for a cheap smoke test)")
     parser.add_argument("--out", type=Path, required=True)

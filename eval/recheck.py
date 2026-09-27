@@ -41,13 +41,33 @@ HELDOUT_DIR = Path(__file__).resolve().parent / "heldout"
 DEFAULT_MANIFEST = HELDOUT_DIR / "manifest.json"
 
 
+def report_depth(report: dict, override: int | None = None) -> int:
+    """The Stockfish depth to rebuild ``report``'s facts at: the depth it was run at.
+
+    Facts blocks change with depth, so re-checking or re-judging a report at any other
+    depth would score its coaching against facts it was never given. An ``override`` that
+    disagrees with the stored depth is refused for the same reason; one is required only
+    for a report that does not record its depth.
+    """
+    stored = report.get("depth")
+    if override is None:
+        if stored is None:
+            raise ValueError("report does not record its Stockfish depth; pass --depth")
+        return stored
+    if stored is not None and stored != override:
+        raise ValueError(
+            f"report was run at depth {stored}, not {override}; its facts would not match"
+        )
+    return override
+
+
 def analyze_manifest(manifest_path: Path, depth: int) -> list[dict]:
     """Analyze every game in the manifest, in manifest order.
 
     Returns one ``{pgn, game_index, coached_side, report, facts}`` per entry. The engine
     is imported lazily so importing this module needs no Stockfish.
     """
-    from engine.analyzer import analyze_game
+    from engine.cache import analyze_cached
     from engine.pgn import load_game
 
     entries = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -58,7 +78,7 @@ def analyze_manifest(manifest_path: Path, depth: int) -> list[dict]:
         game = load_game(base / entry["pgn"], game_index)
         if game is None:
             raise SystemExit(f"No game at index {game_index} in {entry['pgn']}")
-        report = analyze_game(game, depth=depth).to_dict()
+        report = analyze_cached(game, depth)
         side = entry.get("coached_side") or prompts.choose_coached_side(report)
         out.append({
             "pgn": entry["pgn"],
@@ -124,6 +144,11 @@ def recheck_report(report: dict, analyzed: list[dict]) -> dict:
     aggregate = dict(report.get("aggregate", {}))
     aggregate["claims_mean"] = round(sum(g["claims"]["score"] for g in games) / n, 3)
     aggregate["claims_ok_rate"] = round(sum(g["claims"]["ok"] for g in games) / n, 3)
+    if "label_stable_subset" in aggregate:
+        # The subset repeats the headline vector, so it must move with it.
+        from eval.run import aggregate as full_aggregate
+
+        aggregate["label_stable_subset"] = full_aggregate(games)["label_stable_subset"]
     # Same reason as eval.rescore: mark which semantics these claim scores are on.
     versions = dict(report.get("metric_versions") or {})
     versions["claims"] = claims.METRIC_VERSION
@@ -144,8 +169,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("reports", type=Path, nargs="+")
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
-    parser.add_argument("--depth", type=int, default=15,
-                        help="Stockfish depth; match the depth the report was run at")
+    parser.add_argument("--depth", type=int, default=None,
+                        help="Stockfish depth (default: the depth each report records)")
     parser.add_argument("--out", type=Path, default=None,
                         help="write the rechecked report here (single input only)")
     return parser
@@ -157,11 +182,20 @@ def main(argv: list[str] | None = None) -> int:
         print("--out takes a single report.", file=sys.stderr)
         return 1
 
-    analyzed = analyze_manifest(args.manifest, args.depth)
+    reports = {path: json.loads(path.read_text(encoding="utf-8")) for path in args.reports}
+    try:
+        depths = {report_depth(r, args.depth) for r in reports.values()}
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    if len(depths) > 1:
+        print(f"These reports were run at different depths {sorted(depths)}; "
+              "recheck them separately.", file=sys.stderr)
+        return 1
+    analyzed = analyze_manifest(args.manifest, depths.pop())
 
     print(f"\n{'report':<28}{'claims':>8}{'clean':>9}   violations")
-    for path in args.reports:
-        report = json.loads(path.read_text(encoding="utf-8"))
+    for path, report in reports.items():
         problems = verify_alignment(report["games"], analyzed)
         if problems:
             print(
