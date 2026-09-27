@@ -19,6 +19,7 @@ eval = [
     "scipy>=1.11",          # paired equivalence testing (TOST) in eval.equivalence
     "google-genai>=0.1",
     "python-dotenv>=1.0",   # load API keys from a gitignored .env
+    "zstandard>=0.22",      # stream the Lichess database export (training.corpus --from-db)
 ]
 # The web app. Server-rendered, so no JS toolchain.
 api = [

@@ -257,3 +257,197 @@ def test_main_canonical_seed_reorders_the_written_corpus(tmp_path):
     expected = [corpus.game_key(g) for g in corpus.canonical_order([FRESH_GAME, FRESH_GAME_2])]
     assert [corpus.game_key(g) for g in canonical] == expected
     assert set(expected) == {"id:AbCdEfGh", "id:QqRrSsTt"}
+
+
+# --- sampling by rating band from the database export ----------------------------------
+
+_MOVES = "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 {i}"
+
+
+def _db_game(gid, white=1500, black=1500, tc="300+0", event="Rated Blitz game",
+             extra="", moves=None):
+    return (f'[Event "{event}"]\n[Site "https://lichess.org/{gid}"]\n'
+            f'[WhiteElo "{white}"]\n[BlackElo "{black}"]\n[TimeControl "{tc}"]\n'
+            f'[Termination "Normal"]\n{extra}\n'
+            f"{moves or _MOVES.format(i='1-0')}\n")
+
+
+@pytest.mark.parametrize("game, cell", [
+    (_db_game("a", 1000, 1100), ("<1200", "blitz")),
+    (_db_game("b", 1500, 1600), ("1200-1599", "blitz")),
+    (_db_game("c", 1599, 1600), ("1200-1599", "blitz")),   # mean 1599.5 is below 1600
+    (_db_game("d", 2450, 2500), ("2400+", "blitz")),
+    (_db_game("e", tc="600+0"), ("1200-1599", "rapid")),
+    (_db_game("f", tc="900+15"), ("1200-1599", "classical")),   # 1,500 s estimated
+    (_db_game("g", tc="60+0"), None),               # bullet
+    (_db_game("h", tc="120+1"), None),              # 160 s estimated: still bullet
+    (_db_game("i", tc="-"), None),                  # correspondence
+    (_db_game("j", 1200, 1500), None),              # players too far apart
+    (_db_game("k", event="Casual Blitz game"), None),
+    (_db_game("l", extra='[FEN "8/8/8/8/8/8/8/K6k w - - 0 1"]'), None),
+    (_db_game("m", black="?"), None),
+    (_db_game("n").replace("Normal", "Abandoned"), None),
+])
+def test_db_cell(game, cell):
+    assert corpus.db_cell(game) == cell
+
+
+def test_bot_games_are_skipped():
+    assert corpus.db_cell(_db_game("bot", extra='[WhiteTitle "BOT"]')) is None
+    assert corpus.db_cell(_db_game("gm", extra='[WhiteTitle "GM"]')) == ("1200-1599", "blitz")
+
+
+def test_split_decoded_slice_drops_partial_games_at_both_ends():
+    games = [_db_game(f"p{i}") for i in range(3)]
+    text = "\n\n".join(games)
+    sliced = text[len(games[0]) // 2 : -10]   # starts inside game 0, ends inside game 2
+    assert [corpus.game_key(g) for g in corpus.split_decoded_slice(sliced)] == ["id:p1"]
+    assert corpus.split_decoded_slice("no games here") == []
+
+
+def test_decode_slice_starts_at_a_later_zstd_frame():
+    zstd = pytest.importorskip("zstandard")
+    frames = [zstd.ZstdCompressor().compress(f"frame {i}\n".encode() * 50) for i in range(3)]
+    data = b"".join(frames)
+    cut = data[len(frames[0]) // 2 : -5]   # mid-frame 0 to mid-frame 2
+    text = corpus._decode_slice(cut)
+    assert text.startswith("frame 1") and "frame 0" not in text
+
+
+def _unique(gid, tc="300+0", white=1500):
+    return _db_game(gid, white, white, tc=tc, moves=_MOVES.format(i=f"7. {gid} 1-0"))
+
+
+def test_collect_cells_limits_each_slice_and_the_total():
+    slices = [[_unique(f"h{k}{i}") for i in range(5)] for k in range(3)]
+    cells = corpus.collect_cells(slices, per_slice=2, cap=5, heldout=set())
+    got = [corpus.game_key(g) for g in cells["1200-1599", "blitz"]]
+    assert got == ["id:h00", "id:h01", "id:h10", "id:h11", "id:h20"]
+
+
+def test_collect_cells_skips_heldout_duplicate_and_short_games():
+    stream = [
+        _unique("HELD"),
+        _db_game("x1"),
+        _db_game("x2"),                          # same moves as x1
+        _db_game("x3", moves="1. e4 e5 1-0"),    # too short
+        _unique("x4"),
+    ]
+    cells = corpus.collect_cells([stream], per_slice=9, cap=9, heldout={"id:HELD"})
+    assert [corpus.game_key(g) for g in cells["1200-1599", "blitz"]] == ["id:x1", "id:x4"]
+
+
+@pytest.mark.parametrize("available, total, expected", [
+    ({"a": 1000, "b": 1000, "c": 1000}, 300, {"a": 100, "b": 100, "c": 100}),
+    ({"a": 1000, "b": 1000, "c": 10}, 300, {"a": 145, "b": 145, "c": 10}),
+    ({"a": 1000, "b": 30, "c": 0}, 300, {"a": 270, "b": 30, "c": 0}),
+    ({"a": 50, "b": 40, "c": 0}, 300, {"a": 50, "b": 40, "c": 0}),   # short overall
+])
+def test_allocate_is_as_equal_as_availability_allows(available, total, expected):
+    assert corpus.allocate(available, total) == expected
+
+
+def test_allocate_hands_out_rounding_leftovers():
+    alloc = corpus.allocate({"a": 1000, "b": 1000, "c": 1000}, 301)
+    assert sorted(alloc.values()) == [100, 100, 101]
+
+
+def test_select_balanced_shares_a_band_across_speeds_and_spreads_picks():
+    blitz = [_unique(f"b{i}") for i in range(10)]
+    rapid = [_unique(f"r{i}", tc="600+0") for i in range(10)]
+    cells = corpus.collect_cells([blitz + rapid], per_slice=10, cap=10, heldout=set())
+    chosen = corpus.select_balanced(cells, per_band=4)
+    # two each; picks are spaced through the candidates, not the first two
+    assert [corpus.game_key(g) for g in chosen["1200-1599", "blitz"]] == ["id:b0", "id:b5"]
+    assert len(chosen["1200-1599", "rapid"]) == 2
+    assert chosen["1200-1599", "classical"] == [] and chosen["2400+", "blitz"] == []
+
+
+def test_main_from_db_writes_corpus_and_source(tmp_path):
+    games = [_unique(f"s{i}") for i in range(3)] + [_unique("s9", tc="600+0")]
+    args = corpus.build_parser().parse_args(
+        ["--from-db", "2026-08", "--per-band", "2", "--slices", "1", "--min-plies", "10",
+         "--out-dir", str(tmp_path), "--canonical-seed", "0"])
+    assert corpus._main_from_db(args, fetch_fn=lambda url, n, **kw: iter([games])) == 0
+    assert len(json.loads((tmp_path / "manifest.json").read_text())) == 2
+    source = json.loads((tmp_path / "source.json").read_text())
+    assert source["months"] == "2026-08"
+    assert source["skipped"]["read"] == 4 and source["population"]["1200-1599"]["rapid"] == 1
+    assert source["games"]["1200-1599"] == {"blitz": 1, "rapid": 1, "classical": 0}
+    assert source["candidates"]["1200-1599"]["blitz"] == 2
+
+
+@pytest.mark.parametrize("spec, expected", [
+    ("2026-08", ["2026-08"]),
+    ("2025-11:2026-02", ["2025-11", "2025-12", "2026-01", "2026-02"]),
+])
+def test_month_range(spec, expected):
+    assert corpus.month_range(spec) == expected
+
+
+def test_month_range_rejects_a_backwards_range():
+    with pytest.raises(ValueError):
+        corpus.month_range("2026-02:2025-11")
+
+
+def test_main_from_db_takes_the_same_slices_from_every_month(tmp_path):
+    asked = []
+
+    def fetch(url, n, files, phase):
+        asked.append((url[-15:-8], n))
+        files[url] = {"bytes": 1}
+        return iter([[_unique(f"{url[-15:-8]}x{k}")] for k in range(n)])
+
+    args = corpus.build_parser().parse_args(
+        ["--from-db", "2026-06:2026-08", "--per-band", "6", "--slices", "5",
+         "--min-plies", "10", "--out-dir", str(tmp_path)])
+    assert corpus._main_from_db(args, fetch_fn=fetch) == 0
+    # 5 slices over 3 months rounds up to 2 per month
+    assert asked == [("2026-06", 2), ("2026-07", 2), ("2026-08", 2)]
+    source = json.loads((tmp_path / "source.json").read_text())
+    assert len(source["files"]) == 3 and source["slices_per_month"] == 2
+    assert source["games"]["1200-1599"]["blitz"] == 6
+
+
+def test_db_cell_counts_why_games_are_skipped():
+    reasons = corpus.Counter()
+    for game in [_db_game("a", tc="60+0"), _db_game("b", 1200, 1500),
+                 _db_game("c", event="Casual Blitz game"), _db_game("d", tc="60+0")]:
+        corpus.db_cell(game, reasons)
+    assert reasons == {"bullet": 2, "rating_gap": 1, "unrated": 1}
+
+
+def test_collect_cells_excludes_heldout_players_and_counts_the_population():
+    reasons, population = corpus.Counter(), corpus.Counter()
+    stream = [_unique(f"p{i}") for i in range(4)]
+    stream[1] = stream[1].replace('[WhiteElo', '[White "DrNykterstein"]\n[WhiteElo')
+    cells = corpus.collect_cells([stream], per_slice=1, cap=9, heldout=set(),
+                                 excluded_players={"drnykterstein"},
+                                 reasons=reasons, population=population)
+    assert [corpus.game_key(g) for g in cells["1200-1599", "blitz"]] == ["id:p0"]
+    assert population["1200-1599", "blitz"] == 3   # counted before the per-slice quota
+    assert reasons["heldout_player"] == 1 and reasons["read"] == 4
+
+
+def test_when_reads_utc_hour_and_weekday():
+    assert corpus._when({"UTCDate": "2026.08.01", "UTCTime": "07:15:00"}) == [
+        "hour:07", "weekday:5"]   # 1 Aug 2026 is a Saturday
+    assert corpus._when({}) == []
+
+
+def test_heldout_players_are_lowercased_names_from_the_heldout_set():
+    players = corpus.heldout_players()
+    assert "drnykterstein" in players and all(p == p.lower() for p in players)
+
+
+def test_slice_starts_are_evenly_spaced_and_shifted_by_the_phase():
+    assert corpus.slice_starts(1000, 4) == [0, 250, 500, 750]
+    assert corpus.slice_starts(1000, 4, phase=0.5) == [125, 375, 625, 875]
+
+
+def test_month_phases_spread_over_the_gap_between_slices():
+    phases = sorted(corpus.month_phase(i) for i in range(36))
+    assert phases[0] == 0.0 and all(0 <= p < 1 for p in phases)
+    # 36 phases in [0, 1): no gap between neighbours is wider than 3 even spacings
+    gaps = [b - a for a, b in zip(phases, phases[1:])] + [1 - phases[-1]]
+    assert max(gaps) < 3 / 36
