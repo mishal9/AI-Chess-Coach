@@ -175,27 +175,107 @@ up each tier, and the train/val/test split of whatever text they end up holding
 
 ### Training corpus source (decided 2026-09-27)
 
-The sweep corpus is sampled from the Lichess database export for August 2026 (CC0), not
-from a roster of named players, which gave only as many skill levels as there were players
-and was dominated by five accounts. Command:
-`python -m training.corpus --from-db 2026-08 --canonical-seed 0`. `data/games/source.json`
-records the URL, every filter and the per-cell counts, so the corpus can be rebuilt exactly.
+The training corpus is 2,000 games sampled from the Lichess database exports for
+**September 2023 to August 2026** (36 months, CC0), balanced by rating band and time control.
 
-- **Balanced, not proportional.** Five rating bands by the mean of both players' ratings
-  (<1200, 1200–1599, 1600–1999, 2000–2399, 2400+), 400 games each. Inside a band, blitz,
-  rapid and classical share the 400 equally; a time control with too few games gives its
-  unused share equally to the others. On Lichess 2400+ is ~1% of eligible games and
-  1200–1999 ~70%, so the corpus deliberately over-represents the ends of the ladder. State
-  this in the paper, with the population shares from `source.json` `candidates` alongside.
-- **Filters:** rated; standard start (no FEN, no variants); no bullet (base + 40 × increment
-  under 180 s) or correspondence; no bots; no abandoned or rules-infraction games; players
-  within 200 points; at least 20 half-moves; disjoint from the held-out set.
-- **Spread over the month:** 128 slices of 6 MB spaced evenly through the file, at most
-  4 games per cell per slice, and picks spaced evenly through each cell's candidates.
-- **Result (2,000 games):** 133–134 per time control in every band except 2400+, which has
-  199 blitz, 198 rapid, 3 classical (classical above 2400 is almost absent on Lichess).
-  All 31 days and 24 hours covered, 3,788 distinct players (at most 6 games each), 252 ECO
-  codes, 7% draws, median 65 half-moves.
+    python -m training.corpus --from-db 2023-09:2026-08 --canonical-seed 0
+
+`data/games/source.json` records every export file read (URL, size, Last-Modified, slice
+offset phase), every filter, how many games each filter removed, the corpus counts, and
+the population counts it is compared with. Running the command again reads the same byte
+ranges and writes a byte-identical corpus (checked on a two-month build run twice).
+
+**How games are drawn.** Each monthly export is 20–31 GB, stored as independently
+compressed zstd frames, so any byte range can be decoded from the next frame onward. The
+sampler reads 12 slices of 6 MB from each month (432 in all, about 2.6 GB), evenly spaced
+through the file. Each month's slices are shifted by a different fraction of the gap
+between them (multiples of the golden ratio's fractional part), so over 36 months they
+land at every time of day. Games go into 15 cells of rating band × time control; each
+slice may add at most one game to each cell, and the final picks are spaced evenly through
+each cell's candidates. `month_range`, `slice_starts`, `collect_cells`, `allocate` and
+`select_balanced` in `training/corpus.py` carry the unit tests.
+
+**Result.**
+
+| Mean rating | Blitz | Rapid | Classical | Band share of eligible games |
+|---|---:|---:|---:|---:|
+| <1200 | 133 | 134 | 133 | 15.5% |
+| 1200–1599 | 133 | 133 | 134 | 33.3% |
+| 1600–1999 | 133 | 133 | 134 | 38.4% |
+| 2000–2399 | 133 | 134 | 133 | 12.0% |
+| 2400+ | 198 | 197 | 5 | 0.8% |
+
+Of 4.90 M games read, 2.76 M were eligible. The corpus has 3,927 players (at most 5 games
+each), 398 distinct days, 47–61 games from every month, 254 ECO codes across A–E, 92 time
+controls, 6.9% draws, 14.3% lost on time, and 20–225 half-moves (median 65). No game and
+no player overlaps the held-out set.
+
+#### Reviewer questions
+
+**Why Lichess and not a curated database?** The Lichess export is the only large source of
+games at every skill level that is explicitly released into the public domain (CC0), so the
+games can be published with the paper. Over-the-board databases hold almost only master
+games, carry FIDE rather than Lichess ratings, have no clock data, and are often
+copyrighted compilations.
+
+**Why balanced across bands rather than proportional to Lichess?** The coach must explain
+mistakes at every level. Proportional sampling would give 2400+ about 16 games in 2,000 and
+make the top and bottom of the ladder a rounding error. Equal bands give every level the
+same weight; the population shares above (`source.json` `population_share`) are reported
+next to the corpus so readers can reweight. Per-band results from the student should be
+read with this in mind.
+
+**Why balance time controls, and why is 2400+ classical nearly empty?** Blitz is 75% of
+eligible games, rapid 24%, classical 0.9%. Without balancing, blitz would dominate every
+band and slower, more deliberate play would be rare. The 400 games of a band are split
+equally across the three time controls; a time control with too few games gives its
+unused share equally to the others (`allocate`). Classical games above 2400 are almost
+absent on Lichess in every year checked: 0–2 per ~50,000 eligible games in August of each
+year 2019–2026. Strong players play slow chess over the board, not online. So 2400+ is half
+blitz, half rapid, which is what top-level online play looks like.
+
+**Why three years, and why these three?** One month carries that month's quirks: school
+holidays change who plays, openings go in and out of fashion, and rating pools drift.
+36 months cover every season three times, with every month contributing within 47–61
+games. Older years were considered and not used: going back does not add 2400+ classical
+games (above), 2020–21 includes the pandemic surge of new players, and before 2017 the
+site was small (a 2013 export is 0.02 GB, against 30 GB now), so equal monthly shares would
+over-weight a small early-adopter population. The held-out games are also recent, so
+training and evaluation games come from the same era.
+
+**Is the sample spread over time, or clustered?** Compared with all 2.76 M eligible games
+read, the corpus is within 1.6 percentage points of the population share for every UTC
+hour, and within 4.8 points for every weekday (`source.json` `when`). The population here
+is all eligible games in the 432 slices, not every game in the 36 months.
+
+**What was filtered out, and why?** Counts are of the 4.90 M games read.
+
+| Filter | Removed | Reason |
+|---|---:|---|
+| Bullet (base + 40 × increment < 180 s) | 1,809,567 | decided by the clock more than by the moves |
+| Players more than 200 points apart | 150,418 | a game should belong to one rating band |
+| Fewer than 20 half-moves | 120,943 | too little play to coach |
+| Abandoned or rules infraction | 22,925 | not a finished game |
+| Unrated | 21,934 | ratings are needed for the band |
+| Bot account on either side | 11,871 | the coach is for human play |
+| Correspondence or unknown rating | 3,470 | no clock, or no band |
+| Player appears in the held-out set | 65 | no held-out player's games in training |
+
+Variants and custom start positions are in separate export files and are also rejected
+if present. Games lost on time are kept: the moves before the flag are real play.
+
+**Could training leak into evaluation?** No held-out game is in the corpus, matched by
+Lichess game id and by a hash of the moves, and no game by any of the 60 players in the
+held-out games is in it either.
+
+**Can the corpus be reproduced?** Yes, as long as Lichess keeps serving the same files:
+the slice offsets depend only on file sizes, and `source.json` records each file's size
+and Last-Modified date to confirm that. `--canonical-seed 0` orders games by a hash of
+their identity, so the nested training sizes stay the same games.
+
+**Known limitations.** Ratings are Lichess ratings, not FIDE, and bands are by the mean of
+both players. The export is not filtered for accounts later closed for fair-play reasons.
+The sample is of online play only.
 
 ### Training-size sweep
 

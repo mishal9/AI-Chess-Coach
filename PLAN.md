@@ -79,10 +79,11 @@ Branch `feat/analysis-depth-18` (pushed, not merged; no PR yet). PR #71 (DeepSee
 
 **Next, in order**
 
-1. ~~Rebuild the training corpus so it excludes all 91 held-out games.~~ Done 27 Sep:
-   2,000 games from the August 2026 Lichess export, balanced by rating band and time
-   control (`training.corpus --from-db 2026-08 --canonical-seed 0`). `paper-protocol.md`,
-   "Training corpus source".
+1. ~~Rebuild the training corpus so it excludes all 91 held-out games.~~ Done 27 Sep on
+   branch `feat/training-corpus-lichess-db`: 2,000 games from the Lichess exports for
+   Sep 2023 – Aug 2026, balanced by rating band and time control, no held-out games or
+   players (`training.corpus --from-db 2023-09:2026-08 --canonical-seed 0`).
+   `paper-protocol.md`, "Training corpus source", has the reviewer Q&A.
 2. Generate DeepSeek training rows at depth 18 (`training.distill --teacher deepseek`),
    QC-filtered with checker v2 (`training/qc.py`). Rows now record `source.depth`.
 3. Fine-tune the sweep (4 sizes × 3 seeds), then score every arm together on 91 games with

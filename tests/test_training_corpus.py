@@ -368,9 +368,86 @@ def test_main_from_db_writes_corpus_and_source(tmp_path):
     args = corpus.build_parser().parse_args(
         ["--from-db", "2026-08", "--per-band", "2", "--slices", "1", "--min-plies", "10",
          "--out-dir", str(tmp_path), "--canonical-seed", "0"])
-    assert corpus._main_from_db(args, fetch_fn=lambda url, n: iter([games])) == 0
+    assert corpus._main_from_db(args, fetch_fn=lambda url, n, **kw: iter([games])) == 0
     assert len(json.loads((tmp_path / "manifest.json").read_text())) == 2
     source = json.loads((tmp_path / "source.json").read_text())
-    assert source["url"].endswith("rated_2026-08.pgn.zst")
+    assert source["months"] == "2026-08"
+    assert source["skipped"]["read"] == 4 and source["population"]["1200-1599"]["rapid"] == 1
     assert source["games"]["1200-1599"] == {"blitz": 1, "rapid": 1, "classical": 0}
     assert source["candidates"]["1200-1599"]["blitz"] == 2
+
+
+@pytest.mark.parametrize("spec, expected", [
+    ("2026-08", ["2026-08"]),
+    ("2025-11:2026-02", ["2025-11", "2025-12", "2026-01", "2026-02"]),
+])
+def test_month_range(spec, expected):
+    assert corpus.month_range(spec) == expected
+
+
+def test_month_range_rejects_a_backwards_range():
+    with pytest.raises(ValueError):
+        corpus.month_range("2026-02:2025-11")
+
+
+def test_main_from_db_takes_the_same_slices_from_every_month(tmp_path):
+    asked = []
+
+    def fetch(url, n, files, phase):
+        asked.append((url[-15:-8], n))
+        files[url] = {"bytes": 1}
+        return iter([[_unique(f"{url[-15:-8]}x{k}")] for k in range(n)])
+
+    args = corpus.build_parser().parse_args(
+        ["--from-db", "2026-06:2026-08", "--per-band", "6", "--slices", "5",
+         "--min-plies", "10", "--out-dir", str(tmp_path)])
+    assert corpus._main_from_db(args, fetch_fn=fetch) == 0
+    # 5 slices over 3 months rounds up to 2 per month
+    assert asked == [("2026-06", 2), ("2026-07", 2), ("2026-08", 2)]
+    source = json.loads((tmp_path / "source.json").read_text())
+    assert len(source["files"]) == 3 and source["slices_per_month"] == 2
+    assert source["games"]["1200-1599"]["blitz"] == 6
+
+
+def test_db_cell_counts_why_games_are_skipped():
+    reasons = corpus.Counter()
+    for game in [_db_game("a", tc="60+0"), _db_game("b", 1200, 1500),
+                 _db_game("c", event="Casual Blitz game"), _db_game("d", tc="60+0")]:
+        corpus.db_cell(game, reasons)
+    assert reasons == {"bullet": 2, "rating_gap": 1, "unrated": 1}
+
+
+def test_collect_cells_excludes_heldout_players_and_counts_the_population():
+    reasons, population = corpus.Counter(), corpus.Counter()
+    stream = [_unique(f"p{i}") for i in range(4)]
+    stream[1] = stream[1].replace('[WhiteElo', '[White "DrNykterstein"]\n[WhiteElo')
+    cells = corpus.collect_cells([stream], per_slice=1, cap=9, heldout=set(),
+                                 excluded_players={"drnykterstein"},
+                                 reasons=reasons, population=population)
+    assert [corpus.game_key(g) for g in cells["1200-1599", "blitz"]] == ["id:p0"]
+    assert population["1200-1599", "blitz"] == 3   # counted before the per-slice quota
+    assert reasons["heldout_player"] == 1 and reasons["read"] == 4
+
+
+def test_when_reads_utc_hour_and_weekday():
+    assert corpus._when({"UTCDate": "2026.08.01", "UTCTime": "07:15:00"}) == [
+        "hour:07", "weekday:5"]   # 1 Aug 2026 is a Saturday
+    assert corpus._when({}) == []
+
+
+def test_heldout_players_are_lowercased_names_from_the_heldout_set():
+    players = corpus.heldout_players()
+    assert "drnykterstein" in players and all(p == p.lower() for p in players)
+
+
+def test_slice_starts_are_evenly_spaced_and_shifted_by_the_phase():
+    assert corpus.slice_starts(1000, 4) == [0, 250, 500, 750]
+    assert corpus.slice_starts(1000, 4, phase=0.5) == [125, 375, 625, 875]
+
+
+def test_month_phases_spread_over_the_gap_between_slices():
+    phases = sorted(corpus.month_phase(i) for i in range(36))
+    assert phases[0] == 0.0 and all(0 <= p < 1 for p in phases)
+    # 36 phases in [0, 1): no gap between neighbours is wider than 3 even spacings
+    gaps = [b - a for a, b in zip(phases, phases[1:])] + [1 - phases[-1]]
+    assert max(gaps) < 3 / 36

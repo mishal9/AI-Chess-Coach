@@ -22,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime
 import io
 import json
 import re
@@ -53,6 +54,13 @@ def _paced(users: list[str]):
             time.sleep(FETCH_PACING_SECONDS)
         yield user
 
+_TAG_RE = re.compile(r'^\[(\w+) "(.*)"\]$', re.MULTILINE)
+
+
+def _tags(pgn: str) -> dict[str, str]:
+    return dict(_TAG_RE.findall(pgn))
+
+
 HELDOUT_DIR = Path(__file__).resolve().parent.parent / "eval" / "heldout"
 DEFAULT_OUT_DIR = Path(__file__).resolve().parent.parent / "data" / "games"
 
@@ -83,6 +91,20 @@ def heldout_fingerprints(heldout_dir: Path = HELDOUT_DIR) -> set[str]:
             prints.add(game_key(game))
             prints.add(f"moves:{movetext_hash(game)}")
     return prints
+
+
+def heldout_players(heldout_dir: Path = HELDOUT_DIR) -> set[str]:
+    """Lowercased names of everyone who plays in a held-out game.
+
+    The database sampler leaves out every game these players play, so no held-out player's
+    games (and so none of their habits) are in the training data.
+    """
+    names: set[str] = set()
+    for pgn_file in sorted(heldout_dir.glob("*.pgn")):
+        for game in split_pgn(pgn_file.read_text(encoding="utf-8")):
+            tags = _tags(game)
+            names.update(tags[c].lower() for c in ("White", "Black") if c in tags)
+    return names
 
 
 def _ply_count(pgn: str) -> int:
@@ -162,10 +184,12 @@ def write_corpus(games: list[str], out_dir: Path) -> Path:
 # monthly export (database.lichess.org, CC0) holds every rated game played on Lichess that
 # month, at every level. It is ~30 GB compressed, but it is written as a series of
 # independently compressed zstd frames of a few MB each, so any part of it can be read with
-# an HTTP range request that starts at the next frame. The sampler reads ``DB_SLICES`` small
-# slices spaced evenly through the file, so the games span the whole month (every day and
-# hour) instead of its first few hours. The slice offsets depend only on the file size, so
-# the same command gives the same games.
+# an HTTP range request that starts at the next frame. The sampler reads the same number of
+# small slices, spaced evenly through the file, from every month in a range, so the games
+# span every month, day and hour rather than one stretch of time. A multi-year range also
+# evens out seasons (summer and school holidays change who plays), opening fashions and
+# rating drift. The slice offsets depend only on the file sizes, so the same command gives
+# the same games.
 #
 # Games are sorted into cells of (rating band, time control). Every band gets the same
 # number of games, and inside a band the time controls share it equally. A time control
@@ -198,42 +222,42 @@ MAX_RATING_GAP = 200
 _BAD_TERMINATIONS = {"Abandoned", "Rules infraction", "Unterminated"}
 # Games shorter than this have too little play to coach (quick resignations, early draws).
 DB_MIN_PLIES = 20
-DB_SLICES = 128
+DB_SLICES = 432   # in total, shared equally across the months
 DB_SLICE_BYTES = 6_000_000
 _ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
-_TAG_RE = re.compile(r'^\[(\w+) "(.*)"\]$', re.MULTILINE)
-
-
-def _tags(pgn: str) -> dict[str, str]:
-    return dict(_TAG_RE.findall(pgn))
-
-
 Cell = tuple[str, str]   # (rating band, speed)
 
 
-def db_cell(pgn: str) -> Cell | None:
+def db_cell(pgn: str, reasons: Counter | None = None) -> Cell | None:
     """The (rating band, speed) of a game worth sampling, or ``None`` if it is skipped.
 
-    Skips unrated, bullet, correspondence, non-standard-start, abandoned and bot games, and
-    games between players more than ``MAX_RATING_GAP`` apart.
+    Skips unrated, bot, variant or custom-start, abandoned, correspondence and bullet games,
+    and games between players more than ``MAX_RATING_GAP`` apart. The reason for each skip is
+    counted in ``reasons`` when given.
     """
+    def skip(reason: str) -> None:
+        if reasons is not None:
+            reasons[reason] += 1
+
     tags = _tags(pgn)
     if not tags.get("Event", "").startswith("Rated"):
-        return None
+        return skip("unrated")
     if "BOT" in (tags.get("WhiteTitle"), tags.get("BlackTitle")):
-        return None
+        return skip("bot")
     if "FEN" in tags or tags.get("Variant", "Standard") != "Standard":
-        return None
+        return skip("variant_or_custom_start")
     if tags.get("Termination") in _BAD_TERMINATIONS:
-        return None
+        return skip("abandoned_or_rules_infraction")
     try:
         base, inc = (int(x) for x in tags["TimeControl"].split("+"))
         white, black = int(tags["WhiteElo"]), int(tags["BlackElo"])
     except (KeyError, ValueError):   # "-" time control (correspondence) or "?" rating
-        return None
+        return skip("correspondence_or_unknown_rating")
     seconds = base + 40 * inc
-    if seconds < MIN_ESTIMATED_SECONDS or abs(white - black) > MAX_RATING_GAP:
-        return None
+    if seconds < MIN_ESTIMATED_SECONDS:
+        return skip("bullet")
+    if abs(white - black) > MAX_RATING_GAP:
+        return skip("rating_gap")
     mean = (white + black) / 2
     band = [label for label, lo in RATING_BANDS if mean >= lo][-1]
     speed = [label for label, lo in SPEEDS if seconds >= lo][-1]
@@ -247,25 +271,49 @@ def collect_cells(
     heldout: set[str],
     *,
     min_plies: int = 10,
+    excluded_players: set[str] = frozenset(),
+    reasons: Counter | None = None,
+    population: Counter | None = None,
+    when: Counter | None = None,
     progress: Callable[[int, dict[Cell, list[str]]], None] | None = None,
 ) -> dict[Cell, list[str]]:
     """Candidates for every cell: at most ``per_slice`` from each slice, ``cap`` in all.
 
-    The per-slice limit keeps each cell spread across the month. Held-out games, duplicates
-    and games shorter than ``min_plies`` are skipped, as in :func:`assemble`.
+    The per-slice limit keeps each cell spread across the sampled time. Held-out games,
+    duplicates, games by ``excluded_players`` and games shorter than ``min_plies`` are
+    skipped. When given, ``reasons`` counts every game read and why each skipped game was
+    skipped, ``population`` counts every eligible game per cell before any quota, and
+    ``when`` counts them by UTC hour and weekday; these are what the balanced corpus is
+    compared against.
     """
     cells: dict[Cell, list[str]] = {
         (band, speed): [] for band, _ in RATING_BANDS for speed, _ in SPEEDS
     }
+    reasons = Counter() if reasons is None else reasons
+    population = Counter() if population is None else population
+    when = Counter() if when is None else when
     seen = set(heldout)
     for k, games in enumerate(slices, 1):
         taken: Counter = Counter()
         for game in games:
-            cell = db_cell(game)
-            if cell is None or taken[cell] >= per_slice or len(cells[cell]) >= cap:
+            reasons["read"] += 1
+            cell = db_cell(game, reasons)
+            if cell is None:
+                continue
+            tags = _tags(game)
+            if {tags.get("White", "").lower(), tags.get("Black", "").lower()} & excluded_players:
+                reasons["heldout_player"] += 1
+                continue
+            if _ply_count(game) < min_plies:
+                reasons["too_short"] += 1
+                continue
+            population[cell] += 1
+            when.update(_when(tags))
+            if taken[cell] >= per_slice or len(cells[cell]) >= cap:
                 continue
             key, move_key = game_key(game), f"moves:{movetext_hash(game)}"
-            if key in seen or move_key in seen or _ply_count(game) < min_plies:
+            if key in seen or move_key in seen:
+                reasons["heldout_or_duplicate_game"] += 1
                 continue
             seen.update((key, move_key))
             cells[cell].append(game)
@@ -273,6 +321,15 @@ def collect_cells(
         if progress:
             progress(k, cells)
     return cells
+
+
+def _when(tags: dict[str, str]) -> list[str]:
+    """``["hour:HH", "weekday:N"]`` (UTC; Monday is 0) for a game, or ``[]`` if undated."""
+    try:
+        day = datetime.date(*map(int, tags["UTCDate"].split(".")))
+        return [f"hour:{int(tags['UTCTime'][:2]):02d}", f"weekday:{day.weekday()}"]
+    except (KeyError, ValueError):
+        return []
 
 
 def allocate(available: dict[str, int], total: int) -> dict[str, int]:
@@ -355,14 +412,54 @@ def _frame_starts(data: bytes) -> Iterator[int]:
         i = data.find(_ZSTD_MAGIC, i + 1)
 
 
-def fetch_db_slices(url: str, slices: int = DB_SLICES,
-                    slice_bytes: int = DB_SLICE_BYTES) -> Iterator[list[str]]:
-    """Yield the whole games in each of ``slices`` evenly spaced slices of the export."""
-    headers = {"User-Agent": fetch_data._USER_AGENT}
-    size = int(requests.head(url, headers=headers, timeout=60).headers["Content-Length"])
+def month_range(spec: str) -> list[str]:
+    """``"2026-08"`` -> that month; ``"2023-09:2026-08"`` -> every month from first to last."""
+    first, _, last = spec.partition(":")
+    last = last or first
+    (y, m), (y_end, m_end) = (map(int, first.split("-")), map(int, last.split("-")))
+    months = []
+    while (y, m) <= (y_end, m_end):
+        months.append(f"{y:04d}-{m:02d}")
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    if not months:
+        raise ValueError(f"empty month range: {spec}")
+    return months
+
+
+# Each month's slices are shifted by a different fraction of the gap between them, so over
+# many months the slices land at every point of the day instead of the same few hours
+# (hour of day changes which regions are playing). Successive multiples of the golden
+# ratio's fractional part spread as evenly over [0, 1) as any fixed sequence can.
+_GOLDEN = 0.6180339887498949
+
+
+def month_phase(month_index: int) -> float:
+    """Where in the gap between slices month ``month_index``'s slices start, in [0, 1)."""
+    return (month_index * _GOLDEN) % 1.0
+
+
+def slice_starts(size: int, slices: int, phase: float = 0.0) -> list[int]:
+    """Byte offsets of ``slices`` evenly spaced slices, all shifted by ``phase`` of a gap."""
     step = size // slices
-    for k in range(slices):
-        start = k * step
+    return [int((k + phase) * step) for k in range(slices)]
+
+
+def fetch_db_slices(url: str, slices: int = DB_SLICES,
+                    slice_bytes: int = DB_SLICE_BYTES,
+                    files: dict | None = None, phase: float = 0.0) -> Iterator[list[str]]:
+    """Yield the whole games in each of ``slices`` evenly spaced slices of the export.
+
+    ``files``, when given, records the file's size, Last-Modified date and slice phase under
+    its URL, so a rebuild can confirm it read the same file at the same offsets.
+    """
+    headers = {"User-Agent": fetch_data._USER_AGENT}
+    head = requests.head(url, headers=headers, timeout=60)
+    head.raise_for_status()
+    size = int(head.headers["Content-Length"])
+    if files is not None:
+        files[url] = {"bytes": size, "last_modified": head.headers.get("Last-Modified"),
+                      "phase": round(phase, 6)}
+    for start in slice_starts(size, slices, phase):
         end = min(start + slice_bytes, size) - 1
         resp = requests.get(url, timeout=120,
                             headers={**headers, "Range": f"bytes={start}-{end}"})
@@ -399,37 +496,57 @@ def build_parser() -> argparse.ArgumentParser:
         "across re-fetches. Default: keep fetch order (unset).",
     )
     parser.add_argument(
-        "--from-db", metavar="YYYY-MM",
-        help="sample by rating band from this month's Lichess database export instead of "
-        "fetching players (streamed; reading stops once every band is full)",
+        "--from-db", metavar="YYYY-MM[:YYYY-MM]",
+        help="sample by rating band and time control from the Lichess database export for "
+        "this month, or every month in this range, instead of fetching players",
     )
     parser.add_argument("--per-band", type=int, default=400,
                         help="games per rating band with --from-db, shared across time controls "
                              "(default: 400)")
     parser.add_argument("--slices", type=int, default=DB_SLICES,
-                        help="evenly spaced slices of the export to read with --from-db "
-                             f"(default: {DB_SLICES})")
+                        help="slices to read with --from-db, shared equally across the "
+                             f"months and rounded up to a multiple of them (default: {DB_SLICES})")
     return parser
 
 
-def _write_db_source(out_dir: Path, url: str, cells: dict[Cell, list[str]],
-                     chosen: dict[Cell, list[str]], args) -> None:
-    """Record where a --from-db corpus came from and what it holds, to rebuild it exactly."""
-    table = lambda d: {band: {speed: len(d[band, speed]) for speed, _ in SPEEDS}
-                       for band, _ in RATING_BANDS}
+def _write_db_source(out_dir: Path, args, *, files: dict, cells: dict[Cell, list[str]],
+                     chosen: dict[Cell, list[str]], reasons: Counter,
+                     population: Counter, when: Counter) -> None:
+    """Record where a --from-db corpus came from and what it holds, to rebuild it exactly
+    and to compare it with the population it was drawn from."""
+    table = lambda count: {band: {speed: count(band, speed) for speed, _ in SPEEDS}
+                           for band, _ in RATING_BANDS}
+    eligible = sum(population.values())
+    months = Counter(_tags(g).get("UTCDate", "?")[:7].replace(".", "-")
+                     for games in chosen.values() for g in games)
     source = {
-        "url": url,
+        "months": args.from_db,
+        "files": files,
         "per_band": args.per_band,
         "min_plies": args.min_plies,
-        "slices": args.slices,
+        "slices_per_month": args.slices // max(len(files), 1),
         "slice_bytes": DB_SLICE_BYTES,
         "canonical_seed": args.canonical_seed,
-        "games": table(chosen),
-        "candidates": table(cells),
+        "games": table(lambda b, s: len(chosen[b, s])),
+        "games_per_month": dict(sorted(months.items())),
+        # Every eligible game read, before any quota: the population the balanced corpus
+        # over- and under-samples. Shares are of all eligible games.
+        "population": table(lambda b, s: population[b, s]),
+        "population_share": table(lambda b, s: round(population[b, s] / eligible, 5)
+                                  if eligible else 0),
+        "candidates": table(lambda b, s: len(cells[b, s])),
+        # UTC hour and weekday (Monday is 0) of the corpus games next to every eligible game.
+        "when": {
+            "games": dict(sorted(Counter(k for games in chosen.values() for g in games
+                                         for k in _when(_tags(g))).items())),
+            "population": dict(sorted(when.items())),
+        },
+        "skipped": dict(reasons.most_common()),
         "filters": {
             "rated_only": True,
             "standard_start_only": True,
             "bots_excluded": True,
+            "heldout_players_excluded": True,
             "min_estimated_seconds": MIN_ESTIMATED_SECONDS,
             "max_rating_gap": MAX_RATING_GAP,
             "skipped_terminations": sorted(_BAD_TERMINATIONS),
@@ -478,23 +595,33 @@ def main(argv: list[str] | None = None, fetch_fn: FetchFn = _lichess_fetch) -> i
 
 
 def _main_from_db(args, fetch_fn: Callable[..., Iterable[list[str]]] = fetch_db_slices) -> int:
-    url = DB_URL.format(month=args.from_db)
+    urls = [DB_URL.format(month=m) for m in month_range(args.from_db)]
+    per_month = -(-args.slices // len(urls))
+    args.slices = per_month * len(urls)
     if args.min_plies is None:
         args.min_plies = DB_MIN_PLIES
-    print(f"Reading {args.slices} slices of {url}\nfor {args.per_band} games in each of "
-          f"{len(RATING_BANDS)} rating bands, shared across {len(SPEEDS)} time controls...",
-          file=sys.stderr)
+    print(f"Reading {per_month} slices from each of {len(urls)} monthly exports "
+          f"({args.from_db})\nfor {args.per_band} games in each of {len(RATING_BANDS)} "
+          f"rating bands, shared across {len(SPEEDS)} time controls...", file=sys.stderr)
 
     def progress(k: int, cells: dict[Cell, list[str]]) -> None:
-        if k % 16 == 0 or k == args.slices:
-            print(f"  slice {k}/{args.slices}: {sum(map(len, cells.values()))} candidates",
-                  file=sys.stderr)
+        if k % per_month == 0:
+            print(f"  {k // per_month}/{len(urls)} months: "
+                  f"{sum(map(len, cells.values()))} candidates", file=sys.stderr)
 
-    # Any one cell may have to fill a whole band, so it collects up to per_band candidates.
+    # Every slice may add the same number of games to a cell and no cell is cut off early,
+    # so each month contributes equally; any one cell can still fill a whole band.
     per_slice = -(-args.per_band // args.slices)
-    cells = collect_cells(fetch_fn(url, args.slices), per_slice, args.per_band,
+    files: dict = {}
+    reasons: Counter = Counter()
+    population: Counter = Counter()
+    when: Counter = Counter()
+    slices = (s for i, url in enumerate(urls)
+              for s in fetch_fn(url, per_month, files=files, phase=month_phase(i)))
+    cells = collect_cells(slices, per_slice, per_slice * args.slices,
                           heldout_fingerprints(), min_plies=args.min_plies,
-                          progress=progress)
+                          excluded_players=heldout_players(), reasons=reasons,
+                          population=population, when=when, progress=progress)
     chosen = select_balanced(cells, args.per_band)
     games = [g for cell_games in chosen.values() for g in cell_games]
     if not games:
@@ -504,7 +631,8 @@ def _main_from_db(args, fetch_fn: Callable[..., Iterable[list[str]]] = fetch_db_
         games = canonical_order(games, args.canonical_seed)
 
     manifest_path = write_corpus(games, args.out_dir)
-    _write_db_source(args.out_dir, url, cells, chosen, args)
+    _write_db_source(args.out_dir, args, files=files, cells=cells, chosen=chosen,
+                     reasons=reasons, population=population, when=when)
     print(f"{'band':<10}" + "".join(f"{speed:>10}" for speed, _ in SPEEDS), file=sys.stderr)
     short = []
     for band, _ in RATING_BANDS:
