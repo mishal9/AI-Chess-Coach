@@ -40,7 +40,7 @@ from pathlib import Path
 import chess
 
 from coach import prompts
-from engine.pgn import load_game
+from engine.pgn import iter_games
 from eval import claims, grounding
 from training import corpus
 from training.schema import DistillRecord
@@ -59,15 +59,19 @@ _PREAMBLE_RE = re.compile(
 )
 
 
-def replay_report(pgn_path: Path, game_index: int) -> dict:
+def replay_report(pgn_path: Path, game_index: int, games: list | None = None) -> dict:
     """The slice of a report the claim checkers read, rebuilt from the PGN alone.
 
     ``check_castling`` needs each move's side and SAN; ``check_board_state`` needs each
     move's ``fen_before``. Neither depends on an engine evaluation, so this is exact.
+    ``games`` is the file already parsed by :func:`iter_games`; without it the file is
+    parsed here, which for a 2,000-game corpus is too slow to do once per game.
     """
-    game = load_game(pgn_path, game_index)
-    if game is None:
+    if games is None:
+        games = list(iter_games(pgn_path))
+    if game_index >= len(games):
         raise SystemExit(f"No game at index {game_index} in {pgn_path}")
+    game = games[game_index]
     board = game.board()
     moves = []
     for move in game.mainline_moves():
@@ -159,12 +163,15 @@ def heldout_game_keys(corpus_dir: Path) -> set[str]:
 def run_qc(records: list[DistillRecord], corpus_dir: Path) -> list[dict]:
     heldout = heldout_game_keys(corpus_dir)
     reports: dict[tuple[str, int], dict] = {}
+    parsed: dict[str, list] = {}  # each PGN file parsed once, not once per game
     results = []
     seen = Counter(r.completion for r in records)
     for rec in records:
         ident = (rec.source["pgn"], rec.source["game_index"])
         if ident not in reports:
-            reports[ident] = replay_report(corpus_dir / ident[0], ident[1])
+            if ident[0] not in parsed:
+                parsed[ident[0]] = list(iter_games(corpus_dir / ident[0]))
+            reports[ident] = replay_report(corpus_dir / ident[0], ident[1], parsed[ident[0]])
         result = check_row(rec, reports[ident], heldout)
         if seen[rec.completion] > 1:
             result["integrity"].append("duplicate_completion")
