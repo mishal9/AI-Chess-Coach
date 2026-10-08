@@ -179,3 +179,88 @@ show a clear-cut tactic (the opponent's best reply captures at once, or the move
 piece attacked with no defender): 49 such rows score factual 4.49 with 1 real error; the
 other 51 score 4.39 with 5. This split was looked at after the result, on the rows that
 produced it, so it is a lead for the next decision, not evidence.
+
+## Open decision: what to train on (8 Oct 2026, not yet taken)
+
+Written so the next session can pick up from here. Nothing below has been run.
+
+### Why position rows are worth keeping
+
+The 10 Aug ablation (`2026-08-10-ablation-shape-vs-volume.md`) trained the same Qwen3-8B
+student on subsets of the v2 (Opus-written) rows and measured grounding, i.e. whether the
+coach cites only moves in its facts:
+
+| Training rows | Rows | Grounding | Games fully grounded |
+|---|---|---|---|
+| Game rows only | 101 | 0.76 | 34% |
+| Position rows only | 218 | 0.86 | 45% |
+| Both mixed | 319 | 0.91 | 62% |
+
+More game rows did not help (82 → 101 rows: 0.79 → 0.76). Position rows did, in five of
+six mistake types, and the mix beat either kind alone. That is why `paper-protocol.md`
+fixes a 1 game : 2 position mix at every training size. Caveats: Opus-written rows, 29
+held-out games, one seed per arm, grounding only (never judged). Grounding checks that the
+cited moves are allowed. It cannot see a false explanation, which is the error these
+experiments have been chasing.
+
+### What "clear-cut" means
+
+A property of the **position**, read mechanically from the facts block before the coaching
+is looked at. It is not a property of the coaching text. A row is clear-cut if the facts show
+either:
+
+- the opponent's best reply after the move captures at once (the first move of "Engine's
+  best line after your move" is marked "takes your …"), or
+- the move played leaves one of the student's pieces attacked with no defender ("After your
+  move, your pieces under attack: … defenders 0").
+
+These are the positions whose mistake has a simple, concrete explanation in the facts, so
+there is less for the teacher to invent. **Clear-cut does not mean accurate.** One of the
+49 clear-cut rows in the fresh sample had a confirmed error (#1595 p26: "your queen
+defended your knight on f5" when the facts list that knight with no defender). The filter
+lowers the error rate; QC and a judged sample still measure what is left. No training set
+here has a guaranteed zero error rate. The game rows only measured clean in their sample
+(no confirmed errors in 50).
+
+The split after the v3 result (49 clear-cut rows: factual 4.49, 1 real error; 51 others:
+4.39, 5 errors) was looked at after the result, on the rows that produced it. It is a lead,
+not evidence.
+
+### The two options (the pre-registered fallbacks)
+
+**A. Game rows only.** The 1,928 QC-passed game rows (factual 4.78, no confirmed errors in
+50). No further spend. The largest arm falls from 5,000 rows to about 1,900, the 1:2 mix is
+dropped, and the ablation suggests grounding gives back some of its gain (0.91 → about
+0.76, if that result carries over).
+
+**B. Game rows plus clear-cut position rows (recommended).** Keeps position rows and the
+mix, limited to positions whose explanation is concrete. It needs:
+
+1. A new pre-registration: the clear-cut filter as defined above, the pass rule unchanged
+   (factual ≥ 4.5 and hand-confirmed errors < 5%), judged on **new games**. These 146 games
+   are not used to judge again.
+2. About 100 new corpus games not among the 146, generated with the v3 facts block (about
+   $0.50 DeepSeek). QC, then the clear-cut filter. Judge 100 clear-cut rows (about $1.25
+   Opus at about $0.0125 a call). Board-check every row at factual 3 or lower.
+3. On a pass: top up DeepSeek (about $4) and generate the remaining games with `--resume`.
+   At v3 rates the whole corpus costs about $9 of DeepSeek. About half of position rows are
+   clear-cut, so the largest arm at the 1:2 mix is about 4,200 rows, not 5,000.
+
+Optional before committing to either: rerun the ablation's game-only vs mixed comparison
+on the new rows (about $0.40 of GPU per run).
+
+Training on all v3 rows as they are would override this pre-registration and is not
+recommended.
+
+### State at the stop
+
+- Branch `feat/position-facts-board`, local only. It is stacked on
+  `feat/deepseek-training-rows`, whose remote copy holds stale pre-rewrite history, so check
+  before pushing either branch.
+- Balances: DeepSeek about $5.40, Anthropic about $2.75.
+- Files: `data/distill/raw_deepseek_pos_v2.jsonl` and `raw_deepseek_pos_v3.jsonl` (146
+  games each), their `_qc.jsonl` files, and the judge verdicts
+  `deepseek_pos_v2_judged.jsonl` (same 133) and `deepseek_pos_v3_fresh_judged.jsonl`
+  (fresh 100). Game rows: `data/distill/deepseek_qc.jsonl` (`kind == "game"`).
+- Still unconfirmed from the 7 Oct audit: keeping the checker v2 placement filter, and the
+  90/10/0 split.
