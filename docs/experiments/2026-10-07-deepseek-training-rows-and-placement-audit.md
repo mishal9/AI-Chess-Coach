@@ -164,3 +164,25 @@ a non-capture engine-preferred move in the facts. Measured, not adopted:
 
 Open. Options: keep the checker v2 filter as is (7,234 rows), or exempt non-capture
 destination squares (about 7,400 rows, with an estimated 20–25 real errors let in).
+
+## Judge spot-check of the kept rows
+
+**Pre-registered 7 Oct 2026, before any row was judged.**
+
+QC cannot check chess reasoning. On the held-out set the Opus judge caught 3 DeepSeek
+errors the checker missed, so the kept rows are sampled and judged before fine-tuning.
+
+- Rows: a random 200 of the 7,234 QC-passed rows (`data/distill/deepseek_qc.jsonl`),
+  seed 20261007, drawn by `training.judge_rows` without regard to kind.
+- Judge: `claude-opus-4-8` with the rubric in `eval/rubric.py`, the same judge and prompt
+  as the held-out evaluation. Each row is judged against the facts block it was written
+  from (game or position facts).
+- Reported: factual-correctness mean, and the counts below 5 and below 4, overall and per
+  row kind, with a 95% Wilson interval on the share below 4.
+- Every row scoring factual 3 or lower is read by hand and marked a real error or a judge
+  miss, as in the held-out audit.
+- Reading: if the share of rows with a hand-confirmed real error is under 5%, the QC-filtered
+  set goes to fine-tuning as is and the paper reports the estimate. If it is 5% or more, the
+  error kinds found decide the next step (a judge filter over all rows, or a QC change), and
+  no fine-tuning starts until that is settled.
+- Cost: 200 Opus judge calls. One run.
