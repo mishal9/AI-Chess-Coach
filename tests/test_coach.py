@@ -271,14 +271,16 @@ def test_position_facts_list_the_board_and_both_lines():
             "3.Nxe4 (takes their pawn) Nd7; material at the end: you 38, opponent 38") in facts
 
 
-def test_position_facts_count_attackers_and_defenders():
+def test_position_facts_name_attackers_and_defenders():
     move = BOARD_REPORT["moves"][0]
     facts = prompts.format_position_facts(BOARD_REPORT, "white", move)
     # e4 hangs before Nc3 and is defended once Nc3 is played.
-    assert "- Your pieces under attack: pawn on e4 (attackers 1, defenders 0)." in facts
-    assert "- Opponent's pieces under attack: pawn on d5 (attackers 1, defenders 1)." in facts
+    assert ("- Your pieces under attack: "
+            "pawn on e4 (attackers 1: pawn on d5; defenders 0).") in facts
+    assert ("- Opponent's pieces under attack: "
+            "pawn on d5 (attackers 1: pawn on e4; defenders 1: queen on d8).") in facts
     assert ("- After your move, your pieces under attack: "
-            "pawn on e4 (attackers 1, defenders 1).") in facts
+            "pawn on e4 (attackers 1: pawn on d5; defenders 1: knight on c3).") in facts
 
 
 def test_position_facts_board_licenses_no_moves():

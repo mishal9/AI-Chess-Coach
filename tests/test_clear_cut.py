@@ -58,3 +58,11 @@ def test_main_keeps_clear_cut_position_rows(tmp_path):
     out = tmp_path / "clear.jsonl"
     assert clear_cut.main([str(rows), "--out", str(out)]) == 0
     assert [r.source["move_number"] for r in load_records(out)] == [2]
+
+
+def test_named_defenders_format():
+    # Since 8 Oct the facts name each attacker and defender.
+    facts = ("- After your move, your pieces under attack: rook on a1 (attackers 1: queen on "
+             "a5; defenders 0), pawn on d4 (attackers 1: pawn on c5; defenders 1: queen on d1).")
+    assert clear_cut.left_undefended(facts)
+    assert not clear_cut.left_undefended(facts.replace("defenders 0)", "defenders 1: king on b1)"))

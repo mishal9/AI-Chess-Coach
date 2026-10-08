@@ -354,3 +354,44 @@ def test_better_is_fine_when_the_evaluation_agrees_and_worse_is_checked_too():
 def test_facts_without_an_evaluation_check_nothing():
     result = claims.check_eval_sign("You were already better.", FACTS)
     assert result.ok and result.checked == 0
+
+
+# --- defence claims ---------------------------------------------------------------
+BOARD_FACTS = """\
+The position before your move (Black to move):
+- Your pieces (Black): king on e8, queen on d5, knight on c6, pawn on e6.
+- Opponent's pieces (White): king on g1, queen on f1, knight on c3.
+- Your move e5 captured nothing."""
+
+
+def test_defence_claim_the_board_refutes_is_flagged():
+    # 8 Oct clear-cut spot-check, #828: d5's one defender was the e6 pawn.
+    result = claims.check_defence_claims(
+        "After e5, the knight on c6 no longer protects the queen.", BOARD_FACTS)
+    assert [v.kind for v in result.violations] == ["invented_defence"]
+    flagged = claims.check_defence_claims("Your queen is protected by the knight on c6.",
+                                          BOARD_FACTS)
+    assert [v.kind for v in flagged.violations] == ["invented_defence"]
+
+
+def test_true_defence_claim_passes():
+    result = claims.check_defence_claims("The pawn on e6 defends your queen.", BOARD_FACTS)
+    assert result.ok and result.checked == 1
+
+
+def test_defence_claims_skip_what_is_not_a_pairing():
+    for text in (
+        "The knight on c6 would protect your queen.",       # hypothetical
+        "The knight on c6 does not defend the queen.",       # negation
+        "Your queen was defended only once.",                # a count
+        "An active knight supports your queen.",             # generic
+        "The knight on c6 defends your king.",               # shelter, not coverage
+        "You moved the knight to defend your queen.",        # purpose
+    ):
+        result = claims.check_defence_claims(text, BOARD_FACTS)
+        assert result.ok and result.checked == 0, text
+
+
+def test_facts_without_a_board_check_no_defence():
+    result = claims.check_defence_claims("The knight on c6 protects the queen.", FACTS)
+    assert result.ok and result.checked == 0

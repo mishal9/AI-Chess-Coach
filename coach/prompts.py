@@ -282,21 +282,33 @@ def _eval_text(white_cp: int, you: chess.Color) -> str:
     return f"you are {'better' if cp > 0 else 'worse'} by about {abs(cp) / 100:.1f} pawns"
 
 
+def _named(board: chess.Board, squares: chess.SquareSet) -> str:
+    """"knight on c3, pawn on e6" for the pieces on ``squares``, in board order."""
+    return ", ".join(f"{chess.piece_name(board.piece_type_at(sq))} on {chess.square_name(sq)}"
+                     for sq in sorted(squares))
+
+
 def _under_attack(board: chess.Board, color: chess.Color) -> str:
-    """"knight on b4 (attackers 1, defenders 0), ..." for ``color``'s attacked pieces.
+    """"queen on d5 (attackers 1: knight on c3; defenders 1: pawn on e6), ..." for
+    ``color``'s attacked pieces.
 
     Kings are left out (a check is stated where it happens). Counts are direct attackers
     only — no pins, x-rays or exchange arithmetic — which is all the coach needs to stop
-    calling a defended piece hanging, or an unattacked one attacked.
+    calling a defended piece hanging, or an unattacked one attacked. Each attacker and
+    defender is named: with counts alone, the 8 Oct clear-cut rows guessed which piece
+    defended which, and guessed wrong ("the knight on c6 no longer protects the queen" on
+    d5, whose one defender was the e6 pawn).
     """
     parts = []
     for piece_type in _PIECE_ORDER[1:]:
         for square in sorted(board.pieces(piece_type, color)):
-            attackers = len(board.attackers(not color, square))
+            attackers = board.attackers(not color, square)
             if attackers:
-                defenders = len(board.attackers(color, square))
+                defenders = board.attackers(color, square)
+                named = f": {_named(board, defenders)}" if defenders else ""
                 parts.append(f"{chess.piece_name(piece_type)} on {chess.square_name(square)} "
-                             f"(attackers {attackers}, defenders {defenders})")
+                             f"(attackers {len(attackers)}: {_named(board, attackers)}; "
+                             f"defenders {len(defenders)}{named})")
     return ", ".join(parts) or "none"
 
 

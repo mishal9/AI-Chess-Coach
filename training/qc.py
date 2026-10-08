@@ -1,7 +1,8 @@
 """Quality control for distilled rows: every check we have, run on what is stored.
 
 ``training.distill`` gates a row on one thing, its grounding score. That leaves the claim
-checkers (``eval.claims``: role inversion, invented castling, invented piece placement),
+checkers (``eval.claims``: role inversion, invented castling, invented piece placement,
+the evaluation's sign, defence claims),
 which the paper reports on held-out coaching, unrun on training targets. This module runs
 all of them over a raw distillation file, with no teacher, no judge and no engine, so a new
 teacher's rows can be held to the same bar as the Opus rows they would replace.
@@ -110,6 +111,7 @@ def check_row(record: DistillRecord, report: dict, heldout: set[str]) -> dict:
         claims.check_castling(text, report, side),
         claims.check_board_state(text, report, side),
         claims.check_eval_sign(text, record.facts),
+        claims.check_defence_claims(text, record.facts),
     )
     structure = structure_problems(text)
 
