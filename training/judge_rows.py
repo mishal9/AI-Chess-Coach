@@ -9,7 +9,8 @@ of rows with an error QC cannot see can be estimated before fine-tuning on them.
 Rows are drawn with a fixed seed from the file given (normally the QC-filtered rows), so a
 rerun judges the same rows. ``--same-as`` instead judges the rows whose keys an earlier
 verdict file holds (optionally one ``--kind``), so regenerated rows can be scored on
-exactly the positions an earlier spot-check scored. Verdicts are appended one per line as they arrive; ``--resume``
+exactly the positions an earlier spot-check scored, and ``--exclude`` leaves an earlier
+verdict file's rows out of the random sample, so a fresh sample shares none of them. Verdicts are appended one per line as they arrive; ``--resume``
 skips rows already judged.
 
 Usage:
@@ -99,6 +100,9 @@ def build_parser() -> argparse.ArgumentParser:
                              "a random sample (--n and --seed are ignored)")
     parser.add_argument("--kind", choices=["game", "position"], default=None,
                         help="with --same-as: only that verdict file's rows of this kind")
+    parser.add_argument("--exclude", type=Path, action="append", default=[],
+                        help="leave the rows keyed in this verdict JSONL out of the random "
+                             "sample, so it draws fresh rows (repeatable)")
     parser.add_argument("--out", type=Path, required=True, help="verdict JSONL")
     parser.add_argument("--judge-model", default=None,
                         help=f"default: {backends.DEFAULT_ANTHROPIC_MODEL}")
@@ -114,6 +118,8 @@ def main(argv: list[str] | None = None, backend=None) -> int:
     args = build_parser().parse_args(argv)
     backend = backend or backends.anthropic_backend
     records = load_records(args.rows)
+    excluded = {k for path in args.exclude for k in load_done(path)}
+    records = [r for r in records if row_key(r) not in excluded]
     if args.same_as:
         sample = same_rows(records, args.same_as, args.kind)
     else:

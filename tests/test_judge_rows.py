@@ -74,3 +74,16 @@ def test_same_as_judges_exactly_the_earlier_keys_of_one_kind(tmp_path):
     picked = judge_rows.same_rows(records, earlier, kind="position")
     assert [judge_rows.row_key(r) for r in picked] == [keys[2], keys[5]]
     assert len(judge_rows.same_rows(records, earlier)) == 3
+
+
+def test_exclude_draws_a_fresh_sample(tmp_path):
+    rows, out = _rows(tmp_path), tmp_path / "v.jsonl"
+    keys = [judge_rows.row_key(r) for r in judge_rows.load_records(rows)]
+    earlier = tmp_path / "earlier.jsonl"
+    earlier.write_text("".join(json.dumps({"key": k, "kind": "position"}) + "\n"
+                               for k in keys[:7]), encoding="utf-8")
+    args = [str(rows), "--n", "10", "--exclude", str(earlier), "--out", str(out),
+            "--workers", "1"]
+    assert judge_rows.main(args, backend=lambda m, model=None: VERDICT % 5) == 0
+    judged = [json.loads(line)["key"] for line in out.read_text().splitlines()]
+    assert sorted(judged) == sorted(keys[7:])
