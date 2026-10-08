@@ -586,7 +586,7 @@ def _mentions(sentence: str) -> list[_Mention]:
 
 _DEFEND_RE = re.compile(
     r"\b(?:defend|protect|guard|support)(?:s|ed|ing)?\b"
-    r"(?P<by>\s+(?:only\s+|solely\s+|just\s+|now\s+)?by\b)?", re.IGNORECASE
+    r"(?P<by>\s+(?:only\s+|solely\s+|just\s+|now\s+)?(?:by|with)\b)?", re.IGNORECASE
 )
 # Hypotheticals and purposes say nothing about the board: "Qd7 would protect the knight",
 # "you needed to guard f2", "if the rook defended g6".

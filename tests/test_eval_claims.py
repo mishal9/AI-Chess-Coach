@@ -446,3 +446,10 @@ def test_move_saving_its_own_piece_and_indirect_defence_are_skipped():
                  "The queen on d5 defended the rook on a8 indirectly."):
         result = claims.check_defence_claims(text, BOARD_FACTS)
         assert result.ok and result.checked == 0, text
+
+
+def test_defended_with_is_passive():
+    # 8 Oct v5 run, #749: "White had it defended with the pawn on b2".
+    result = claims.check_defence_claims(
+        "You had your queen defended with the pawn on e6.", BOARD_FACTS)
+    assert result.ok and result.checked == 1
