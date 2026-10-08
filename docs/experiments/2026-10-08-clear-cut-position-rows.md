@@ -112,3 +112,45 @@ holds on the full corpus.
 About $0.50 of DeepSeek (balance about $5.40) and about $1.25 of Opus judging. On a pass,
 the remaining 1,900 games cost about $9.25 of DeepSeek, so the account needs a top-up of
 about $5 first.
+
+## Result (8 Oct 2026): fail
+
+**Generation.** 100 games, 279 rows (267 grounded), 328 calls, 0.37M input + 0.09M output
+tokens, about $0.45 off-peak, 3.7 minutes, no failures. QC passes 247 (89%), median 1,270
+characters. Violations: 21 placement flags, 1 invented castling, 0 `eval_sign`. **143 of
+the 247 (58%) are clear-cut.**
+
+**Judged sample** (`claude-opus-4-8`, 100 of the 143 clear-cut rows,
+`data/distill/deepseek_pos_v3b_clear_judged.jsonl`): **factual mean 4.55**, counts
+2 / 3 / 4 / 5 = 2 / 4 / 31 / 63, 6 below 4, overall 4.84.
+
+**Board check of the 6 rows at 3 or lower:** 6 real errors, 0 judge misses.
+
+| Row | Factual | What is wrong |
+|---|---|---|
+| #43 p33 | 2 | "your rook on a1 was your only piece that could defend the back rank, and you moved it away": Re1 stays on the first rank and still covers f1. "Black attacks your queen" with Re3: the rook on e3 does not reach h4 |
+| #828 p12 | 3 | "After e5, the knight on c6 no longer protects the queen": a knight on c6 never defends d5; its one defender was the e6 pawn (which the row also names) |
+| #923 p22 | 2 | "it cost you a piece": the line ends 19–20, a pawn. "that one defender was also the piece protecting your knight": the queen's defender on d7 is Rd1, which does not defend f3 |
+| #1763 p33 | 3 | "Once it left, your f4-pawn was left hanging with no defender": f4 had no defender before the move either; the knight defended e2, not f4 |
+| #1980 p21 | 3 | "By moving it to c8, you left your knight on g6 with only two defenders": g6 is defended by f7 and h7 before and after; the rook never defended it |
+| #1996 p9 | 3 | "you have time to develop with Nd7 and then Re1, f5, Nd2, Nf6": Re1 and Nd2 are White's moves. "blocked by your own pawns on e4 and e6": e6 is not on the g6 bishop's diagonals |
+
+**Confirmed errors: 6 of 100 = 6.0% (95% Wilson interval 2.8–12.5%).**
+
+**Reading.** Factual 4.55 ≥ 4.5 passes; confirmed errors 6.0% ≥ 5% fails. The rule needs
+both, so the reading is **fail**. As fixed above, the training set is the 1,928 QC-passed
+game rows alone, and no further position-row variant is generated or judged for this paper.
+
+**What the errors are.** Four of the six (#828, #923, #1763, #1980) misstate what defends
+what, as four of six did in the v3 fresh sample, though every one of these facts blocks
+lists attacker and defender counts for the pieces involved. One (#1996) misreads whose move
+is whose in an engine line, and one (#43) invents a back-rank story. The clear-cut filter
+raised the factual mean (4.44 → 4.55) but did not lower the error rate (6.0% → 6.0%), on
+different positions in each case.
+
+**Across the four versions.**
+
+| | Old rows (1-line facts) | 8 Oct (board) | v3 (evaluation in words) | v3, clear-cut, new games |
+|---|---|---|---|---|
+| Factual mean | 4.18 (same 133) | 4.38 (133) | 4.44 (fresh 100) | 4.55 (100) |
+| Confirmed errors | 8 / 150 = 5.3% | 10 / 133 = 7.5% | 6 / 100 = 6.0% | 6 / 100 = 6.0% |
