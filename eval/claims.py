@@ -435,6 +435,96 @@ def check_board_state(
     return result
 
 
+# The position facts' evaluation line, in its words form ("you are worse by about 3.1
+# pawns") or the earlier signed form ("(in pawns; + favours you): ... -3.1, ... -8.9").
+_EVAL_LINE_RE = re.compile(
+    r"^- Engine evaluation[^:\n]*: with the preferred move,? (?P<before>[^;,\n]+)[;,] "
+    r"after your move,? (?P<after>[^.\n]+(?:\.\d+[^.\n]*)?)\.$",
+    re.MULTILINE,
+)
+_EVAL_WORDS_RE = re.compile(r"you are (better|worse) by about (\d+(?:\.\d+)?) pawns")
+EVAL_CLEAR_PAWNS = 1.0  # a side is clearly better from a full pawn
+
+_MODIFIERS = r"(?:already|still|clearly|much|slightly|comfortably|objectively|well)\s+"
+# "you were already better", "left you clearly better", "your position remains better",
+# "a clearly winning position". Material ("ahead", "up a pawn") is left out: the facts
+# give material separately, and a side can be up material and still worse.
+_BETTER_CLAIM_RE = re.compile(
+    rf"\b(?:you(?:'re| are| were| remain| remained| stay| stayed| stand| stood)|"
+    rf"(?:left|leaves|leave|keeps|keep|kept) you|"
+    rf"your position (?:is|was|remains|remained|stays|stayed))\s+(?:{_MODIFIERS})*"
+    rf"(?:better|winning|on top)\b(?!\s+(?:off|to|than|or)\b)(?!\s+(?:a|an|the|back|"
+    rf"material|your|their|two|three)\b)"
+    rf"|\b(?:clearly|slightly|much|comfortably)\s+(?:better|winning)\s+position\b",
+    re.IGNORECASE,
+)
+_WORSE_CLAIM_RE = re.compile(
+    rf"\b(?:you(?:'re| are| were| stand| stood)|your position (?:is|was))\s+"
+    rf"(?:{_MODIFIERS})*(?:worse|losing|lost)\b(?!\s+(?:off|than)\b)",
+    re.IGNORECASE,
+)
+
+
+_CONDITIONAL_RE = re.compile(r"\b(?:when|whenever|if|once|while)\s+\Z", re.IGNORECASE)
+
+
+def _eval_pawns(phrase: str) -> float | None:
+    """The coached side's evaluation in pawns from one phrase of the evaluation line."""
+    phrase = phrase.strip()
+    if "forced mate for you" in phrase or phrase == "you have a forced mate":
+        return 100.0
+    if "forced mate for the opponent" in phrase or phrase == "the opponent has a forced mate":
+        return -100.0
+    if phrase == "the position is about level":
+        return 0.0
+    m = _EVAL_WORDS_RE.fullmatch(phrase)
+    if m:
+        return float(m.group(2)) * (1 if m.group(1) == "better" else -1)
+    try:
+        return float(phrase)
+    except ValueError:
+        return None
+
+
+def check_eval_sign(coaching_text: str, facts_text: str) -> ClaimResult:
+    """Flag a student called better or winning when the evaluation says they were worse.
+
+    The 8 Oct 2026 spot-check found this in 5 of 10 confirmed errors: "you were already
+    better" at -3.1. Calling the student better is false when even the engine's preferred
+    move left them a pawn or more worse (a mistake only makes it worse, and a hypothetical
+    "would have left you better" describes exactly that preferred move); calling them
+    worse or losing is false when they stayed a pawn or more better after the move played.
+    Facts without an evaluation line (whole-game facts) check nothing.
+    """
+    result = ClaimResult()
+    m = _EVAL_LINE_RE.search(facts_text)
+    if not m:
+        return result
+    before, after = _eval_pawns(m.group("before")), _eval_pawns(m.group("after"))
+    if before is None or after is None:
+        return result
+    checks = [
+        (_BETTER_CLAIM_RE, before <= -EVAL_CLEAR_PAWNS, "better", m.group("before")),
+        (_WORSE_CLAIM_RE, after >= EVAL_CLEAR_PAWNS, "worse", m.group("after")),
+    ]
+    for pattern, false_here, claimed, actual in checks:
+        for claim in pattern.finditer(coaching_text):
+            if _CONDITIONAL_RE.search(coaching_text[: claim.start()]):
+                continue  # advice: "when you're winning, keep it simple"
+            result.checked += 1
+            if false_here:
+                result.violations.append(
+                    ClaimViolation(
+                        kind="eval_sign",
+                        move="",
+                        claimed=f"student {claimed}",
+                        actual=f"evaluation: {actual.strip()}",
+                        excerpt=_excerpt(coaching_text, claim.start(), claim.end()),
+                    )
+                )
+    return result
+
+
 def _merge(*results: ClaimResult) -> ClaimResult:
     merged = ClaimResult()
     for r in results:

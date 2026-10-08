@@ -109,6 +109,7 @@ def check_row(record: DistillRecord, report: dict, heldout: set[str]) -> dict:
         claims.check_roles(text, record.facts),
         claims.check_castling(text, report, side),
         claims.check_board_state(text, report, side),
+        claims.check_eval_sign(text, record.facts),
     )
     structure = structure_problems(text)
 

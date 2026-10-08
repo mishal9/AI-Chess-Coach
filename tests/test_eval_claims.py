@@ -305,3 +305,50 @@ def test_a_move_attributed_to_the_opponent_is_not_checked_against_the_coached_si
 
 def test_metric_version_is_2():
     assert claims.METRIC_VERSION == 2
+
+
+WORSE_FACTS = ("- Engine evaluation: with the preferred move, you are worse by about 3.1 pawns; "
+               "after your move, you are worse by about 8.9 pawns.")
+OLD_WORSE_FACTS = ("- Engine evaluation (in pawns; + favours you): with the preferred move "
+                   "-1.2, after your move -3.9.")
+
+
+@pytest.mark.parametrize("text", [
+    # the 8 Oct spot-check's confirmed errors
+    "You didn't need to force anything — you were already better, and g5 keeps it.",
+    "The engine says that would have left you clearly better.",
+    "You keep a solid, slightly better position where White has no easy targets.",
+    "Your position remains clearly better because your pieces work together.",
+    "The evaluation swings from a clearly winning position for you to a forced mate.",
+])
+def test_calling_a_worse_student_better_is_flagged(text):
+    for facts in (WORSE_FACTS, OLD_WORSE_FACTS):
+        result = claims.check_eval_sign(text, facts)
+        assert [v.kind for v in result.violations] == ["eval_sign"], (text, facts)
+
+
+@pytest.mark.parametrize("text", [
+    "Ask whether the reply leaves you better or worse.",            # a question, not a claim
+    "That capture looks natural: you're winning a central pawn.",   # material, not standing
+    "When you're winning, prioritize king safety.",                 # advice
+    "You were already worse, and this made it much harder.",        # true
+    "You'd be better off keeping the rook.",                        # idiom
+])
+def test_other_uses_of_better_and_winning_pass(text):
+    assert claims.check_eval_sign(text, WORSE_FACTS).ok
+
+
+def test_better_is_fine_when_the_evaluation_agrees_and_worse_is_checked_too():
+    better = ("- Engine evaluation: with the preferred move, you are better by about 2.5 "
+              "pawns; after your move, you are better by about 1.2 pawns.")
+    assert claims.check_eval_sign("You were clearly better here.", better).ok
+    flagged = claims.check_eval_sign("After that move you were losing.", better)
+    assert [v.kind for v in flagged.violations] == ["eval_sign"]
+    level = ("- Engine evaluation: with the preferred move, the position is about level; "
+             "after your move, you are worse by about 0.9 pawns.")
+    assert claims.check_eval_sign("You were slightly better.", level).ok  # under a pawn
+
+
+def test_facts_without_an_evaluation_check_nothing():
+    result = claims.check_eval_sign("You were already better.", FACTS)
+    assert result.ok and result.checked == 0
