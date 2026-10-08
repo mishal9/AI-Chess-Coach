@@ -395,3 +395,27 @@ def test_defence_claims_skip_what_is_not_a_pairing():
 def test_facts_without_a_board_check_no_defence():
     result = claims.check_defence_claims("The knight on c6 protects the queen.", FACTS)
     assert result.ok and result.checked == 0
+
+
+def test_defended_only_by_is_passive():
+    # 8 Oct v4 run: named defenders made "X defended only by Y" common.
+    true = claims.check_defence_claims("That left your queen defended only by the pawn on e6.",
+                                       BOARD_FACTS)
+    assert true.ok and true.checked == 1
+    false = claims.check_defence_claims(
+        "That left your queen defended only by the knight on c6.", BOARD_FACTS)
+    assert [v.kind for v in false.violations] == ["invented_defence"]
+
+
+def test_pronoun_or_clause_break_after_the_verb_skips():
+    for text in ("The knight on c6 no longer protects it, and the queen falls.",
+                 "You kept the knight defended, but you abandoned the queen."):
+        result = claims.check_defence_claims(text, BOARD_FACTS)
+        assert result.ok and result.checked == 0, text
+
+
+def test_an_agent_of_an_earlier_by_is_not_the_defended_piece():
+    # 8 Oct v4 run, #1014: the a7 pawn, not the rook, was "defended only by the king".
+    text = ("The pawn on e6 was attacked by both their queen and the knight on c3, "
+            "defended only by their king.")
+    assert claims.check_defence_claims(text, BOARD_FACTS).checked == 0

@@ -543,7 +543,8 @@ _MENTION_RE = re.compile(
     re.IGNORECASE,
 )
 _DEFEND_RE = re.compile(
-    r"\b(?:defend|protect|guard|support)(?:s|ed|ing)?\b(?P<by>\s+by\b)?", re.IGNORECASE
+    r"\b(?:defend|protect|guard|support)(?:s|ed|ing)?\b"
+    r"(?P<by>\s+(?:only\s+|solely\s+|just\s+|now\s+)?by\b)?", re.IGNORECASE
 )
 # Hypotheticals and purposes say nothing about the board: "Qd7 would protect the knight",
 # "you needed to guard f2", "if the rook defended g6".
@@ -673,8 +674,11 @@ def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
         verbs = list(_DEFEND_RE.finditer(sentence))
         # In "defending your king and supporting your knight on g6" the king is an
         # object, not the subject of "supporting".
-        objects = {m.start() for m in mentions for v in verbs
-                   if 0 <= m.start() - v.end() <= 20}
+        objects = {next(m.start() for m in mentions if m.start() >= v.end())
+                   for v in verbs if any(m.start() >= v.end() for m in mentions)}
+        objects = {o for o in objects for v in verbs
+                   if 0 <= o - v.end() <= 20
+                   and not re.search(r"[,;:()\u2014]", sentence[v.end():o])}
         for verb in verbs:
             before = sentence[: verb.start()]
             if _MODAL_RE.search(before) or _NEGATION_RE.search(before):
@@ -685,12 +689,16 @@ def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
             prior = [m for m in mentions if m.end() <= verb.start()
                      and m.start() not in objects and verb.start() - m.end() <= 60]
             after = [m for m in mentions if m.start() >= verb.end()
-                     and m.start() - verb.end() <= 20]
-            if not prior or not after:
-                continue
+                     and m.start() - verb.end() <= 20
+                     and not re.search(r"[,;:()\u2014]", sentence[verb.end():m.start()])]
+            if (not prior or not after
+                    or re.match(r"\s+(?:it|them|itself|both)\b", sentence[verb.end():], re.I)):
+                continue  # "protecting it": the pronoun's piece is not the next mention
             first, second = prior[-1], after[0]
             if _GAP_SKIP_RE.search(sentence[first.end(): verb.start()]):
                 continue
+            if verb.group("by") and re.search(r"\bby\b[^.;:!?]{0,30}\Z", sentence[:first.start()]):
+                continue  # "attacked by your queen and your rook, defended only by the king"
             defender_m, target_m = (second, first) if verb.group("by") else (first, second)
             if (defender_m.group("owner") or "").lower() in ("a", "an"):
                 continue  # generic: "an active rook that supports your passed pawn"
