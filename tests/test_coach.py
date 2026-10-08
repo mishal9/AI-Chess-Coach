@@ -309,10 +309,15 @@ def test_position_facts_keep_the_role_line_the_claim_checker_reads():
 def test_position_facts_give_the_evaluation_from_the_coached_side():
     move = BOARD_REPORT["moves"][0]
     white = prompts.format_position_facts(BOARD_REPORT, "white", move)
-    assert ("- Engine evaluation (in pawns; + favours you): with the preferred move +0.4, "
-            "after your move -0.6.") in white
-    assert prompts._eval_text(-9_997, chess.BLACK) == "a forced mate for you"
-    assert prompts._eval_text(-9_997, chess.WHITE) == "a forced mate for the opponent"
+    assert ("- Engine evaluation: with the preferred move, you are better by about 0.4 "
+            "pawns; after your move, you are worse by about 0.6 pawns.") in white
+    black = prompts.format_position_facts(BOARD_REPORT, "black", move)
+    assert "with the preferred move, you are worse by about 0.4 pawns" in black
+    assert prompts._eval_text(-9_997, chess.BLACK) == "you have a forced mate"
+    assert prompts._eval_text(-9_997, chess.WHITE) == "the opponent has a forced mate"
+    assert prompts._eval_text(29, chess.WHITE) == "the position is about level"
+    assert prompts._eval_text(-29, chess.BLACK) == "the position is about level"
+    assert prompts._eval_text(-310, chess.WHITE) == "you are worse by about 3.1 pawns"
 
 
 def test_a_line_cut_after_a_capture_says_so():

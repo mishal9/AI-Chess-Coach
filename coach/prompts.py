@@ -84,6 +84,8 @@ each capture in the engine lines takes, with the material at the end of each lin
 a piece attacked, hanging or defended, or say who wins material, only as listed there. \
 The engine evaluation says who stands better; a line that ends on a capture may stop \
 before the recapture and show the wrong side ahead on material, so trust the evaluation.
+- Say the student was better, worse or level only as the evaluation states it; a move \
+can cost a lot from a position that was already worse.
 - Never invent evaluations, variations, tactics ("a fork", "a pin"), sacrifices, \
 or threats that the board and the engine lines do not show. When unsure, say less.
 
@@ -263,12 +265,21 @@ def _numbered_line(board: chess.Board, sans: list[str], you: chess.Color) -> str
             f"opponent {_material(board, not you)}")
 
 
+LEVEL_CP = 30  # under this many centipawns either way the position reads as level
+
+
 def _eval_text(white_cp: int, you: chess.Color) -> str:
-    """A White-POV centipawn score as pawns from the coached side's view ("+0.4")."""
+    """A White-POV centipawn score in words from the coached side's view.
+
+    "you are worse by about 3.1 pawns", not "-3.1": the 8 Oct spot-check found the teacher
+    calling a student "already better" at a bare -3.1 in 5 of its 10 confirmed errors.
+    """
     cp = white_cp if you == chess.WHITE else -white_cp
     if abs(cp) >= MATE_CP - 1000:  # mate scores are ±(MATE_CP - N)
-        return "a forced mate for you" if cp > 0 else "a forced mate for the opponent"
-    return f"{cp / 100:+.1f}"
+        return "you have a forced mate" if cp > 0 else "the opponent has a forced mate"
+    if abs(cp) < LEVEL_CP:
+        return "the position is about level"
+    return f"you are {'better' if cp > 0 else 'worse'} by about {abs(cp) / 100:.1f} pawns"
 
 
 def _under_attack(board: chess.Board, color: chess.Color) -> str:
@@ -349,8 +360,8 @@ def _board_lines(report: dict, coached_side: str, move: dict) -> list[str]:
 
     if "eval_before" in move and "eval_after" in move:
         lines.append(
-            f"- Engine evaluation (in pawns; + favours you): with the preferred move "
-            f"{_eval_text(move['eval_before'], you)}, after your move "
+            f"- Engine evaluation: with the preferred move, "
+            f"{_eval_text(move['eval_before'], you)}; after your move, "
             f"{_eval_text(move['eval_after'], you)}."
         )
 
