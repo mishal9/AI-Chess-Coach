@@ -186,3 +186,47 @@ errors the checker missed, so the kept rows are sampled and judged before fine-t
   error kinds found decide the next step (a judge filter over all rows, or a QC change), and
   no fine-tuning starts until that is settled.
 - Cost: 200 Opus judge calls. One run.
+
+### Result (7 Oct 2026)
+
+`python -m training.judge_rows data/distill/deepseek_qc.jsonl --n 200 --seed 20261007 --out data/distill/deepseek_qc_judged.jsonl --max-judge-calls 200`
+(200 Opus calls, no failures, 2m24s.)
+
+| | n | Factual mean | Factual < 5 | Factual < 4 | Overall |
+|---|---|---|---|---|---|
+| All | 200 | 4.33 | 100 (50%) | 27 (14%) | 4.66 |
+| Game rows | 50 | 4.78 | 11 (22%) | 0 | 4.79 |
+| Position rows | 150 | 4.19 | 89 (59%) | 27 (18%) | 4.61 |
+
+Game rows match DeepSeek's held-out factual score (4.74). Position rows do not.
+
+**Why position rows score low.** A position row's facts block is the game header and one
+line ("20...Qxd2?? (blunder): the engine preferred Be6; cost about 68% win probability").
+No board, no engine line. The teacher prompt asks for "the *why* a strong human coach
+would" give, so DeepSeek writes a positional story the facts cannot support. All 27 judge
+rationales name this: "invents specifics", "speculative narrative", "invented
+rationalizations".
+
+**Hand check of the 27.** Each concrete claim was checked against the game's board with
+python-chess.
+
+- **8 are false on the board (real errors):** "Bxf2 grabbed a key pawn" (it takes a rook,
+  #1237 pos 49); "trading queens with 20...Qxd2" (it takes a bishop, #1412 pos 20); 33...Ra2
+  "grabbed a pawn" (it captures nothing, #632 pos 33); "the rook on f8 was sitting on a
+  half-open file" (Black's pawn is on f7, #107 pos 15); "when the queens are off" (both are
+  on, #876 pos 26); "defending a rook endgame" (queens, rooks and a bishop are on, #585 pos
+  40); Qf2 "on the same diagonal as the black rook" (the same file, #1690 pos 31); Nxd2
+  "pulled a piece toward the edge" (from f3 to d2, #1148 pos 13).
+- **19 are unsupported but not shown false:** positional explanations ("creates a lasting
+  weakness", "keeps the tension", "the knight was well placed") that cannot be confirmed
+  from the facts and were not refuted by a board check. Captures described as winning a
+  pawn were checked and are right (#78, #590, #815, #1053, #1258, #1420, #1914).
+
+**Confirmed real errors: 8 of 200 (4.0%, 95% Wilson interval 2.0–7.7%)**, all in position
+rows (8 of 150, 5.3%), none in game rows. Rows scored 4 were not hand-checked, so 4.0% is a
+lower bound.
+
+**Against the pre-registered reading:** 4.0% is under the 5% line, so by the letter of the
+rule the set goes to fine-tuning as is. The interval crosses 5%, the figure is a lower
+bound, and position rows alone are at 5.3%. The decision on position rows is left to the
+user (see the session summary in PLAN.md once written).
