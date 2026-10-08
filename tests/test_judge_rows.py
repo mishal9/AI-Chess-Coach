@@ -59,3 +59,18 @@ def test_spend_guard(tmp_path):
     args = [str(_rows(tmp_path)), "--n", "6", "--out", str(tmp_path / "v.jsonl"),
             "--max-judge-calls", "5"]
     assert judge_rows.main(args, backend=lambda m, model=None: VERDICT % 5) == 1
+
+
+def test_same_as_judges_exactly_the_earlier_keys_of_one_kind(tmp_path):
+    records = judge_rows.load_records(_rows(tmp_path))
+    keys = [judge_rows.row_key(r) for r in records]
+    earlier = tmp_path / "earlier.jsonl"
+    earlier.write_text(
+        json.dumps({"key": keys[2], "kind": "position"}) + "\n"
+        + json.dumps({"key": keys[5], "kind": "position"}) + "\n"
+        + json.dumps({"key": keys[7], "kind": "game"}) + "\n",
+        encoding="utf-8",
+    )
+    picked = judge_rows.same_rows(records, earlier, kind="position")
+    assert [judge_rows.row_key(r) for r in picked] == [keys[2], keys[5]]
+    assert len(judge_rows.same_rows(records, earlier)) == 3

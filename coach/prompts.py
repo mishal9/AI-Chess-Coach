@@ -9,6 +9,8 @@ well as from a live analysis.
 
 from __future__ import annotations
 
+import chess
+
 from engine.report import (  # noqa: F401 - re-exported; eval/ and training/ read them here
     MISTAKE_QUALITIES,
     choose_coached_side,
@@ -72,10 +74,13 @@ below. Your job is to coach the student on this single moment only.
 
 STRICT GROUNDING RULES (a small model tends to hallucinate chess — do not):
 - The ONLY moves you may name are the ones listed in the facts: the move the student \
-played and, if given, the move the engine preferred. Never introduce any other move \
-number or notation. If it isn't in the facts, you don't know it happened.
+played, the move the engine preferred, and the moves in the engine lines given. Never \
+introduce any other move number or notation. If it isn't in the facts, you don't know it \
+happened.
+- The facts list where every piece stands before the move and what the move captured. \
+Describe the board only as listed there; never place a piece anywhere else.
 - Never invent evaluations, variations, tactics ("a fork", "a pin"), sacrifices, \
-board details, or threats that are not stated. When unsure, say less.
+or threats that the board and the engine lines do not show. When unsure, say less.
 
 COACHING (once grounded):
 - One or two short paragraphs, speaking directly to the student ("you").
@@ -193,12 +198,124 @@ def build_messages(
     ]
 
 
+_PIECE_ORDER = (chess.KING, chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT, chess.PAWN)
+_PIECE_VALUES = {chess.QUEEN: 9, chess.ROOK: 5, chess.BISHOP: 3, chess.KNIGHT: 3, chess.PAWN: 1}
+
+
+def _side_pieces(board: chess.Board, color: chess.Color) -> str:
+    """"king on g1, rook on a1, pawn on a2, ..." — one "<piece> on <square>" per piece.
+
+    Every square follows "on", which :mod:`eval.grounding` reads as a location, so the
+    board licenses no move citations; only the listed lines below do.
+    """
+    parts = []
+    for piece_type in _PIECE_ORDER:
+        for square in sorted(board.pieces(piece_type, color)):
+            parts.append(f"{chess.piece_name(piece_type)} on {chess.square_name(square)}")
+    return ", ".join(parts)
+
+
+def _material(board: chess.Board, color: chess.Color) -> int:
+    return sum(len(board.pieces(p, color)) * v for p, v in _PIECE_VALUES.items())
+
+
+def _numbered_line(board: chess.Board, sans: list[str]) -> str:
+    """Render a SAN list as numbered notation from ``board`` ("20...Be6 21.Nf3 Nd7").
+
+    Stops at the first move that will not parse, as :func:`engine.analyzer.pv_to_san` does.
+    """
+    board = board.copy()
+    parts = []
+    for i, san in enumerate(sans):
+        try:
+            move = board.parse_san(san)
+        except ValueError:
+            break
+        if board.turn == chess.WHITE:
+            parts.append(f"{board.fullmove_number}.{board.san(move)}")
+        elif i == 0:
+            parts.append(f"{board.fullmove_number}...{board.san(move)}")
+        else:
+            parts.append(board.san(move))
+        board.push(move)
+    return " ".join(parts)
+
+
+def _move_effect(board: chess.Board, san: str, capture_verb: str, check_phrase: str) -> str:
+    """"captured the opponent's rook on f2 and gave check", or "" if ``san`` won't parse."""
+    try:
+        move = board.parse_san(san)
+    except ValueError:
+        return ""
+    if board.is_en_passant(move):
+        effects = [f"{capture_verb} a pawn en passant"]
+    elif board.is_capture(move):
+        taken = board.piece_at(move.to_square)
+        effects = [
+            f"{capture_verb} the opponent's {chess.piece_name(taken.piece_type)} on "
+            f"{chess.square_name(move.to_square)}"
+        ]
+    else:
+        effects = [f"{capture_verb} nothing"]
+    if board.gives_check(move):
+        effects.append(check_phrase)
+    return " and ".join(effects)
+
+
+def _board_lines(report: dict, coached_side: str, move: dict) -> list[str]:
+    """The board, material, what the played move did, and the engine's lines.
+
+    Built from the report alone (``fen_before`` and ``pv`` of this move and the next), so
+    nothing here needs an engine. Without it the coach is asked *why* a move was bad with
+    nothing but its name, and fills the gap with an invented position.
+    """
+    fen = move.get("fen_before")
+    if not fen:
+        return []
+    board = chess.Board(fen)
+    you = chess.WHITE if coached_side == "white" else chess.BLACK
+    them = not you
+    lines = [
+        "",
+        f"The position before your move ({coached_side.capitalize()} to move):",
+        f"- Your pieces ({coached_side.capitalize()}): {_side_pieces(board, you)}.",
+        f"- Opponent's pieces ({opponent_of(coached_side).capitalize()}): "
+        f"{_side_pieces(board, them)}.",
+        f"- Material (queen 9, rook 5, bishop 3, knight 3, pawn 1): you "
+        f"{_material(board, you)}, opponent {_material(board, them)}.",
+    ]
+
+    played = _move_effect(board, move["san"], "captured", "gave check")
+    if played:
+        lines.append(f"- Your move {move['san']} {played}.")
+    if move.get("best_san") and move["best_san"] != move["san"]:
+        preferred = _move_effect(board, move["best_san"], "would capture", "would give check")
+        if preferred:
+            lines.append(f"- The preferred move {move['best_san']} {preferred}.")
+
+    pv = move.get("pv") or []
+    if pv and move.get("best_san") and move["best_san"] != move["san"]:
+        preferred = _numbered_line(board, pv)
+        if preferred:
+            lines.append(f"- Engine's preferred line from here: {preferred}")
+
+    after = next((m for m in report.get("moves", []) if m.get("ply") == move.get("ply", -1) + 1),
+                 None)
+    if after and after.get("pv") and after.get("fen_before"):
+        refutation = _numbered_line(chess.Board(after["fen_before"]), after["pv"])
+        if refutation:
+            lines.append(f"- Engine's best line after your move: {refutation}")
+    return lines
+
+
 def format_position_facts(report: dict, coached_side: str, move: dict) -> str:
     """Render ONE critical position as a tight facts block.
 
     ``move`` is one entry of ``report["moves"]`` (typically from
-    :func:`coachable_mistakes`). Deliberately mentions only two moves — the one played
-    and the engine's preference — so a perfectly grounded answer has nowhere to wander.
+    :func:`coachable_mistakes`). Names the move played, the engine's preference and the
+    engine's two lines (from the position, and after the move played), plus the board
+    before the move — so the coach can explain *why* from the position rather than
+    invent one. No other move of the game appears.
     """
     opponent = opponent_of(coached_side)
     return "\n".join(
@@ -212,6 +329,7 @@ def format_position_facts(report: dict, coached_side: str, move: dict) -> str:
             "",
             "The moment:",
             _mistake_line(move),
+            *_board_lines(report, coached_side, move),
         ]
     )
 

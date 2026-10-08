@@ -230,3 +230,64 @@ def test_build_position_messages_rejects_bad_side():
     move = prompts.coachable_mistakes(SAMPLE_REPORT, "black")[0]
     with pytest.raises(ValueError):
         prompts.build_position_messages(SAMPLE_REPORT, "green", move)
+
+
+# --- Position facts carry the board (so the coach need not invent one) ---------------
+
+# After 1.e4 d5, White plays 2.Nc3 instead of the engine's 2.exd5.
+_SCANDI_FEN = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2"
+_AFTER_NC3_FEN = "rnbqkbnr/ppp1pppp/8/3p4/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq - 1 2"
+BOARD_REPORT = {
+    **SAMPLE_REPORT,
+    "moves": [
+        {
+            "ply": 3, "move_number": 2, "side": "white", "san": "Nc3",
+            "best_san": "exd5", "eval_before": 40, "eval_after": -60,
+            "cp_loss": 100, "win_prob_loss": 0.12, "quality": "mistake",
+            "fen_before": _SCANDI_FEN, "pv": ["exd5", "Qxd5", "Nc3", "Qa5"],
+        },
+        {
+            "ply": 4, "move_number": 2, "side": "black", "san": "e6",
+            "best_san": "dxe4", "eval_before": -60, "eval_after": -60,
+            "cp_loss": 0, "win_prob_loss": 0.0, "quality": "best",
+            "fen_before": _AFTER_NC3_FEN, "pv": ["dxe4", "Nxe4", "Nd7"],
+        },
+    ],
+}
+
+
+def test_position_facts_list_the_board_and_both_lines():
+    move = BOARD_REPORT["moves"][0]
+    facts = prompts.format_position_facts(BOARD_REPORT, "white", move)
+    assert "Your pieces (White): king on e1, queen on d1," in facts
+    assert "pawn on e4" in facts and "pawn on d5" in facts
+    assert "Material (queen 9, rook 5, bishop 3, knight 3, pawn 1): you 39, opponent 39." in facts
+    assert "- Your move Nc3 captured nothing." in facts
+    assert "- The preferred move exd5 would capture the opponent's pawn on d5." in facts
+    assert "- Engine's preferred line from here: 2.exd5 Qxd5 3.Nc3 Qa5" in facts
+    assert "- Engine's best line after your move: 2...dxe4 3.Nxe4 Nd7" in facts
+
+
+def test_position_facts_board_licenses_no_moves():
+    from eval import grounding
+
+    move = BOARD_REPORT["moves"][0]
+    facts = prompts.format_position_facts(BOARD_REPORT, "white", move)
+    # Only the moment and the two engine lines are citable; "pawn on e4" is a location.
+    assert grounding.extract_moves(facts) == {
+        "Nc3", "exd5", "Qxd5", "Qa5", "dxe4", "Nxe4", "Nd7",
+    }
+
+
+def test_position_facts_without_a_fen_keep_the_short_form():
+    move = {k: v for k, v in BOARD_REPORT["moves"][0].items() if k != "fen_before"}
+    facts = prompts.format_position_facts(BOARD_REPORT, "white", move)
+    assert facts.endswith(prompts._mistake_line(move))
+
+
+def test_position_facts_keep_the_role_line_the_claim_checker_reads():
+    from eval import claims
+
+    move = BOARD_REPORT["moves"][0]
+    facts = prompts.format_position_facts(BOARD_REPORT, "white", move)
+    assert claims.parse_roles(facts) == ({"Nc3"}, {"exd5"})

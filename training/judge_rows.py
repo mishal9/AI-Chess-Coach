@@ -7,12 +7,17 @@ sample of rows with the same judge and rubric the held-out evaluation uses
 of rows with an error QC cannot see can be estimated before fine-tuning on them.
 
 Rows are drawn with a fixed seed from the file given (normally the QC-filtered rows), so a
-rerun judges the same rows. Verdicts are appended one per line as they arrive; ``--resume``
+rerun judges the same rows. ``--same-as`` instead judges the rows whose keys an earlier
+verdict file holds (optionally one ``--kind``), so regenerated rows can be scored on
+exactly the positions an earlier spot-check scored. Verdicts are appended one per line as they arrive; ``--resume``
 skips rows already judged.
 
 Usage:
     python -m training.judge_rows data/distill/deepseek_qc.jsonl --n 200 --seed 20261007 \
         --out data/distill/deepseek_qc_judged.jsonl --max-judge-calls 200
+    python -m training.judge_rows data/distill/deepseek_pos_v2_qc.jsonl \
+        --same-as data/distill/deepseek_qc_judged.jsonl --kind position \
+        --out data/distill/deepseek_pos_v2_judged.jsonl --max-judge-calls 150
 """
 
 from __future__ import annotations
@@ -36,6 +41,13 @@ def sample_rows(records: list[DistillRecord], n: int, seed: int) -> list[Distill
         return list(records)
     picked = set(random.Random(seed).sample(range(len(records)), n))
     return [r for i, r in enumerate(records) if i in picked]
+
+
+def same_rows(records: list[DistillRecord], verdicts: Path,
+              kind: str | None = None) -> list[DistillRecord]:
+    """The rows whose keys ``verdicts`` holds (of ``kind``, if given), in file order."""
+    keys = {k for k, v in load_done(verdicts).items() if kind is None or v["kind"] == kind}
+    return [r for r in records if row_key(r) in keys]
 
 
 def judge_row(record: DistillRecord, backend, model: str | None) -> dict:
@@ -82,6 +94,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("rows", type=Path, help="raw record JSONL (normally QC-filtered)")
     parser.add_argument("--n", type=int, default=200, help="rows to sample")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--same-as", type=Path, default=None,
+                        help="judge the rows keyed in this earlier verdict JSONL instead of "
+                             "a random sample (--n and --seed are ignored)")
+    parser.add_argument("--kind", choices=["game", "position"], default=None,
+                        help="with --same-as: only that verdict file's rows of this kind")
     parser.add_argument("--out", type=Path, required=True, help="verdict JSONL")
     parser.add_argument("--judge-model", default=None,
                         help=f"default: {backends.DEFAULT_ANTHROPIC_MODEL}")
@@ -96,7 +113,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None, backend=None) -> int:
     args = build_parser().parse_args(argv)
     backend = backend or backends.anthropic_backend
-    sample = sample_rows(load_records(args.rows), args.n, args.seed)
+    records = load_records(args.rows)
+    if args.same_as:
+        sample = same_rows(records, args.same_as, args.kind)
+    else:
+        sample = sample_rows(records, args.n, args.seed)
 
     if not args.resume:
         args.out.parent.mkdir(parents=True, exist_ok=True)
