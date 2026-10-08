@@ -63,38 +63,38 @@ one sentence of the prompt, and this run is itself small.
 
 ## Spot-check
 
-Two samples, both from the QC-passed file, judged by `claude-opus-4-8` with rubric
-`eval/rubric.py`, each row against its own facts block.
+One sample, judged by `claude-opus-4-8` with rubric `eval/rubric.py`, each row against its
+own facts block. The Anthropic balance is $4: a judged position row measured 1,695 input
+tokens (mean of 5, `count_tokens`) and about 160 output tokens, so about $0.0125 a call at
+$5 / $25 per million, and 100 calls is about $1.25.
 
-- **Fresh sample (decides the reading).** 150 rows drawn with seed 20261008 from the
+- **Fresh sample (decides the reading).** 100 rows drawn with seed 20261008 from the
   QC-passed v3 rows, leaving out the 150 positions judged twice already
   (`--exclude data/distill/deepseek_qc_judged.jsonl`). These positions have not been
   judged before and did not shape the facts block or the QC check. They come from the same
   146 games: the remaining 1,854 games are not generated until the reading passes.
-- **Same 150 positions (reported, not decisive).** As on 8 Oct, so the three versions can
-  be compared position by position. Positions whose v3 row fails QC are counted, not judged.
+- **Same 150 positions: not judged again.** For those positions only the free numbers are
+  reported against the 8 Oct rows: QC pass rate, each violation kind (including how many
+  `eval_sign` flags remain), grounding rate and completion length.
 
 ```
-python -m training.judge_rows data/distill/deepseek_pos_v3_qc.jsonl --n 150 \
+python -m training.judge_rows data/distill/deepseek_pos_v3_qc.jsonl --n 100 \
     --seed 20261008 --exclude data/distill/deepseek_qc_judged.jsonl \
-    --out data/distill/deepseek_pos_v3_fresh_judged.jsonl --max-judge-calls 150
-python -m training.judge_rows data/distill/deepseek_pos_v3_qc.jsonl \
-    --same-as data/distill/deepseek_qc_judged.jsonl --kind position \
-    --out data/distill/deepseek_pos_v3_same_judged.jsonl --max-judge-calls 150
+    --out data/distill/deepseek_pos_v3_fresh_judged.jsonl --max-judge-calls 100
 ```
 
-Reported for each sample: factual mean, counts below 5 and below 4 with a 95% Wilson
-interval, QC pass rate with each violation kind, grounding rate and completion length. For
-the same 150, also the paired change against the old rows and the 8 Oct rows.
+Reported for the fresh sample: factual mean, counts below 5 and below 4, and confirmed
+errors with a 95% Wilson interval. At n = 100 the interval is wide (4 errors would be 4.0%,
+1.6–9.8%), and the reading below still uses the point estimate, as before.
 
-Every row scoring factual 3 or lower in either sample is checked against the board with
-python-chess and marked a real error or a judge miss, as before. Every `eval_sign` flag
-in the v3 run is read and marked true or false, which gives the check's precision on rows
-it was not tuned on.
+Every row scoring factual 3 or lower is checked against the board with python-chess and
+marked a real error or a judge miss, as before. Every `eval_sign` flag in the v3 run is
+read and marked true or false, which gives the check's precision on rows it was not tuned
+on.
 
 ## Reading (fixed now)
 
-On the **fresh sample**:
+On the **fresh sample** of 100:
 
 - **Pass** if both hold: factual mean ≥ 4.5, and hand-confirmed real errors under 5% of the
   judged rows. Then the account is topped up and the other 1,854 games are generated with
@@ -111,8 +111,8 @@ not depend on it.
 
 ## Cost
 
-About $0.70 of DeepSeek (balance about $6.10 before the run) and up to 300 Opus judge
-calls (the 8 Oct protocol puts a judged row at about $0.014, so about $4–6).
+About $0.70 of DeepSeek (balance about $6.10 before the run) and 100 Opus judge calls,
+about $1.25 of the $4 Anthropic balance.
 
 ## Result
 
