@@ -228,5 +228,10 @@ lower bound.
 
 **Against the pre-registered reading:** 4.0% is under the 5% line, so by the letter of the
 rule the set goes to fine-tuning as is. The interval crosses 5%, the figure is a lower
-bound, and position rows alone are at 5.3%. The decision on position rows is left to the
-user and recorded here once made.
+bound, and position rows alone are at 5.3%.
+
+**Decision (7 Oct 2026):** game rows are kept as generated. Position rows are regenerated
+from a facts block that carries the board, what each move captured, and the engine's lines,
+then judged again on the same 150 positions. This sets aside the reading above for position
+rows; the reasons and the new reading are pre-registered in
+`2026-10-07-position-facts-board.md`.
