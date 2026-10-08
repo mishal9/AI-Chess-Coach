@@ -86,7 +86,8 @@ The engine evaluation says who stands better; a line that ends on a capture may 
 before the recapture and show the wrong side ahead on material, so trust the evaluation.
 - Say one piece defends or attacks another only when the facts name it as that piece's \
 defender or attacker; a move took a defender away only if the facts name it before the \
-move and not after.
+move and not after. When you say it, name both pieces with their squares ("your queen on \
+d5 defends your bishop on g2"), never "it" or a bare move like Qd5.
 - Say the student was better, worse or level only as the evaluation states it; a move \
 can cost a lot from a position that was already worse.
 - Never invent evaluations, variations, tactics ("a fork", "a pin"), sacrifices, \
