@@ -97,3 +97,33 @@ borderline counts as an error; the 95% Wilson interval is reported. Every
 
 Either way the result is reported with the compliance count and the check's precision.
 Whether position rows enter training is not decided here (see "Where this sits").
+
+## Interim result (8 Oct 2026): generation and compliance; judging waits for a top-up
+
+**Generation.** 100 games, 296 rows (268 grounded), 364 calls, 0.47M input + 0.10M output
+tokens, about $0.50 off-peak, 3.9 minutes, no failures.
+
+**Compliance: the rule was not followed.**
+
+| | Pairings | Pronoun or bare move | Piece on square |
+|---|---|---|---|
+| v4 (before) | 119 | 40 (34%) | 7 (6%) |
+| v5 (with the rule) | 172 | 55 (32%) | 16 (9%) |
+
+The bar was 10% or less. The teacher still writes "it defends …" about as often as before.
+
+**`invented_defence` on new rows.** The check flagged 3 v5 rows, read on the board:
+
+| Row | Claim | Verdict |
+|---|---|---|
+| #189 p14 | "Qf6 … it defends your knight on c6" | true: White's knight on d6 blocks the queen on f6 |
+| #1523 p36 | "your queen on d7 was safe because it was defended by your rook on f8" | true: d7 had no defender on any board, and this is the row's central explanation |
+| #749 p18 | "White had it defended with the pawn on b2" | false: "defended with" is the passive form, read backwards |
+
+**Precision on rows it was not tuned on: 2 of 3.** Both true flags came through the pronoun
+handling this change added. A fix after registration, before judging (commit `1aa1ddf`),
+reads "defended with" like "defended by". On all 1,338 position rows the check now flags 15
+claims, all true when read. QC then passes 257 of 296 (87%): 12 placement flags, 2
+`invented_defence`, 1 invented castling. **155 of the 257 (60%) are clear-cut.**
+
+The judged sample, and so the reading, waits for the Anthropic top-up.
