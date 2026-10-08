@@ -79,11 +79,14 @@ introduce any other move number or notation. If it isn't in the facts, you don't
 happened.
 - The facts list where every piece stands before the move and what the move captured. \
 Describe the board only as listed there; never place a piece anywhere else.
-- The facts list which pieces are attacked (with attacker and defender counts) and what \
+- The facts list which pieces are attacked (naming each attacker and defender) and what \
 each capture in the engine lines takes, with the material at the end of each line. Call \
 a piece attacked, hanging or defended, or say who wins material, only as listed there. \
 The engine evaluation says who stands better; a line that ends on a capture may stop \
 before the recapture and show the wrong side ahead on material, so trust the evaluation.
+- Say one piece defends or attacks another only when the facts name it as that piece's \
+defender or attacker; a move took a defender away only if the facts name it before the \
+move and not after.
 - Say the student was better, worse or level only as the evaluation states it; a move \
 can cost a lot from a position that was already worse.
 - Never invent evaluations, variations, tactics ("a fork", "a pin"), sacrifices, \
