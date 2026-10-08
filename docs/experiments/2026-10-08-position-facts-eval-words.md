@@ -114,6 +114,68 @@ not depend on it.
 About $0.70 of DeepSeek (balance about $6.10 before the run) and 100 Opus judge calls,
 about $1.25 of the $4 Anthropic balance.
 
-## Result
+## Result (8 Oct 2026): fail
 
-Not run yet.
+**Generation.** 487 rows (471 grounded), 552 calls, 0.61M input + 0.15M output tokens,
+about $0.71 off-peak, 6.6 minutes, no failures. QC passes 451 (93%), median 1,224
+characters. Violations: 20 placement flags, 1 `eval_sign`.
+
+**`eval_sign` precision.** Its one flag on the v3 run was false: "suddenly you're losing your
+rook in the corner" is about material. That fix (commit `2828787`) mirrors the "winning a
+pawn" exclusion. With it, the check flags 0 v3 rows and still 10 of the 8 Oct rows. Its
+measured precision on rows it was not tuned on is 0 of 1. There are almost no sign errors
+left for it to catch, so the measurement says little.
+
+**Same 150 positions (not judged).**
+
+| | 8 Oct rows | v3 rows |
+|---|---|---|
+| Pass QC | 128 | 137 |
+| Grounded | 145 | 145 |
+| Placement flags | 11 | 8 |
+| Rows with an `eval_sign` flag (current check) | 5 | 0 |
+| Median length (characters) | 1,254 | 1,217 |
+
+**Fresh sample** (`claude-opus-4-8`, 100 rows, `data/distill/deepseek_pos_v3_fresh_judged.jsonl`):
+**factual mean 4.44**, counts 2 / 3 / 4 / 5 = 2 / 7 / 36 / 55, 9 below 4, overall 4.78.
+
+**Board check of the 9 rows at 3 or lower:** 6 real errors (2 borderline), 3 judge misses.
+
+| Row | Factual | Verdict | What is wrong |
+|---|---|---|---|
+| #103 p52 | 3 | real | "by dropping to g2 you gave Black a free hand" on f2: a king on g2 still defends f2 (2 defenders before and after) |
+| #237 p17 | 3 | judge miss | interpretation of the queen's role; nothing stated is false on the board |
+| #405 p17 | 3 | real | "e4 … already well-supported by your pawn on e3": the e4 pawn *is* the e3 pawn |
+| #666 p24 | 3 | judge miss | h7 was attacked, and the queen does land on g6 with check; the light/dark square talk is interpretation |
+| #987 p11 | 3 | real (borderline) | "left your bishop on e6 hanging": 2 attackers, 2 defenders |
+| #1070 p29 | 2 | real | "your queen on c3 staring at Black's queen on d6 with nothing in between": c3 and d6 share no line |
+| #1070 p26 | 3 | real (borderline) | "you were up a pawn in practical terms after the trade": material 26–26 |
+| #1154 p14 | 3 | judge miss | "you lose the exchange (a rook for a bishop)" is right; the judge read it as a free rook |
+| #1595 p26 | 2 | real | "your queen … no longer defended your knight on f5" and "Qe2 protects the knight": f5 had 0 defenders, and the line shows Qxf5 |
+
+**Confirmed errors: 6 of 100 = 6.0% (95% Wilson interval 2.8–12.5%)**, 4.0% (1.6–9.8%)
+without the two borderline rows.
+
+**Reading.** Both conditions fail: factual mean 4.44 < 4.5, and confirmed errors 6.0% ≥ 5%.
+As fixed above, these 146 games are not used again to judge a facts-block change, and the
+remaining 1,854 games are not generated.
+
+**What changed in the errors.** No row calls a losing student better: the evaluation in
+words removed that error. Four of the six real errors (#103, #405, #987, #1595) misstate
+what defends what, though the facts list attacker and defender counts. One misreads board
+geometry (#1070 p29), and one spins material (#1070 p26).
+
+**Across the three versions.**
+
+| | Old rows (1-line facts) | 8 Oct (board) | v3 (evaluation in words) |
+|---|---|---|---|
+| Factual mean | 4.18 (same 133) | 4.38 (133) | 4.44 (fresh 100) |
+| Confirmed errors | 8 / 150 = 5.3% | 10 / 133 = 7.5% | 6 / 100 = 6.0% |
+
+The v3 figure is on different positions from the other two, so the columns are not paired.
+
+**After the reading, not pre-registered.** Splitting the fresh 100 by whether the facts
+show a clear-cut tactic (the opponent's best reply captures at once, or the move leaves a
+piece attacked with no defender): 49 such rows score factual 4.49 with 1 real error; the
+other 51 score 4.39 with 5. This split was looked at after the result, on the rows that
+produced it, so it is a lead for the next decision, not evidence.
