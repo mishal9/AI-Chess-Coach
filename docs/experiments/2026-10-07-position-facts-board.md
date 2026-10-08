@@ -134,6 +134,56 @@ blocks grow from 302 characters on average to about 1,700 (pilot 3: mean 1,680, 
 so input is about 1,070 tokens per call: roughly 6.8M input and 1.9M output tokens. 150
 Opus judge calls.
 
-## Result
+## Result (8 Oct 2026): fail
 
-Not run yet.
+**Generation.** The 146 spot-check games, run first as amended above: 487 position rows
+(470 grounded), 558 calls, 0.60M input + 0.15M output tokens, about $0.70 off-peak, 7.5
+minutes. QC passes 449 of 487 (92%; the old position rows 94%), median 1,244 characters.
+All 150 spot-check positions were regenerated; **133 pass QC**. The 17 that fail: 11
+placement flags (most name a piece on the square an engine line moves it to, the kind the
+7 Oct audit found false), 5 ungrounded, 1 role inversion. The old 150 all passed QC by
+construction (they were drawn from QC-passed rows).
+
+**Judge** (`claude-opus-4-8`, 133 rows, `data/distill/deepseek_pos_v2_judged.jsonl`):
+
+| | New rows | Old rows, same 133 positions |
+|---|---|---|
+| Factual mean | **4.38** | 4.18 |
+| Factual counts (2/3/4/5) | 4 / 8 / 54 / 67 | 6 / 19 / 53 / 55 |
+| Below 4 | 12 (9.0%) | 25 (18.8%) |
+| Overall | 4.76 | |
+
+Paired change per position (new minus old): −3: 1, −2: 4, −1: 26, 0: 51, +1: 42, +2: 5,
++3: 4. Better on 51, worse on 31.
+
+**Board check of the 12 rows at 3 or lower:** 10 real errors, 2 judge misses.
+
+| Row | Factual | Verdict | What is wrong |
+|---|---|---|---|
+| #84 p14 | 2 | real | "winning the queen for a pawn and a bishop" leaves out the knight cxb5 takes; "removes the pressure on your b5 knight" (it is captured). The judge's "mutual queen trade" is also wrong. |
+| #397 p35 | 2 | real | "you were already better" at −3.1 |
+| #590 p14 | 2 | real | the bishop that took on a3 came from d6, not a6; "slightly better position" at −1.7. The judge's reason (an even trade) is wrong: the row says bishop for a pawn. |
+| #1599 p21 | 2 | judge miss | the knight on d7 did defend f8 (3 → 2 defenders is right). The causal story is weak (Bxf8 was possible before), but nothing stated is false. |
+| #305 p18 | 3 | judge miss | "up material or holding a solid position": material is 31–30, so true as worded; the rest is interpretation. |
+| #666 p28 | 3 | real | "clearly winning position for you" and "remain clearly better" at −5.5. (Qe7 does defend f6; the judge is wrong there.) |
+| #987 p5 | 3 | real | "the queen on e7 blocks your f8-bishop": the bishop is on c5 |
+| #1053 p14 | 3 | real | "attack the rook" (a bishop on f2 attacks no rook); "clearly better" at −2.1 |
+| #1092 p16 | 3 | real | "the engine says that would have left you clearly better" at −1.2 |
+| #1256 p10 | 3 | real (borderline) | "f5 supports your e5-pawn": a pawn on f5 does not defend e5 |
+| #1677 p21 | 3 | real | "capture your d5 pawn with check" (22.Rxd5 is not check); "Kd7 removes the sting from any check on d5" (in that line Rxd5+ is check) |
+| #1690 p31 | 3 | real | "your rook on g1 still pinned to the king" (nothing pins it); "you were down a pawn" at 28–27 |
+
+**Confirmed errors: 10 of 133 = 7.5% (95% Wilson interval 4.1–13.3%)**, 6.8% without the
+borderline row. Counting the 17 unjudged positions as clean gives 10 of 150 = 6.7%
+(3.7–11.8%); the old rows were 8 of 150 = 5.3% (2.7–10.2%). As before, rows scored 4 were
+not hand-checked, so these are lower bounds.
+
+**Reading.** Both conditions fail: factual mean 4.38 < 4.5, and confirmed errors 7.5% ≥ 5%.
+No further rows are generated and no fine-tuning starts until the next step is decided.
+
+**What changed in the errors.** The board removed the old kind (what a capture took, which
+piece stood where): only #987, #590 and #1690 misplace or misdescribe a piece, against all 8
+before. The judge's low scores halved. The new dominant error is the **evaluation's sign**:
+5 of the 10 (#397, #590, #666, #1053, #1092) tell a losing student they were better, though
+the facts say "+ favours you" and give a negative number. That line was added in pilot 3 and
+was not in the old facts. Two more (#84, #1677) misread an engine line.
