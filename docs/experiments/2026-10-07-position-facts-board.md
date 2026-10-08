@@ -60,6 +60,18 @@ python -m training.qc data/distill/raw_deepseek_pos_v2.jsonl \
     --passed-out data/distill/deepseek_pos_v2_qc.jsonl
 ```
 
+**Order of work, amended 8 Oct 2026 before any row was generated.** The DeepSeek balance
+($6.80) does not cover the full run (about $8.40 off-peak; the 28 Sep run billed $8.19 for
+7.48M tokens, within 2% of the published off-peak cache-miss rates). The run is therefore
+done in two steps into the same `--out` file. First the 146 games that hold the 150
+spot-check positions (`data/games/spotcheck146.json`: the entries of `manifest.json` whose
+key appears among the position rows of `deepseek_qc_judged.jsonl`; sha256 `cff39bc1…`),
+which are then QC'd and judged as below. If the reading passes, the account is topped up and
+the same command with `--sources data/games/manifest.json --resume` does the other 1,854
+games; `--resume` skips games by `corpus.pgn#index`, so the judged rows are the rows of the
+final file. If it fails, the remaining games are not generated. Settings, rows and reading
+are otherwise unchanged.
+
 A 10-game pilot is read by hand before the full run; it checks only that the rows run and
 read sensibly, and does not touch the reading below. The pilot rows are archived and the
 full run regenerates all 2,000 games, so every row comes from the final facts block.
