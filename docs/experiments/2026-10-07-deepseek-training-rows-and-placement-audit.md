@@ -229,4 +229,4 @@ lower bound.
 **Against the pre-registered reading:** 4.0% is under the 5% line, so by the letter of the
 rule the set goes to fine-tuning as is. The interval crosses 5%, the figure is a lower
 bound, and position rows alone are at 5.3%. The decision on position rows is left to the
-user (see the session summary in PLAN.md once written).
+user and recorded here once made.
