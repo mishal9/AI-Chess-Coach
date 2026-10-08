@@ -344,6 +344,8 @@ def test_better_is_fine_when_the_evaluation_agrees_and_worse_is_checked_too():
     assert claims.check_eval_sign("You were clearly better here.", better).ok
     flagged = claims.check_eval_sign("After that move you were losing.", better)
     assert [v.kind for v in flagged.violations] == ["eval_sign"]
+    # material, not standing (8 Oct v3 run, #1279: the check's one false flag)
+    assert claims.check_eval_sign("Suddenly you're losing your rook in the corner.", better).ok
     level = ("- Engine evaluation: with the preferred move, the position is about level; "
              "after your move, you are worse by about 0.9 pawns.")
     assert claims.check_eval_sign("You were slightly better.", level).ok  # under a pawn

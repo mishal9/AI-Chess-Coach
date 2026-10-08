@@ -460,7 +460,8 @@ _BETTER_CLAIM_RE = re.compile(
 )
 _WORSE_CLAIM_RE = re.compile(
     rf"\b(?:you(?:'re| are| were| stand| stood)|your position (?:is|was))\s+"
-    rf"(?:{_MODIFIERS})*(?:worse|losing|lost)\b(?!\s+(?:off|than)\b)",
+    rf"(?:{_MODIFIERS})*(?:worse|losing|lost)\b(?!\s+(?:off|than)\b)(?!\s+(?:a|an|the|"
+    rf"material|your|their|two|three)\b)",
     re.IGNORECASE,
 )
 
