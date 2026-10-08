@@ -359,9 +359,10 @@ def test_facts_without_an_evaluation_check_nothing():
 # --- defence claims ---------------------------------------------------------------
 BOARD_FACTS = """\
 The position before your move (Black to move):
-- Your pieces (Black): king on e8, queen on d5, knight on c6, pawn on e6.
+- Your pieces (Black): king on e8, queen on d5, rook on a8, knight on c6, pawn on e6.
 - Opponent's pieces (White): king on g1, queen on f1, knight on c3.
-- Your move e5 captured nothing."""
+- Your move e5 captured nothing.
+- The preferred move Qd7 would capture nothing."""
 
 
 def test_defence_claim_the_board_refutes_is_flagged():
@@ -419,3 +420,29 @@ def test_an_agent_of_an_earlier_by_is_not_the_defended_piece():
     text = ("The pawn on e6 was attacked by both their queen and the knight on c3, "
             "defended only by their king.")
     assert claims.check_defence_claims(text, BOARD_FACTS).checked == 0
+
+
+def test_a_move_names_the_piece_on_its_destination():
+    # 8 Oct v4 run, #948: "Qd5 … where it defends your bishop on g2" through a pawn.
+    true = claims.check_defence_claims("Qd7 was better: it defends your knight on c6.",
+                                       BOARD_FACTS)
+    assert true.ok and true.checked == 1
+    false = claims.check_defence_claims("Qd7 was better: it defends your rook on a8.",
+                                        BOARD_FACTS)
+    assert [v.kind for v in false.violations] == ["invented_defence"]
+    assert claims.check_defence_claims("Qd7 guards your rook on a8.", BOARD_FACTS).violations
+
+
+def test_repeated_it_keeps_the_first_subject():
+    # 8 Oct v3 run, #501: each "it" is the queen, not the previous object.
+    text = ("Before the move, your queen on d5 was doing two jobs: it defended your knight "
+            "on c6, and it defended your pawn on e6.")
+    result = claims.check_defence_claims(text, BOARD_FACTS)
+    assert result.ok and result.checked == 2
+
+
+def test_move_saving_its_own_piece_and_indirect_defence_are_skipped():
+    for text in ("Qd7, which defended the queen, was the move.",
+                 "The queen on d5 defended the rook on a8 indirectly."):
+        result = claims.check_defence_claims(text, BOARD_FACTS)
+        assert result.ok and result.checked == 0, text

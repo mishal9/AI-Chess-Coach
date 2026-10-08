@@ -542,6 +542,48 @@ _MENTION_RE = re.compile(
     rf"(?:\s+(?:on|at|from)\s+(?P<sq2>[a-h][1-8]))?\b",
     re.IGNORECASE,
 )
+# A move names the piece on its destination square: "Qd5 … defends" is the queen on d5,
+# which stands there on the board after that move (when the facts describe one).
+_SAN_MENTION_RE = re.compile(
+    r"(?<![\w.])(?:\d+\.+\s*)?(?P<piece>[KQRBN])[a-h]?[1-8]?x?(?P<sq>[a-h][1-8])[+#]?(?![\w])"
+)
+_SAN_PIECES = {"K": "king", "Q": "queen", "R": "rook", "B": "bishop", "N": "knight"}
+# "it defends", "which still protected": the subject is the nearest piece or move before.
+_PRONOUN_SUBJECT_RE = re.compile(
+    r"\b(?:it|which)\s+(?:(?:also|still|already|now|then|only|directly|was|is|had|has|"
+    r"been|no\s+longer)\s+){0,2}(?=(?:defend|protect|guard|support)(?:s|ed|ing)?\b)",
+    re.IGNORECASE,
+)
+# "defended the b7 pawn indirectly": an x-ray, which direct coverage cannot settle.
+_INDIRECT_RE = re.compile(r"\A[^.;:!?]{0,40}\b(?:indirectly|x-ray|through)\b", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class _Mention:
+    """One piece the text names: "your knight on g6", a move ("Qd5"), or a pronoun
+    standing for the nearest of those before it."""
+    start: int
+    end: int
+    text: str
+    owner: str
+    piece: str
+    square: str | None
+
+
+def _mentions(sentence: str) -> list[_Mention]:
+    found = [_Mention(m.start(), m.end(), m.group(0), (m.group("owner") or "").lower(),
+                      m.group("piece").lower(), m.group("sq1") or m.group("sq2"))
+             for m in _MENTION_RE.finditer(sentence)]
+    found += [_Mention(m.start(), m.end(), m.group(0), "", _SAN_PIECES[m.group("piece")],
+                       m.group("sq"))
+              for m in _SAN_MENTION_RE.finditer(sentence)]
+    if re.search(r"\b(?:enemy|opponent's|opposing)\b", sentence, re.IGNORECASE):
+        found = [m if not re.search(r"\b(?:enemy|opponent's|opposing)\b", m.text, re.I)
+                 else _Mention(m.start, m.end, m.text, "their", m.piece, m.square)
+                 for m in found]
+    return sorted(found, key=lambda m: m.start)
+
+
 _DEFEND_RE = re.compile(
     r"\b(?:defend|protect|guard|support)(?:s|ed|ing)?\b"
     r"(?P<by>\s+(?:only\s+|solely\s+|just\s+|now\s+)?by\b)?", re.IGNORECASE
@@ -593,22 +635,19 @@ def facts_boards(facts_text: str) -> tuple[chess.Color, list[chess.Board]] | Non
     return board.turn, boards
 
 
-def _spec(m: re.Match, you: chess.Color, same_as: chess.Color | None = None
+def _spec(m: _Mention, you: chess.Color, same_as: chess.Color | None = None
           ) -> tuple[chess.PieceType, list[chess.Color], chess.Square | None]:
     """What a piece mention names: its type, the colours it could be, and its square when
-    the text gives one ("your knight on g6", "the f4-pawn"). ``same_as`` settles an
+    the text gives one ("your knight on g6", "the f4-pawn", "Qd5"). ``same_as`` settles an
     unowned mention's colour: in "the knight no longer protects the queen" both pieces are
     the defender's side's."""
-    owner = (m.group("owner") or "").lower()
-    if re.search(r"\b(?:enemy|opponent's|opposing)\b", m.group(0), re.IGNORECASE):
-        owner = "their"
+    owner = m.owner
     colors = ([you] if owner == "your" else [not you] if owner in ("their", "opponent's")
               else [chess.WHITE] if owner == "white's" else [chess.BLACK]
               if owner == "black's" else [same_as] if same_as is not None
               else [chess.WHITE, chess.BLACK])
-    square = m.group("sq1") or m.group("sq2")
-    return (_PIECE_TYPES[m.group("piece").lower()], colors,
-            chess.parse_square(square.lower()) if square else None)
+    return (_PIECE_TYPES[m.piece], colors,
+            chess.parse_square(m.square.lower()) if m.square else None)
 
 
 def _squares(board: chess.Board, spec, color: chess.Color) -> list[chess.Square]:
@@ -659,7 +698,10 @@ def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
     defended only once" is a count, not a pairing), negations ("no longer" is kept: it
     asserts the piece did), hypotheticals, purposes and relocations. "Hanging" is not
     checked: the coaching uses it loosely for a piece that loses an exchange, which direct
-    attacker and defender counts cannot settle. Facts without a board check nothing.
+    attacker and defender counts cannot settle. A move names the piece on its destination
+    ("Qd5 defends" is the queen on d5, after that move), and "it" or "which" right before
+    the verb stands for the nearest earlier piece or move that is not itself an object.
+    Facts without a board check nothing.
     """
     result = ClaimResult()
     parsed = facts_boards(facts_text)
@@ -670,15 +712,24 @@ def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
     ends = starts[1:] + [len(coaching_text)]
     for start, end in zip(starts, ends):
         sentence = coaching_text[start:end]
-        mentions = list(_MENTION_RE.finditer(sentence))
+        mentions = _mentions(sentence)
         verbs = list(_DEFEND_RE.finditer(sentence))
         # In "defending your king and supporting your knight on g6" the king is an
         # object, not the subject of "supporting".
-        objects = {next(m.start() for m in mentions if m.start() >= v.end())
-                   for v in verbs if any(m.start() >= v.end() for m in mentions)}
+        objects = {next(m.start for m in mentions if m.start >= v.end())
+                   for v in verbs if any(m.start >= v.end() for m in mentions)}
         objects = {o for o in objects for v in verbs
                    if 0 <= o - v.end() <= 20
                    and not re.search(r"[,;:()\u2014]", sentence[v.end():o])}
+        # "it" or "which" before a defence verb stands for the nearest earlier subject: in
+        # "your queen … it defended your knight, it defended your pawn" both are the queen.
+        for p in _PRONOUN_SUBJECT_RE.finditer(sentence):
+            earlier = [m for m in mentions if m.end <= p.start() and m.start not in objects]
+            if earlier:
+                a = earlier[-1]
+                mentions.append(_Mention(p.start(), p.start() + len(p.group(0).split()[0]),
+                                         a.text, a.owner, a.piece, a.square))
+        mentions.sort(key=lambda m: m.start)
         for verb in verbs:
             before = sentence[: verb.start()]
             if _MODAL_RE.search(before) or _NEGATION_RE.search(before):
@@ -686,26 +737,31 @@ def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
             if (_PASSIVE_RE.search(before) or _COUNT_RE.match(sentence, verb.end())) \
                     and not verb.group("by"):
                 continue
-            prior = [m for m in mentions if m.end() <= verb.start()
-                     and m.start() not in objects and verb.start() - m.end() <= 60]
-            after = [m for m in mentions if m.start() >= verb.end()
-                     and m.start() - verb.end() <= 20
-                     and not re.search(r"[,;:()\u2014]", sentence[verb.end():m.start()])]
+            prior = [m for m in mentions if m.end <= verb.start()
+                     and m.start not in objects and verb.start() - m.end <= 60]
+            after = [m for m in mentions if m.start >= verb.end()
+                     and m.start - verb.end() <= 20
+                     and not re.search(r"[,;:()\u2014]", sentence[verb.end():m.start])]
             if (not prior or not after
                     or re.match(r"\s+(?:it|them|itself|both)\b", sentence[verb.end():], re.I)):
                 continue  # "protecting it": the pronoun's piece is not the next mention
             first, second = prior[-1], after[0]
-            if _GAP_SKIP_RE.search(sentence[first.end(): verb.start()]):
+            if _GAP_SKIP_RE.search(sentence[first.end: verb.start()]):
                 continue
-            if verb.group("by") and re.search(r"\bby\b[^.;:!?]{0,30}\Z", sentence[:first.start()]):
+            if verb.group("by") and re.search(r"\bby\b[^.;:!?]{0,30}\Z", sentence[:first.start]):
                 continue  # "attacked by your queen and your rook, defended only by the king"
+            if _INDIRECT_RE.search(sentence[verb.end():]):
+                continue
             defender_m, target_m = (second, first) if verb.group("by") else (first, second)
-            if (defender_m.group("owner") or "").lower() in ("a", "an"):
+            if defender_m.owner in ("a", "an"):
                 continue  # generic: "an active rook that supports your passed pawn"
             defender = _spec(defender_m, you)
             target = _spec(target_m, you, defender[1][0] if len(defender[1]) == 1 else None)
             if target[0] == chess.KING:
                 continue
+            if (target[2] is None and target[0] == defender[0]
+                    and _SAN_MENTION_RE.fullmatch(defender_m.text.strip(" *"))):
+                continue  # "Ne2, which defended the knight": saved it, not a pairing
             verdict = _defends(boards, defender, target)
             if verdict is None:
                 continue
@@ -713,10 +769,10 @@ def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
             if not verdict:
                 result.violations.append(ClaimViolation(
                     kind="invented_defence", move="",
-                    claimed=f"{defender_m.group(0)} defends {target_m.group(0)}",
+                    claimed=f"{defender_m.text} defends {target_m.text}",
                     actual="no such piece covers the other on any board in the facts",
-                    excerpt=_excerpt(coaching_text, start + defender_m.start(),
-                                     start + target_m.end())))
+                    excerpt=_excerpt(coaching_text, start + min(defender_m.start, target_m.start),
+                                     start + max(defender_m.end, target_m.end))))
     return result
 
 
