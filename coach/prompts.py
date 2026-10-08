@@ -18,7 +18,7 @@ from engine.report import (  # noqa: F401 - re-exported; eval/ and training/ rea
     move_label,
     opponent_of,
 )
-from engine.scoring import MoveQuality
+from engine.scoring import MATE_CP, MoveQuality
 
 # Average centipawn loss at/below which a game with no flagged mistakes is "clean".
 _CLEAN_ACPL = 20.0
@@ -79,6 +79,11 @@ introduce any other move number or notation. If it isn't in the facts, you don't
 happened.
 - The facts list where every piece stands before the move and what the move captured. \
 Describe the board only as listed there; never place a piece anywhere else.
+- The facts list which pieces are attacked (with attacker and defender counts) and what \
+each capture in the engine lines takes, with the material at the end of each line. Call \
+a piece attacked, hanging or defended, or say who wins material, only as listed there. \
+The engine evaluation says who stands better; a line that ends on a capture may stop \
+before the recapture and show the wrong side ahead on material, so trust the evaluation.
 - Never invent evaluations, variations, tactics ("a fork", "a pin"), sacrifices, \
 or threats that the board and the engine lines do not show. When unsure, say less.
 
@@ -219,26 +224,69 @@ def _material(board: chess.Board, color: chess.Color) -> int:
     return sum(len(board.pieces(p, color)) * v for p, v in _PIECE_VALUES.items())
 
 
-def _numbered_line(board: chess.Board, sans: list[str]) -> str:
-    """Render a SAN list as numbered notation from ``board`` ("20...Be6 21.Nf3 Nd7").
+def _numbered_line(board: chess.Board, sans: list[str], you: chess.Color) -> str:
+    """Render a SAN list as numbered notation from ``board``, each capture marked with what
+    it takes, and the material once the line is played out::
+
+        20...Rfc8 21.Bxe6 (takes your queen) Rxc5 (takes their queen); material at the end:
+        you 18, opponent 19
 
     Stops at the first move that will not parse, as :func:`engine.analyzer.pv_to_san` does.
     """
     board = board.copy()
     parts = []
+    last_was_capture = False
     for i, san in enumerate(sans):
         try:
             move = board.parse_san(san)
         except ValueError:
             break
+        text = board.san(move)
         if board.turn == chess.WHITE:
-            parts.append(f"{board.fullmove_number}.{board.san(move)}")
+            text = f"{board.fullmove_number}.{text}"
         elif i == 0:
-            parts.append(f"{board.fullmove_number}...{board.san(move)}")
-        else:
-            parts.append(board.san(move))
+            text = f"{board.fullmove_number}...{text}"
+        if board.is_capture(move):
+            whose = "their" if board.turn == you else "your"
+            taken = (chess.PAWN if board.is_en_passant(move)
+                     else board.piece_at(move.to_square).piece_type)
+            text += f" (takes {whose} {chess.piece_name(taken)})"
+        last_was_capture = board.is_capture(move)
+        parts.append(text)
         board.push(move)
-    return " ".join(parts)
+    if not parts:
+        return ""
+    # A line cut off right after a capture usually stops before the recapture, so its
+    # material count can show the wrong side ahead. Say so rather than drop the count.
+    cut = " (the line ends on a capture; a recapture may follow)" if last_was_capture else ""
+    return (f"{' '.join(parts)}; material at the end{cut}: you {_material(board, you)}, "
+            f"opponent {_material(board, not you)}")
+
+
+def _eval_text(white_cp: int, you: chess.Color) -> str:
+    """A White-POV centipawn score as pawns from the coached side's view ("+0.4")."""
+    cp = white_cp if you == chess.WHITE else -white_cp
+    if abs(cp) >= MATE_CP - 1000:  # mate scores are ±(MATE_CP - N)
+        return "a forced mate for you" if cp > 0 else "a forced mate for the opponent"
+    return f"{cp / 100:+.1f}"
+
+
+def _under_attack(board: chess.Board, color: chess.Color) -> str:
+    """"knight on b4 (attackers 1, defenders 0), ..." for ``color``'s attacked pieces.
+
+    Kings are left out (a check is stated where it happens). Counts are direct attackers
+    only — no pins, x-rays or exchange arithmetic — which is all the coach needs to stop
+    calling a defended piece hanging, or an unattacked one attacked.
+    """
+    parts = []
+    for piece_type in _PIECE_ORDER[1:]:
+        for square in sorted(board.pieces(piece_type, color)):
+            attackers = len(board.attackers(not color, square))
+            if attackers:
+                defenders = len(board.attackers(color, square))
+                parts.append(f"{chess.piece_name(piece_type)} on {chess.square_name(square)} "
+                             f"(attackers {attackers}, defenders {defenders})")
+    return ", ".join(parts) or "none"
 
 
 def _move_effect(board: chess.Board, san: str, capture_verb: str, check_phrase: str) -> str:
@@ -283,26 +331,39 @@ def _board_lines(report: dict, coached_side: str, move: dict) -> list[str]:
         f"{_side_pieces(board, them)}.",
         f"- Material (queen 9, rook 5, bishop 3, knight 3, pawn 1): you "
         f"{_material(board, you)}, opponent {_material(board, them)}.",
+        f"- Your pieces under attack: {_under_attack(board, you)}.",
+        f"- Opponent's pieces under attack: {_under_attack(board, them)}.",
     ]
 
     played = _move_effect(board, move["san"], "captured", "gave check")
     if played:
         lines.append(f"- Your move {move['san']} {played}.")
+        after_board = board.copy()
+        after_board.push_san(move["san"])
+        lines.append(f"- After your move, your pieces under attack: "
+                     f"{_under_attack(after_board, you)}.")
     if move.get("best_san") and move["best_san"] != move["san"]:
         preferred = _move_effect(board, move["best_san"], "would capture", "would give check")
         if preferred:
             lines.append(f"- The preferred move {move['best_san']} {preferred}.")
 
+    if "eval_before" in move and "eval_after" in move:
+        lines.append(
+            f"- Engine evaluation (in pawns; + favours you): with the preferred move "
+            f"{_eval_text(move['eval_before'], you)}, after your move "
+            f"{_eval_text(move['eval_after'], you)}."
+        )
+
     pv = move.get("pv") or []
     if pv and move.get("best_san") and move["best_san"] != move["san"]:
-        preferred = _numbered_line(board, pv)
+        preferred = _numbered_line(board, pv, you)
         if preferred:
             lines.append(f"- Engine's preferred line from here: {preferred}")
 
     after = next((m for m in report.get("moves", []) if m.get("ply") == move.get("ply", -1) + 1),
                  None)
     if after and after.get("pv") and after.get("fen_before"):
-        refutation = _numbered_line(chess.Board(after["fen_before"]), after["pv"])
+        refutation = _numbered_line(chess.Board(after["fen_before"]), after["pv"], you)
         if refutation:
             lines.append(f"- Engine's best line after your move: {refutation}")
     return lines

@@ -8,6 +8,7 @@ local model and is skipped automatically when Ollama or the model isn't availabl
 
 from __future__ import annotations
 
+import chess
 import pytest
 
 from coach import client, prompts
@@ -264,8 +265,20 @@ def test_position_facts_list_the_board_and_both_lines():
     assert "Material (queen 9, rook 5, bishop 3, knight 3, pawn 1): you 39, opponent 39." in facts
     assert "- Your move Nc3 captured nothing." in facts
     assert "- The preferred move exd5 would capture the opponent's pawn on d5." in facts
-    assert "- Engine's preferred line from here: 2.exd5 Qxd5 3.Nc3 Qa5" in facts
-    assert "- Engine's best line after your move: 2...dxe4 3.Nxe4 Nd7" in facts
+    assert ("- Engine's preferred line from here: 2.exd5 (takes their pawn) "
+            "Qxd5 (takes your pawn) 3.Nc3 Qa5; material at the end: you 38, opponent 38") in facts
+    assert ("- Engine's best line after your move: 2...dxe4 (takes your pawn) "
+            "3.Nxe4 (takes their pawn) Nd7; material at the end: you 38, opponent 38") in facts
+
+
+def test_position_facts_count_attackers_and_defenders():
+    move = BOARD_REPORT["moves"][0]
+    facts = prompts.format_position_facts(BOARD_REPORT, "white", move)
+    # e4 hangs before Nc3 and is defended once Nc3 is played.
+    assert "- Your pieces under attack: pawn on e4 (attackers 1, defenders 0)." in facts
+    assert "- Opponent's pieces under attack: pawn on d5 (attackers 1, defenders 1)." in facts
+    assert ("- After your move, your pieces under attack: "
+            "pawn on e4 (attackers 1, defenders 1).") in facts
 
 
 def test_position_facts_board_licenses_no_moves():
@@ -291,3 +304,19 @@ def test_position_facts_keep_the_role_line_the_claim_checker_reads():
     move = BOARD_REPORT["moves"][0]
     facts = prompts.format_position_facts(BOARD_REPORT, "white", move)
     assert claims.parse_roles(facts) == ({"Nc3"}, {"exd5"})
+
+
+def test_position_facts_give_the_evaluation_from_the_coached_side():
+    move = BOARD_REPORT["moves"][0]
+    white = prompts.format_position_facts(BOARD_REPORT, "white", move)
+    assert ("- Engine evaluation (in pawns; + favours you): with the preferred move +0.4, "
+            "after your move -0.6.") in white
+    assert prompts._eval_text(-9_997, chess.BLACK) == "a forced mate for you"
+    assert prompts._eval_text(-9_997, chess.WHITE) == "a forced mate for the opponent"
+
+
+def test_a_line_cut_after_a_capture_says_so():
+    board = chess.Board(_SCANDI_FEN)
+    line = prompts._numbered_line(board, ["exd5"], chess.WHITE)
+    assert line == ("2.exd5 (takes their pawn); material at the end (the line ends on a "
+                    "capture; a recapture may follow): you 39, opponent 38")
