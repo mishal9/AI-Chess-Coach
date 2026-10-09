@@ -63,6 +63,42 @@ iterations:
   knows only the game's positions, so it reads these as invented. Discounting them, C
   passes QC on 50 of 55, as v5 does.
 
+## Pilot D: tools veto only
+
+Pilot C let the teacher write what the tools showed. But the student has no tools and sees
+only the facts, so a relation the teacher verified and the facts do not state ("the e4
+pawn blocks your queen's diagonal to g2") would teach the student to assert what it cannot
+check. Pilot D (commit `7b49499`) keeps the tools but changes the instruction: use them to
+catch mistakes, leave out anything they contradict, and state only what the facts state.
+
+`scripts/claim_support.py` sorts each resolvable defence claim into **stated** (a facts
+line names this defender for this target), **unstated** (true on the board, not in the
+facts) or **false**:
+
+| | v5, no tools | C | D (veto only) |
+|---|---|---|---|
+| Tool calls per row (mean / rows with none) | 0 | 4.5 / 0 | 3.5 / 0 |
+| Grounded | 51 | 50 | 50 |
+| Pass QC | 50 | 46 | 49 |
+| Placement flags | 1 | 4 | 1 |
+| Attack/defence pairings | 44 | 31 | 22 |
+| Pronoun or bare-move subject | 34% | 13% | 18% |
+| Defence claims: stated / unstated / false | 14 / 2 / 1 | 10 / 2 / 0 | 6 / 1 / 0 |
+| Input / output tokens per row | 1.6k / 350 | 6.3k / 630 | 6.1k / 580 |
+
+The counts of resolvable defence claims are small, so the support shares say little: C did
+not measurably add unstated relations, and D makes fewer relation claims of every kind.
+D's placement flags fell back to 1: it stopped describing the board after the preferred
+move.
+
+Read side by side, D drops v5's false "Qf6 … defends your knight on c6" (#189 p14: a knight
+on d6 blocks the queen) and an unstated relation (#328 p21). **But it still writes false
+causal claims the tools could have caught.** In #328 p22 it says Qe4 "let go of both jobs
+at once", one of them defending the knight on d3; after Qe4 the queen still defends d3, and
+the facts say so ("knight on d3 (… defenders 1: queen on e4)"). It made 6 tool calls on
+that row and none checked this. The tools remove the errors the teacher thinks to check;
+the judged rate is still the only measure of what is left.
+
 ## What the pilot shows and does not
 
 - Tool use can be made reliable (C), at about 4× the input tokens and 1.8× the output per
@@ -74,7 +110,7 @@ iterations:
 
 ## Next
 
-Before judging C, the placement checker should accept a placement that holds on the board
-after the preferred move, and placements in the engine lines, or QC will drop correct rows
-from the tool teacher. Then a pre-registered judged run on 100 fresh games, compared with v5
+D is the version to judge: it keeps the student's prompt honest and its placement flags
+are back to the no-tools level, so the placement checker needs no change first. Next, a
+pre-registered judged run on 100 fresh games, D against v5's prompt on the same positions
 (judging pending the Anthropic top-up).
