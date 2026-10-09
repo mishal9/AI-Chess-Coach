@@ -22,6 +22,7 @@ import requests
 
 from coach import prompts
 from eval import backends
+from training import board_tools
 
 # A teacher takes (report, coached_side) and returns the coaching text. Injectable so the
 # pipeline is unit-testable with a canned teacher — no API key, no network.
@@ -45,6 +46,21 @@ concise, a few short paragraphs ending in one or two concrete things to work on.
 
 TEACHER_SYSTEM_PROMPT = prompts.SYSTEM_PROMPT + _EXCELLENCE_LAYER
 TEACHER_POSITION_SYSTEM_PROMPT = prompts.POSITION_SYSTEM_PROMPT + _EXCELLENCE_LAYER
+
+# For the tool-augmented position teacher (``training.distill --teacher-tools``).
+_TOOLS_LAYER = """
+
+CHECK BEFORE YOU WRITE (tools):
+- You can query the board with tools: what stands on a square, what attacks and defends \
+it, whether one piece reaches another, and what a line of moves captures, in the position \
+before your move, after it, or after the preferred move.
+- Before you state that one piece attacks, defends or blocks another, which piece moved, \
+or what a line wins or loses, check it with a tool. If a tool contradicts what you meant \
+to say, say what the tool shows or leave it out.
+- Tool results are for checking only. Cite only moves that appear in the facts, and \
+never mention the tools."""
+
+TEACHER_POSITION_TOOLS_SYSTEM_PROMPT = TEACHER_POSITION_SYSTEM_PROMPT + _TOOLS_LAYER
 
 
 def build_teacher_messages(report: dict, coached_side: str) -> list[dict]:
@@ -92,28 +108,12 @@ DEEPSEEK_USAGE = {
 _USAGE_LOCK = threading.Lock()
 
 
-def deepseek_backend(
-    messages: list[dict], model: str | None = None, temperature: float | None = None
-) -> str:
-    """Chat with DeepSeek via its OpenAI-compatible endpoint; return the answer text only.
-
-    Needs ``DEEPSEEK_API_KEY`` (environment or ``.env``). Only ``message.content`` is used:
-    any ``reasoning_content`` is dropped, so a thinking-mode trace can never end up in a
-    training target. 429 and 5xx responses are retried with backoff; anything else raises.
-    """
+def _deepseek_post(body: dict) -> dict:
+    """One chat completion; returns the response's first message. Retries 429 and 5xx."""
     backends._load_dotenv()
     key = os.environ.get("DEEPSEEK_API_KEY")
     if not key:
         raise SystemExit("DEEPSEEK_API_KEY is not set (environment or .env).")
-    body = {
-        "model": model or DEFAULT_DEEPSEEK_MODEL,
-        "messages": messages,
-        "temperature": DEEPSEEK_TEMPERATURE if temperature is None else temperature,
-        "stream": False,
-    }
-    if DEEPSEEK_THINKING:
-        body["thinking"] = {"type": DEEPSEEK_THINKING}
-
     for attempt in range(1, DEEPSEEK_MAX_ATTEMPTS + 1):
         resp = requests.post(
             f"{DEEPSEEK_BASE_URL}/chat/completions",
@@ -139,8 +139,64 @@ def deepseek_backend(
             )
             if data.get("model"):
                 DEEPSEEK_USAGE["models"].add(data["model"])
-        return (data["choices"][0]["message"].get("content") or "").strip()
+        return data["choices"][0]["message"]
     raise RuntimeError("unreachable")  # pragma: no cover
+
+
+def _deepseek_body(messages: list[dict], model: str | None, temperature: float | None) -> dict:
+    body = {
+        "model": model or DEFAULT_DEEPSEEK_MODEL,
+        "messages": messages,
+        "temperature": DEEPSEEK_TEMPERATURE if temperature is None else temperature,
+        "stream": False,
+    }
+    if DEEPSEEK_THINKING:
+        body["thinking"] = {"type": DEEPSEEK_THINKING}
+    return body
+
+
+def deepseek_backend(
+    messages: list[dict], model: str | None = None, temperature: float | None = None
+) -> str:
+    """Chat with DeepSeek via its OpenAI-compatible endpoint; return the answer text only.
+
+    Needs ``DEEPSEEK_API_KEY`` (environment or ``.env``). Only ``message.content`` is used:
+    any ``reasoning_content`` is dropped, so a thinking-mode trace can never end up in a
+    training target. 429 and 5xx responses are retried with backoff; anything else raises.
+    """
+    message = _deepseek_post(_deepseek_body(messages, model, temperature))
+    return (message.get("content") or "").strip()
+
+
+# Tool rounds per row before the teacher must answer without more checking.
+DEEPSEEK_MAX_TOOL_ROUNDS = 8
+
+
+def deepseek_tool_backend(
+    messages: list[dict], tools: board_tools.BoardTools, model: str | None = None,
+    temperature: float | None = None,
+) -> str:
+    """Like :func:`deepseek_backend`, but the model may call :mod:`training.board_tools`
+    before it answers. Tool calls and results stay in this conversation; only the final
+    answer is returned, so no tool output can end up in a training target. After
+    :data:`DEEPSEEK_MAX_TOOL_ROUNDS` rounds the tools are withdrawn and an answer is asked
+    for."""
+    messages = list(messages)
+    for round_ in range(DEEPSEEK_MAX_TOOL_ROUNDS + 1):
+        body = _deepseek_body(messages, model, temperature)
+        if round_ < DEEPSEEK_MAX_TOOL_ROUNDS:
+            body["tools"] = board_tools.TOOLS
+        message = _deepseek_post(body)
+        calls = message.get("tool_calls") or []
+        if not calls:
+            return (message.get("content") or "").strip()
+        messages.append({"role": "assistant", "content": message.get("content") or "",
+                         "tool_calls": calls})
+        for call in calls:
+            messages.append({"role": "tool", "tool_call_id": call["id"],
+                             "content": tools.run(call["function"]["name"],
+                                                  call["function"].get("arguments"))})
+    raise RuntimeError("the teacher kept calling tools")  # pragma: no cover
 
 
 def _backend(backend_name: str):
@@ -190,3 +246,36 @@ def make_position_teacher_fn(
         return backend(messages, model=model, **_temperature_kw(backend_name, temperature))
 
     return position_teacher_fn
+
+
+def make_position_tool_teacher_fn(model: str | None = None) -> PositionTeacherFn:
+    """A DeepSeek position teacher that may check the board with tools while it writes.
+
+    The messages are the usual position teacher's under
+    :data:`TEACHER_POSITION_TOOLS_SYSTEM_PROMPT`; the student's prompt is unchanged. The
+    total tool calls of the last row each thread wrote are in :func:`last_tool_calls`.
+    """
+
+    def position_teacher_fn(
+        report: dict, coached_side: str, move: dict, temperature: float | None = None
+    ) -> str:
+        messages = build_teacher_position_messages(report, coached_side, move)
+        messages[0] = {"role": "system", "content": TEACHER_POSITION_TOOLS_SYSTEM_PROMPT}
+        tools = board_tools.BoardTools(report, coached_side, move)
+        try:
+            return deepseek_tool_backend(messages, tools, model=model, temperature=temperature)
+        finally:
+            _TOOL_CALLS.count = getattr(_TOOL_CALLS, "count", 0) + tools.calls
+
+    return position_teacher_fn
+
+
+_TOOL_CALLS = threading.local()
+
+
+def last_tool_calls(reset: bool = True) -> int:
+    """Tool calls this thread made since the last reset (all attempts of one row)."""
+    count = getattr(_TOOL_CALLS, "count", 0)
+    if reset:
+        _TOOL_CALLS.count = 0
+    return count

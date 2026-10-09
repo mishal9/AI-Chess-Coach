@@ -229,6 +229,7 @@ def build_position_record(
     coached_side = source.coached_side or prompts.choose_coached_side(report)
     messages = prompts.build_position_messages(report, coached_side, move)
     facts = prompts.format_position_facts(report, coached_side, move)
+    teacher_mod.last_tool_calls(reset=True)
     completion, g, attempt = _best_grounded_attempt(
         lambda a: _call(position_teacher_fn, report, coached_side, move,
                         temperature=_temperature_for(temperatures, a)),
@@ -243,6 +244,8 @@ def build_position_record(
         "move_quality": move["quality"],
         "win_prob_loss": move["win_prob_loss"],
     }
+    if teacher_desc.get("tools"):
+        quality["tool_calls"] = teacher_mod.last_tool_calls()
     return DistillRecord(
         source={
             "pgn": source.pgn.name,
@@ -279,6 +282,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--teacher-thinking", choices=["enabled", "disabled"], default=None,
         help="deepseek only: send an explicit thinking mode (default: the API's own); "
         "recorded in each row's teacher metadata",
+    )
+    parser.add_argument(
+        "--teacher-tools", action="store_true",
+        help="deepseek only: the position teacher may check the board with "
+        "training.board_tools while writing; recorded in teacher metadata, and each "
+        "position row records its tool calls",
     )
     parser.add_argument(
         "--temperature", type=float, default=0.0,
@@ -399,6 +408,8 @@ def main(argv: list[str] | None = None) -> int:
             else "qwen2.5:3b-instruct"
         ),
     }
+    if args.teacher_tools and args.teacher != "deepseek":
+        raise SystemExit("--teacher-tools needs --teacher deepseek")
     if args.teacher == "deepseek":
         teacher_mod.DEEPSEEK_THINKING = args.teacher_thinking
         teacher_desc["thinking"] = args.teacher_thinking or "api-default"
@@ -406,9 +417,13 @@ def main(argv: list[str] | None = None) -> int:
     else:
         temperatures = None
     teacher_fn = teacher_mod.make_teacher_fn(args.teacher, args.teacher_model)
-    position_teacher_fn = teacher_mod.make_position_teacher_fn(
-        args.teacher, args.teacher_model
-    )
+    if args.teacher_tools:
+        teacher_desc["tools"] = "board-v1"
+        position_teacher_fn = teacher_mod.make_position_tool_teacher_fn(args.teacher_model)
+    else:
+        position_teacher_fn = teacher_mod.make_position_teacher_fn(
+            args.teacher, args.teacher_model
+        )
     print(
         f"Distilling {len(todo)} games ({len(done)} already done) with {args.teacher} "
         f"({teacher_desc['model']}), {args.workers} worker(s) — worst case {worst_case} "
