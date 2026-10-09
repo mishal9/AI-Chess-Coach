@@ -54,8 +54,8 @@ CHECK BEFORE YOU WRITE (tools):
 - You can query the board with tools: what stands on a square, what attacks and defends \
 it, whether one piece reaches another, and what a line of moves captures, in the position \
 before your move, after it, or after the preferred move.
-- Before you state that one piece attacks, defends or blocks another, which piece moved, \
-or what a line wins or loses, check it with a tool. If a tool contradicts what you meant \
+- First check, then write: before you state that one piece attacks, defends or blocks \
+another, which piece moved, or what a line wins or loses, check it with a tool. If a tool contradicts what you meant \
 to say, say what the tool shows or leave it out.
 - Tool results are for checking only. Cite only moves that appear in the facts, and \
 never mention the tools. Write every square with its piece ("your pawn on f2"), never a \
@@ -181,14 +181,17 @@ def deepseek_tool_backend(
 ) -> str:
     """Like :func:`deepseek_backend`, but the model may call :mod:`training.board_tools`
     before it answers. Tool calls and results stay in this conversation; only the final
-    answer is returned, so no tool output can end up in a training target. After
-    :data:`DEEPSEEK_MAX_TOOL_ROUNDS` rounds the tools are withdrawn and an answer is asked
-    for."""
+    answer is returned, so no tool output can end up in a training target. The first turn
+    must call a tool; after :data:`DEEPSEEK_MAX_TOOL_ROUNDS` rounds the tools are withdrawn
+    and an answer is asked for."""
     messages = list(messages)
     for round_ in range(DEEPSEEK_MAX_TOOL_ROUNDS + 1):
         body = _deepseek_body(messages, model, temperature)
         if round_ < DEEPSEEK_MAX_TOOL_ROUNDS:
             body["tools"] = board_tools.TOOLS
+            # Left optional, the model skips the tools at temperature 0 (pilot B: 53 of
+            # 55 rows made no call), so the first turn must check something.
+            body["tool_choice"] = "required" if round_ == 0 else "auto"
         message = _deepseek_post(body)
         calls = message.get("tool_calls") or []
         if not calls:

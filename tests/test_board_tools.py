@@ -74,6 +74,7 @@ def test_tool_loop_runs_calls_then_returns_only_the_answer(monkeypatch):
     out = teacher.deepseek_tool_backend([{"role": "user", "content": "x"}], t)
     assert out == "Your knight on c3 defends your pawn on e4."
     assert t.calls == 1 and "tools" in sent[0]
+    assert sent[0]["tool_choice"] == "required" and sent[1]["tool_choice"] == "auto"
     tool_msg = sent[1]["messages"][-1]
     assert tool_msg["role"] == "tool" and tool_msg["content"].startswith("yes:")
 
