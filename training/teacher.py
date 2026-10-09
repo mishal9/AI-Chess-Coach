@@ -58,7 +58,10 @@ before your move, after it, or after the preferred move.
 or what a line wins or loses, check it with a tool. If a tool contradicts what you meant \
 to say, say what the tool shows or leave it out.
 - Tool results are for checking only. Cite only moves that appear in the facts, and \
-never mention the tools."""
+never mention the tools. Write every square with its piece ("your pawn on f2"), never a \
+bare square.
+- Your final message is the coaching itself: start with it directly, with no opening \
+such as "Here's what happened"."""
 
 TEACHER_POSITION_TOOLS_SYSTEM_PROMPT = TEACHER_POSITION_SYSTEM_PROMPT + _TOOLS_LAYER
 

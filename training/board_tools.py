@@ -126,7 +126,8 @@ class BoardTools:
             target = board.piece_at(b)
             verb = ("defends" if target and target.color == piece.color
                     else "attacks" if target else "covers")
-            return f"yes: the {who} {verb} {to_square}"
+            what = f"the {_describe(board, b)}" if target else f"the empty square {to_square}"
+            return f"yes: the {who} {verb} {what}"
         between = chess.SquareSet(chess.between(a, b))
         if piece.piece_type in (chess.QUEEN, chess.ROOK, chess.BISHOP) and between:
             # Same line: say whether this piece moves along it and what stands in the way.
@@ -137,7 +138,9 @@ class BoardTools:
             blockers = [s for s in between if board.piece_at(s)]
             if slides and blockers:
                 return f"no: the {who} is blocked by the {_describe(board, blockers[0])}"
-        return f"no: the {who} does not reach {to_square}"
+        target = board.piece_at(b)
+        what = f"the {_describe(board, b)}" if target else f"the empty square {to_square}"
+        return f"no: the {who} does not reach {what}"
 
     def play_line(self, moves: list[str], position: str) -> str:
         board = self._board(position).copy(stack=False)

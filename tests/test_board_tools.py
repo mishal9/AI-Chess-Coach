@@ -36,7 +36,7 @@ def test_reaches_reports_blockers():
     assert t.reaches("d1", "d5", "before_your_move") == (
         "no: the White queen on d1 is blocked by the White pawn on d2")
     assert t.reaches("c3", "e4", "after_your_move") == (
-        "yes: the White knight on c3 defends e4")
+        "yes: the White knight on c3 defends the White pawn on e4")
     assert t.reaches("b1", "e4", "before_your_move").startswith("no: the White knight on b1")
 
 
