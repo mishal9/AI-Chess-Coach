@@ -453,3 +453,24 @@ def test_defended_with_is_passive():
     result = claims.check_defence_claims(
         "You had your queen defended with the pawn on e6.", BOARD_FACTS)
     assert result.ok and result.checked == 1
+
+
+SUPPORT_FACTS = BOARD_FACTS + """
+- Your pieces under attack: queen on d5 (attackers 1: knight on c3; defenders 1: pawn on e6).
+- Opponent's pieces under attack: none."""
+
+
+def test_facts_defence_pairs_read_the_attacked_piece_lines():
+    import chess
+    assert claims.facts_defence_pairs(SUPPORT_FACTS) == {(chess.E6, chess.D5)}
+
+
+def test_defence_claim_support_separates_stated_unstated_false():
+    support = claims.defence_claim_support
+    assert support("The pawn on e6 defends your queen on d5.", SUPPORT_FACTS) == {
+        "stated": 1, "unstated": 0, "false": 0}
+    # True on the board (after Qd7 the queen covers c6), but no facts line says so.
+    assert support("Qd7 was better: it defends your knight on c6.", SUPPORT_FACTS) == {
+        "stated": 0, "unstated": 1, "false": 0}
+    assert support("The knight on c6 protects your queen on d5.", SUPPORT_FACTS) == {
+        "stated": 0, "unstated": 0, "false": 1}

@@ -688,25 +688,17 @@ _PASSIVE_RE = re.compile(r"\b(?:is|was|are|were|be|been|being|remains?|stays?)\s
                          r"(?:\w+\s+){0,2}\Z", re.IGNORECASE)
 
 
-def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
-    """Flag "X defends Y" claims the board refutes.
+def iter_defence_claims(coaching_text: str, facts_text: str):
+    """Every resolvable "X defends Y" claim in a position row's coaching, with its verdict.
 
-    Conservative, as the placement check is. A defence claim is false only if no piece
-    matching the defender covers one matching the target on any board the facts describe
-    (before the move, after it, after the preferred move). Kings as targets are skipped
-    ("the f7 pawn defends your king" means shelter), as are passives without "by" ("was
-    defended only once" is a count, not a pairing), negations ("no longer" is kept: it
-    asserts the piece did), hypotheticals, purposes and relocations. "Hanging" is not
-    checked: the coaching uses it loosely for a piece that loses an exchange, which direct
-    attacker and defender counts cannot settle. A move names the piece on its destination
-    ("Qd5 defends" is the queen on d5, after that move), and "it" or "which" right before
-    the verb stands for the nearest earlier piece or move that is not itself an object.
-    Facts without a board check nothing.
+    Yields ``(defender, target, defender_spec, target_spec, verdict, excerpt)``: the two
+    mentions, what each names (see :func:`_spec`), and whether a matching defender covers
+    a matching target on any board the facts describe. The skipping rules are
+    :func:`check_defence_claims`'s.
     """
-    result = ClaimResult()
     parsed = facts_boards(facts_text)
     if not parsed:
-        return result
+        return
     you, boards = parsed
     starts = [0] + [m.end() for m in _SENTENCE_BREAK_RE.finditer(coaching_text)]
     ends = starts[1:] + [len(coaching_text)]
@@ -765,15 +757,76 @@ def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
             verdict = _defends(boards, defender, target)
             if verdict is None:
                 continue
-            result.checked += 1
-            if not verdict:
-                result.violations.append(ClaimViolation(
-                    kind="invented_defence", move="",
-                    claimed=f"{defender_m.text} defends {target_m.text}",
-                    actual="no such piece covers the other on any board in the facts",
-                    excerpt=_excerpt(coaching_text, start + min(defender_m.start, target_m.start),
-                                     start + max(defender_m.end, target_m.end))))
+            yield (defender_m, target_m, defender, target, verdict,
+                   _excerpt(coaching_text, start + min(defender_m.start, target_m.start),
+                            start + max(defender_m.end, target_m.end)))
+
+
+def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
+    """Flag "X defends Y" claims the board refutes.
+
+    Conservative, as the placement check is. A defence claim is false only if no piece
+    matching the defender covers one matching the target on any board the facts describe
+    (before the move, after it, after the preferred move). Kings as targets are skipped
+    ("the f7 pawn defends your king" means shelter), as are passives without "by" ("was
+    defended only once" is a count, not a pairing), negations ("no longer" is kept: it
+    asserts the piece did), hypotheticals, purposes and relocations. "Hanging" is not
+    checked: the coaching uses it loosely for a piece that loses an exchange, which direct
+    attacker and defender counts cannot settle. A move names the piece on its destination
+    ("Qd5 defends" is the queen on d5, after that move), and "it" or "which" right before
+    the verb stands for the nearest earlier piece or move that is not itself an object.
+    Facts without a board check nothing.
+    """
+    result = ClaimResult()
+    for defender_m, target_m, _, _, verdict, excerpt in iter_defence_claims(
+            coaching_text, facts_text):
+        result.checked += 1
+        if not verdict:
+            result.violations.append(ClaimViolation(
+                kind="invented_defence", move="",
+                claimed=f"{defender_m.text} defends {target_m.text}",
+                actual="no such piece covers the other on any board in the facts",
+                excerpt=excerpt))
     return result
+
+
+_UNDER_ATTACK_RE = re.compile(
+    r"^- (?:Your|Opponent's|After your move, your) pieces under attack: (.+)\.$", re.MULTILINE)
+_ATTACKED_ENTRY_RE = re.compile(r"\w+ on ([a-h][1-8]) \(attackers \d+(?:: ([^;]*))?; "
+                                r"defenders \d+(?:: ([^)]*))?\)")
+
+
+def facts_defence_pairs(facts_text: str) -> set[tuple[chess.Square, chess.Square]]:
+    """``(defender, target)`` square pairs the facts block names, from its attacked-piece
+    lines ("queen on d5 (attackers 1: knight on c3; defenders 1: pawn on e6)"). Only
+    attacked pieces are listed, so a true defence of an unattacked piece is not here."""
+    pairs = set()
+    for line in _UNDER_ATTACK_RE.findall(facts_text):
+        for target, _, defenders in _ATTACKED_ENTRY_RE.findall(line):
+            for square in re.findall(r"on ([a-h][1-8])", defenders or ""):
+                pairs.add((chess.parse_square(square), chess.parse_square(target)))
+    return pairs
+
+
+def defence_claim_support(coaching_text: str, facts_text: str) -> dict[str, int]:
+    """How a row's defence claims stand against its facts: ``stated`` (the facts name this
+    defender for this target), ``unstated`` (true on the board, but the facts do not say
+    so) and ``false``. A teacher with tools should not add unstated ones: the student sees
+    only the facts and cannot check them."""
+    counts = {"stated": 0, "unstated": 0, "false": 0}
+    parsed = facts_boards(facts_text)
+    if not parsed:
+        return counts
+    _, boards = parsed
+    stated = facts_defence_pairs(facts_text)
+    for _, _, defender, target, verdict, _ in iter_defence_claims(coaching_text, facts_text):
+        if not verdict:
+            counts["false"] += 1
+            continue
+        pairs = {(d, t) for b in boards for color in set(defender[1]) & set(target[1])
+                 for d in _squares(b, defender, color) for t in _squares(b, target, color)}
+        counts["stated" if pairs & stated else "unstated"] += 1
+    return counts
 
 
 def _merge(*results: ClaimResult) -> ClaimResult:

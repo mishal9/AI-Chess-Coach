@@ -47,19 +47,26 @@ concise, a few short paragraphs ending in one or two concrete things to work on.
 TEACHER_SYSTEM_PROMPT = prompts.SYSTEM_PROMPT + _EXCELLENCE_LAYER
 TEACHER_POSITION_SYSTEM_PROMPT = prompts.POSITION_SYSTEM_PROMPT + _EXCELLENCE_LAYER
 
-# For the tool-augmented position teacher (``training.distill --teacher-tools``).
+# For the tool-augmented position teacher (``training.distill --teacher-tools``). The
+# tools only veto: the student has no tools and sees only the facts, so a relation the
+# teacher verified but the facts do not state would teach the student to assert what it
+# cannot check (see docs/experiments/2026-10-09-tool-augmented-teacher-pilot.md).
 _TOOLS_LAYER = """
 
 CHECK BEFORE YOU WRITE (tools):
 - You can query the board with tools: what stands on a square, what attacks and defends \
 it, whether one piece reaches another, and what a line of moves captures, in the position \
 before your move, after it, or after the preferred move.
-- First check, then write: before you state that one piece attacks, defends or blocks \
-another, which piece moved, or what a line wins or loses, check it with a tool. If a tool contradicts what you meant \
-to say, say what the tool shows or leave it out.
-- Tool results are for checking only. Cite only moves that appear in the facts, and \
-never mention the tools. Write every square with its piece ("your pawn on f2"), never a \
-bare square.
+- The tools are for catching your own mistakes, not for finding new things to say. Write \
+from the facts. Before you state that one piece attacks, defends or blocks another, which \
+piece moved, or what a line wins or loses, check it with a tool, and leave out anything \
+the tool contradicts.
+- Say only what the facts themselves state: name a piece as attacking or defending another \
+only when the facts list it that way, and describe material only as the facts' lines give \
+it. If a tool shows something true that the facts do not state, leave it out; the student \
+you are writing for sees only the facts.
+- Cite only moves that appear in the facts, and never mention the tools. Write every \
+square with its piece ("your pawn on f2"), never a bare square.
 - Your final message is the coaching itself: start with it directly, with no opening \
 such as "Here's what happened"."""
 
