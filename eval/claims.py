@@ -595,7 +595,9 @@ _MODAL_RE = re.compile(
     r"|\bto\s+)\Z",
     re.IGNORECASE,
 )
-_NEGATION_RE = re.compile(r"\b(?:not|never|nothing|no one|none)\s+(?:\w+\s+)?\Z|n't\s+\Z",
+# One word may stand between the negation and the verb: "does not really defend",
+# "couldn't actually defend" (10 Oct paired run, #1419 p6).
+_NEGATION_RE = re.compile(r"(?:\b(?:not|never|nothing|no one|none)|n't)\s+(?:\w+\s+)?\Z",
                           re.IGNORECASE)
 _PIECE_TYPES = {name: chess.PIECE_NAMES.index(name) for name in _PIECE_NAMES.split("|")}
 _SIDE_LIST_RE = re.compile(r"^- (?:Your|Opponent's) pieces \((White|Black)\): (.+)\.$",

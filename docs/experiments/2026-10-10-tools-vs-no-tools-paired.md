@@ -141,7 +141,10 @@ p5 ("defended your d4 pawn with Be3" is right; the check took the wrong subject)
 p10 (wrong subject; the sentence still implies the f6 knight defended f7, which it did
 not). Tools: 0 of 1 true. #1419 p6 is a negation ("couldn't actually defend") that the check
 should skip. Its "it was blocked" states a relation that came from the tools, not the facts.
-That is the kind of claim veto-only was meant to keep out.
+That is the kind of claim veto-only was meant to keep out. (Fixed after this result, commit on
+`feat/defence-check-metric-v3`: a negation may now have one word before the verb. Across
+all 2,593 position rows it removes this flag and changes no other. The result above was
+computed with the old check, which dropped this row from the tools arm at QC.)
 
 **Claim measures (all rows).**
 

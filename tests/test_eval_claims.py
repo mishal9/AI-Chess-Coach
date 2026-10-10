@@ -384,6 +384,8 @@ def test_defence_claims_skip_what_is_not_a_pairing():
     for text in (
         "The knight on c6 would protect your queen.",       # hypothetical
         "The knight on c6 does not defend the queen.",       # negation
+        "The knight on c6 couldn't actually defend the queen.",  # negation, adverb between
+        "The knight on c6 didn't really protect the queen.",
         "Your queen was defended only once.",                # a count
         "An active knight supports your queen.",             # generic
         "The knight on c6 defends your king.",               # shelter, not coverage
