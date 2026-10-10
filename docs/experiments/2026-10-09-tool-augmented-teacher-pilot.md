@@ -1,6 +1,8 @@
 # Tool-augmented teacher: pilot
 
-**Status:** pilot, 9 Oct 2026, not judged. Code on branch `feat/tool-augmented-teacher`
+**Status:** pilot, 9 Oct 2026. Judged since in a paired comparison
+(`2026-10-10-tools-vs-no-tools-paired.md`): the tools did not reduce errors (8 vs 7 of
+100), so the corpus is written without them. Code on branch `feat/tool-augmented-teacher`
 (stacked on `feat/explicit-defence-claims`). Nothing here is a reading; it decides whether
 a judged run is worth paying for.
 
@@ -108,9 +110,10 @@ the judged rate is still the only measure of what is left.
 - **It does not show that rows are more accurate.** QC cannot see the causal errors this is
   meant to fix. Only a judged sample with a board check of low-scoring rows can, as before.
 
-## Where to resume (state at 10 Oct 2026)
+## Where to resume (state at 10 Oct 2026, late)
 
-Written so the next session can pick up from here. Nothing below has been run.
+Written so the next session can pick up from here. Steps 2–3 of the earlier list are done
+(below); the steps listed below have not been run.
 
 ### Decisions taken
 
@@ -119,6 +122,8 @@ Written so the next session can pick up from here. Nothing below has been run.
 | 8 Oct | Keep position rows despite ~6% confirmed errors, as a stated deviation from the 5% bar. Whether they enter training is decided by the student: a game-only vs mixed comparison on the held-out games, pre-registered before it runs. If the mixed student is less factual, the position rows come out. | `2026-10-08-explicit-defence-claims.md`, "Where this sits" |
 | 8 Oct | Stay with DeepSeek as teacher. Its terms allow distillation ("training other models (such as model distillation)", 4.2(3)); Gemini's forbid using the service "to develop models that compete", and Gemini is one of our judges. | this note's history; status page |
 | 9 Oct | Tools during generation, veto only (pilot D): the tools catch the teacher's mistakes, and it states only what the facts state, because the student has no tools. | this note, "Pilot D" |
+| 10 Oct | Fold the pending v5 judge into one paired tools vs no-tools comparison. | `2026-10-08-explicit-defence-claims.md`, "Change to the registration" |
+| 10 Oct | By the pre-registered rule, the plain (v5) prompt, without tools, writes the rest of the corpus: tools 8 confirmed errors vs 7, factual 4.59 vs 4.54. | `2026-10-10-tools-vs-no-tools-paired.md`, "Result" |
 
 ### Position rows so far
 
@@ -130,33 +135,30 @@ Written so the next session can pick up from here. Nothing below has been run.
 | v3, clear-cut | clear-cut filter, new games | 4.55 (100) | 6 / 100 = 6.0% |
 | v4 | named attackers and defenders | 4.51 (100) | 6 / 100 = 6.0% |
 | v5 | "name both pieces" rule | not judged | rule not followed (pronoun subjects 34% → 32%) |
-| D (pilot) | tools, veto only | not judged | — |
+| v5, paired | "name both pieces" rule, no tools | 4.54 (100) | 7 / 100 = 7.0% |
+| D, paired | tools, veto only | 4.59 (same 100) | 8 / 100 = 8.0% |
 
-Pooled over the last three judged samples: 18 / 300 = 6.0% (95% Wilson 3.8–9.3%), a lower
-bound (only rows at factual 3 or lower are board-checked).
+Pooled over the last four no-tools samples (v3 fresh, v3 clear-cut, v4, v5 paired):
+25 / 400 = 6.25% (95% Wilson 4.3–9.1%), a lower bound (only rows at factual 3 or lower are
+board-checked).
 
 ### Next steps, in order
 
-1. **Top up both accounts (user).** Balances: DeepSeek about $3.00, Anthropic about $0.15.
-2. **Settle the pending v5 judge.** `2026-10-08-explicit-defence-claims.md` pre-registered
-   judging 100 of its 155 clear-cut rows to choose the prompt for the corpus. Two options:
-   - (a) judge v5 as registered (about $1.35), then judge D separately;
-   - (b) **recommended:** fold it into one paired comparison (step 3) and record the change
-     in that note before anything is judged. The v5 rule was not followed, so v5 and v4
-     write nearly the same text, and the open question is now tools vs no tools.
-3. **Pre-register and run the paired comparison:** 100 fresh games (none of the 474 used
-   so far: `spotcheck146`, `pilot10`, `clearcut100`, `named100`, `explicit100`, which holds
-   `tools_pilot20`), generated twice, without tools (current prompt) and with
-   `--teacher-tools` (D). QC, clear-cut filter, then judge the same 100 positions in both
-   arms (about $2.70 of Opus; generation about $1.50 of DeepSeek). Same rules as before:
-   board-check every row at factual 3 or lower, borderline counts as an error, Wilson
-   intervals. Report alongside: `scripts/claim_subjects.py`, `scripts/claim_support.py`,
-   `invented_defence` flags read by hand, tool calls and tokens per row. Fix the reading
-   in advance, e.g. the tool teacher writes the corpus if its confirmed errors are lower
-   and its factual mean is not lower.
-4. **Generate the rest of the corpus** with the chosen teacher (about $9.50 without tools,
-   up to about 3× with tools, less with DeepSeek's cache-hit pricing).
-5. **Pre-register the game-only vs mixed student comparison** and amend `paper-protocol.md`
+Done 10 Oct: the paired comparison was pre-registered (commits `894e333`, `48fd4e2`) and
+run. Plain (v5 prompt) won by the rule. DeepSeek balance is now $3.78.
+
+1. **Top up DeepSeek (user).** 200 games already have v5-prompt rows (`explicit100` in
+   `raw_deepseek_pos_v5.jsonl`, `paired100` in `raw_deepseek_pos_paired_plain.jsonl`). 354
+   sample games have rows from older prompts, and 1,446 have none. At about $0.005 per game
+   without tools (v5: $0.50 for 100 games), the 1,446 cost about $7.20 and all 1,800 about
+   $9. The balance of $3.78 covers neither.
+2. **Generate the rest of the corpus** with the v5 prompt and no tools: `training.distill
+   --sources data/games/manifest.json --teacher deepseek --teacher-thinking disabled
+   --workers 8 --retries 1 --positions-per-game 4 --no-game-rows --resume --out
+   data/distill/raw_deepseek_pos_v5.jsonl` (`--resume` skips the 100 games already in
+   it). First decide whether the 354 older-prompt sample games are regenerated with v5 or
+   left out, and add the `paired100` plain rows. Then QC and the clear-cut filter.
+3. **Pre-register the game-only vs mixed student comparison** and amend `paper-protocol.md`
    (arm sizes and the 1:2 mix depend on its outcome).
 
 ### Still open from earlier

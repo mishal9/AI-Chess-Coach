@@ -112,3 +112,100 @@ comparison, not here.
 
 DeepSeek: plain about $0.50, tools up to about $1.50 (balance $4.36). Opus: up to 200
 judge calls at about $0.0135, about $2.70.
+
+## Result (10 Oct 2026): no difference; the plain (v5) prompt writes the corpus
+
+**Generation.** 100 games (`data/games/paired100.json`), 274 rows in each arm, no failures.
+
+| | Plain | Tools |
+|---|---|---|
+| Rows / grounded | 274 / 251 | 274 / 252 |
+| Pass QC | 228 (83%) | 241 (88%) |
+| QC flags: placement / `invented_defence` / chat preamble | 23 / 5 / 1 | 13 / 1 / 0 |
+| Clear-cut and QC-passed | 132 | 146 |
+| Teacher calls; input + output tokens | 332; 0.42M + 0.10M | 654; 1.55M + 0.15M |
+| Tokens per row (input / output) | 1.5k / 350 | 5.7k / 550 |
+| Tool calls per row (mean / rows with none / max) | — | 3.5 / 0 / 16 |
+
+Both arms together cost $0.58 of DeepSeek (balance $4.36 → $3.78). Most of the tools arm's
+repeated prompt prefixes were billed at the cache-hit rate. 159 positions are clear-cut in
+both arms (the filter reads only the facts, which are the same). 126 of them pass QC in
+both, 20 pass only with tools and 6 pass only without. So the tools arm loses fewer
+positions to QC, and the paired sample leaves out more of its rows than of the plain
+arm's.
+
+**`invented_defence` flags, read on the board.** Plain: 3 of 5 true (#171 p33 "the king
+stepped away from defending the rook on e1"; #1295 p34 "d5, supported by the pawn on e6",
+which is backwards; #1850 p39 "your bishop on d2 … defended your d4-pawn"). 2 false: #906
+p5 ("defended your d4 pawn with Be3" is right; the check took the wrong subject) and #780
+p10 (wrong subject; the sentence still implies the f6 knight defended f7, which it did
+not). Tools: 0 of 1 true. #1419 p6 is a negation ("couldn't actually defend") that the check
+should skip. Its "it was blocked" states a relation that came from the tools, not the facts.
+That is the kind of claim veto-only was meant to keep out.
+
+**Claim measures (all rows).**
+
+| | Plain | Tools |
+|---|---|---|
+| Attack/defence pairings; pronoun or bare-move subject | 145; 40 (28%) | 145; 43 (30%) |
+| Defence claims: stated / unstated / false | 60 / 2 / 5 | 80 / 6 / 1 |
+
+**Judged sample** (`claude-opus-4-8`, the same 100 positions in both arms):
+
+| | Plain | Tools |
+|---|---|---|
+| Factual mean | 4.54 | 4.59 |
+| Factual 2 / 3 / 4 / 5 | 2 / 5 / 30 / 63 | 4 / 7 / 15 / 74 |
+| Rows at 3 or lower | 7 | 11 |
+| Overall | 4.83 | 4.85 |
+
+Paired factual difference (tools − plain): mean +0.05; tools better on 22 positions, the
+same on 62, worse on 16.
+
+**Blind board check of the 18 rows at 3 or lower.** All 18 were pooled, shuffled and marked
+before the arms were revealed: 15 real errors (4 borderline, counted as errors) and 3 judge
+misses.
+
+| Row | Arm | Factual | Verdict | What is wrong |
+|---|---|---|---|---|
+| #926 p45 | plain | 3 | real | "your rook on c1 was … pinning White's rook on e1 against the rook on e2": no such pin |
+| #1423 p30 | plain | 2 | real | Qf4 "pulled your queen away" from f6, which it still defends (facts); Ne3 "accepts the knight is lost", but it moves the knight |
+| #1355 p3 | plain | 2 | real (borderline) | after b5, "the a6 pawn itself is still under attack": the facts list no attacker |
+| #1873 p11 | plain | 3 | real | Nc3 "brings a piece to a square where it defends your knight on d5": Nc3 *is* that knight |
+| #1161 p12 | plain | 3 | real | Rxb4 moved the rook "off the b-file" and "didn't add a defender to b5": it stays on the b-file and does defend b5 (facts) |
+| #456 p54 | plain | 3 | real | Kd4 "instead of trying to defend the bishop": the king on d4 does defend c4, and the line keeps the bishop |
+| #80 p38 | plain | 3 | real (borderline) | "your queen was the only piece that could have come to [the e8 knight's] rescue": neither queen square defends e8; the knight saves itself with Nc7 |
+| #906 p11 | tools | 3 | real (borderline) | the queen on d4 "was holding your advanced pawn on c6 together": c6 had no defender (facts) |
+| #24 p39 | tools | 3 | judge miss | a bishop attacked once and defended once called "hanging"; the line does win it |
+| #248 p23 | tools | 2 | real (borderline) | "Your knight on g3 … was the only thing keeping your queen on g4 connected to your rook on d1": it wasn't. The rest (Ne2 blocks the g4–d1 diagonal) is right, and the judge's objection to it is wrong |
+| #1927 p30 | tools | 2 | real | Ree8 "moved your rook off the e-file": it stays on it; "down a queen for a rook and bishop" (the bishops were traded) |
+| #1510 p16 | tools | 3 | real | f4 "was about giving your king an escape square": f4 blocks the c7–h2 diagonal behind the queen |
+| #613 p28 | tools | 3 | real | after Nxf8+, "you left your queen on c4 with no defender": the b3 pawn still defends it (facts) |
+| #926 p45 | tools | 2 | real | Rxe1+ Rxe1 "let White's rook take your rook for free, leaving you down a rook": it is a rook trade |
+| #191 p58 | tools | 2 | real | the bishop on d4 "wasn't going anywhere … you could have collected it whenever you wanted": in the line it is never taken; and after Kxd4 the d2 pawn is not taken next |
+| #1161 p12 | tools | 3 | judge miss | the b5 bishop "left hanging" after Rxb4 while defended twice; axb5 does win it |
+| #1873 p11 | tools | 3 | real | Nc3 brings "a knight to guard the d5 knight": the same error as the plain row |
+| #1096 p19 | tools | 3 | judge miss | "immediately lost" for a bishop taken one move later; nothing false |
+
+| | Plain | Tools |
+|---|---|---|
+| Confirmed errors | **7 / 100 = 7.0%** (95% Wilson 3.4–13.7%) | **8 / 100 = 8.0%** (4.1–15.0%) |
+| Both arms wrong on the same position | 2 (#926 p45, #1873 p11) | |
+| Wrong in this arm only | 5 | 6 |
+
+Exact McNemar p = 1.0 (5 vs 6 discordant positions).
+
+**Reading.** The tools arm has more confirmed errors (8 against 7), so under the rule fixed
+above **the plain (v5) prompt writes the rest of the corpus**. Its factual mean is higher
+(4.59 against 4.54), but the rule needs both conditions. Neither arm is under the 5% bar.
+Pooled with the last three judged samples, the no-tools teacher's confirmed errors are 25
+of 400 = 6.25% (95% Wilson 4.3–9.1%).
+
+**What this says.** Checking the board while writing did not reduce errors. The tools arm
+wrote more rows the judge scored 5 (74 against 63), more rows at 3 or lower (11 against 7),
+and it fails QC less often. Its errors are the same kind as before: causal stories about
+which piece did what ("Kd4 instead of defending", "f4 gives an escape square", "left you
+down a rook"). The tools could have checked every one of them, but the teacher did not
+call them on those claims. The 3.5 calls per row went to relations the teacher was already
+checking. This matches pilot D's #328 p22, and Kim et al.'s finding that adding information
+cuts static errors but not reasoning errors.
