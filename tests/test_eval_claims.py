@@ -303,8 +303,46 @@ def test_a_move_attributed_to_the_opponent_is_not_checked_against_the_coached_si
     assert [v.kind for v in flagged.violations] == ["role_inversion"]
 
 
-def test_metric_version_is_2():
-    assert claims.METRIC_VERSION == 2
+def test_metric_version_is_3():
+    assert claims.METRIC_VERSION == 3
+
+
+# --- v3: defence claims in whole-game coaching, against every position of the game ---
+
+def test_game_defence_claim_true_on_the_board_passes():
+    result = claims.check_game_defence_claims(
+        "Your knight on c6 defended your pawn on e5.", OPENING, "black")
+    assert result.ok and result.checked == 1
+
+
+def test_game_defence_claim_never_true_is_flagged():
+    result = claims.check_game_defence_claims(
+        "Your bishop on c5 protected your pawn on e5.", OPENING, "black")
+    assert [v.kind for v in result.violations] == ["invented_defence"]
+    assert "any point in the game" in result.violations[0].actual
+
+
+def test_game_defence_claim_true_at_any_point_passes():
+    # The f1 bishop covers e2 only before 1.e4; any position of the game is enough.
+    result = claims.check_game_defence_claims(
+        "Your bishop on f1 protected your pawn on e2.", OPENING, "white")
+    assert result.ok and result.checked == 1
+
+
+def test_generic_game_coaching_checks_no_defence_claim():
+    # What the current coaches write in whole-game coaching (DeepSeek, 91 held-out games).
+    for text in ("You were defending a position that was already slightly worse.",
+                 "Qe2 keeps the queen better placed to support the center."):
+        result = claims.check_game_defence_claims(text, OPENING, "white")
+        assert result.ok and result.checked == 0, text
+    assert claims.check_game_defence_claims(
+        "Your knight on c6 defended your pawn on e5.", {"moves": []}, "black").checked == 0
+
+
+def test_full_check_includes_game_defence_claims():
+    result = claims.check_claims_from_report(
+        "Your bishop on c5 protected your pawn on e5.", OPENING, "black", facts="")
+    assert [v.kind for v in result.violations] == ["invented_defence"]
 
 
 WORSE_FACTS = ("- Engine evaluation: with the preferred move, you are worse by about 3.1 pawns; "

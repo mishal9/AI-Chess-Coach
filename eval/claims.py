@@ -54,7 +54,12 @@ from eval import grounding
 #      on e2 would have been..."), targeting ("pointing the knight at f7"), conditional
 #      advice ("when your opponent has a pawn on d5") and -ing forms of advice verbs
 #      ("getting the bishop to e7").
-METRIC_VERSION = 2
+#   3  (2026-10-10) defence claims ("your knight on c6 protects the queen") are checked
+#      against every position of the game; one is false only if no position bears it out.
+#      Whole-game coaching from the current coaches makes none that resolve (0 in
+#      DeepSeek's 91 held-out games), so this is a sensor for a student trained on position
+#      rows carrying their defence claims into game coaching.
+METRIC_VERSION = 3
 
 # A flagged-mistake line from the facts block, e.g.
 #   - 12...Re8?! (inaccuracy): the engine preferred Nh5; cost about 10% win probability...
@@ -353,21 +358,10 @@ def check_castling(coaching_text: str, report: dict, coached_side: str) -> Claim
     return result
 
 
-def occupied_squares(report: dict) -> set[tuple[bool, str, str]]:
-    """Every ``(is_white, piece_letter, square)`` the game ever contained.
-
-    Built from each move's ``fen_before``, plus the position after the final move, which
-    no ``fen_before`` represents. A piece/square pair absent from this set was never on
-    the board — the only thing strong enough to call a placement claim invented.
-    """
-    import chess
-
-    seen: set[tuple[bool, str, str]] = set()
-
-    def absorb(board: "chess.Board") -> None:
-        for square, piece in board.piece_map().items():
-            seen.add((piece.color, piece.symbol().lower(), chess.square_name(square)))
-
+def game_boards(report: dict) -> list[chess.Board]:
+    """Every position of the game: each move's ``fen_before``, plus the position after the
+    final move, which no ``fen_before`` represents."""
+    boards = []
     moves = report.get("moves", [])
     board = None
     for move in moves:
@@ -375,14 +369,25 @@ def occupied_squares(report: dict) -> set[tuple[bool, str, str]]:
         if not fen:
             continue
         board = chess.Board(fen)
-        absorb(board)
+        boards.append(board)
     if board is not None and moves:
         try:  # the final position: push the last move onto the last recorded FEN
-            board.push_san(moves[-1]["san"])
-            absorb(board)
+            final = board.copy(stack=False)
+            final.push_san(moves[-1]["san"])
+            boards.append(final)
         except (ValueError, KeyError):
             pass  # a report whose last SAN will not parse simply contributes nothing
-    return seen
+    return boards
+
+
+def occupied_squares(report: dict) -> set[tuple[bool, str, str]]:
+    """Every ``(is_white, piece_letter, square)`` the game ever contained.
+
+    A piece/square pair absent from this set was never on the board — the only thing
+    strong enough to call a placement claim invented.
+    """
+    return {(piece.color, piece.symbol().lower(), chess.square_name(square))
+            for board in game_boards(report) for square, piece in board.piece_map().items()}
 
 
 def check_board_state(
@@ -699,9 +704,13 @@ def iter_defence_claims(coaching_text: str, facts_text: str):
     :func:`check_defence_claims`'s.
     """
     parsed = facts_boards(facts_text)
-    if not parsed:
-        return
-    you, boards = parsed
+    if parsed:
+        yield from _iter_defence_claims_on(coaching_text, *parsed)
+
+
+def _iter_defence_claims_on(coaching_text: str, you: chess.Color, boards: list[chess.Board]):
+    """:func:`iter_defence_claims` against any boards: the coached colour ``you`` and the
+    positions a claim may be true on."""
     starts = [0] + [m.end() for m in _SENTENCE_BREAK_RE.finditer(coaching_text)]
     ends = starts[1:] + [len(coaching_text)]
     for start, end in zip(starts, ends):
@@ -792,6 +801,29 @@ def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
     return result
 
 
+def check_game_defence_claims(coaching_text: str, report: dict, coached_side: str
+                              ) -> ClaimResult:
+    """:func:`check_defence_claims` for whole-game coaching, whose facts have no board.
+
+    As conservative as :func:`check_board_state`: a claim is false only if no piece
+    matching the defender covers one matching the target at **any** point in the game.
+    """
+    result = ClaimResult()
+    boards = game_boards(report)
+    if not boards:
+        return result
+    for defender_m, target_m, _, _, verdict, excerpt in _iter_defence_claims_on(
+            coaching_text, coached_side == "white", boards):
+        result.checked += 1
+        if not verdict:
+            result.violations.append(ClaimViolation(
+                kind="invented_defence", move="",
+                claimed=f"{defender_m.text} defends {target_m.text}",
+                actual="no such piece covers the other at any point in the game",
+                excerpt=excerpt))
+    return result
+
+
 _UNDER_ATTACK_RE = re.compile(
     r"^- (?:Your|Opponent's|After your move, your) pieces under attack: (.+)\.$", re.MULTILINE)
 _ATTACKED_ENTRY_RE = re.compile(r"\w+ on ([a-h][1-8]) \(attackers \d+(?:: ([^;]*))?; "
@@ -846,7 +878,7 @@ def check_claims_from_report(
     max_mistakes: int = 6,
     facts: str | None = None,
 ) -> ClaimResult:
-    """Full check: role inversion, invented castling, invented placement.
+    """Full check: role inversion, invented castling, invented placement, invented defence.
 
     Mirrors :func:`eval.grounding.grounding_from_report` — the facts block is rebuilt
     exactly as the coach received it, so the roles checked are the roles it was given.
@@ -860,4 +892,5 @@ def check_claims_from_report(
         check_roles(coaching_text, facts),
         check_castling(coaching_text, report, coached_side),
         check_board_state(coaching_text, report, coached_side),
+        check_game_defence_claims(coaching_text, report, coached_side),
     )
