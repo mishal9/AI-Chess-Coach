@@ -165,6 +165,11 @@ a non-capture engine-preferred move in the facts. Measured, not adopted:
 Open. Options: keep the checker v2 filter as is (7,234 rows), or exempt non-capture
 destination squares (about 7,400 rows, with an estimated 20–25 real errors let in).
 
+**Decided 10 Oct 2026 (user):** keep the checker v2 filter as is: every row with a
+placement flag is dropped. Rows are split 90/10/0 by game (`training.dataset --ratios 0.9
+0.1 0`; the split hashes each row's game, so no game straddles train and validation). The
+91 held-out games are the only test set.
+
 ## Judge spot-check of the kept rows
 
 **Pre-registered 7 Oct 2026, before any row was judged.**

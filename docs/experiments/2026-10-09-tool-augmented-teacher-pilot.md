@@ -166,9 +166,16 @@ run. Plain (v5 prompt) won by the rule. DeepSeek balance is now $3.78.
 
 ### Still open from earlier
 
-- Not confirmed: keeping the checker v2 placement filter, and the 90/10/0 split (7 Oct audit).
-- Worth doing: add the defence check (moves and pronouns included) to the held-out claim
-  metric as `METRIC_VERSION` 3, so student coaching is scored for the same errors.
+- Confirmed 10 Oct: keep the checker v2 placement filter, and split 90/10/0 by game
+  (`--ratios 0.9 0.1 0`), recorded in the 7 Oct audit note.
+- Done 10 Oct (branch `feat/defence-check-metric-v3`, stacked on this one): the defence check
+  skips negations with a word before the verb (`b833e53`; removes the one false flag, #1419
+  p6, of 2,593 rows). The held-out claim metric is now `METRIC_VERSION` 3 (`211d350`):
+  defence claims in whole-game coaching are checked against every position of the game.
+  It changes nothing for DeepSeek's 91 held-out games, which make no resolvable defence
+  claim. It is a sensor for a mixed student carrying position-row defence claims into game
+  coaching. `eval.recheck` cannot backfill reports scored with grounding v2: its alignment
+  check uses the v1 move extractor and refuses them.
 - `docs/concept-mindmap.md`, `docs/learning-build-schedule.md` and `docs/learning-notes.md`
   have uncommitted edits that are not part of this work; left as they are.
 
