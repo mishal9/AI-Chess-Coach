@@ -132,3 +132,14 @@ The judged sample, and so the reading, waits for the Anthropic top-up.
 (`2026-10-09-tool-augmented-teacher-pilot.md`). Its "Where to resume" section proposes
 folding this judge into a paired tools vs no-tools comparison; until that is decided, the
 judge above stays as registered.
+
+## Change to the registration (10 Oct 2026, before any v5 row was judged)
+
+**The judge above will not run.** The user decided on 10 Oct to fold it into one paired
+comparison, pre-registered in `2026-10-10-tools-vs-no-tools-paired.md`. Reasons: the rule
+this note tests was not followed (pronoun subjects 34% → 32%), so the v5 and v4 prompts
+write nearly the same text and the v5-or-v4 choice above would be decided by noise. The
+open question is now whether the teacher checks the board with tools. The v5 prompt is
+the no-tools arm of that comparison, and the reading there replaces the one above. The v5
+rows in `raw_deepseek_pos_v5.jsonl` stay unjudged. Their compliance count and the check's
+precision (2 of 3, then the fix) are reported as above.
