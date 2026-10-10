@@ -28,9 +28,11 @@ the facts alone (`training.clear_cut`), so both arms have the same clear-cut pos
 
 ## Games
 
-100 corpus games, none among the 474 used so far (`spotcheck146`, `pilot10`,
-`clearcut100`, `named100`, `explicit100`; `tools_pilot20` is part of `explicit100`), drawn
-from the other 1,526 with seed 20261012 by the same code as before:
+100 corpus games, none among the 454 used so far (`spotcheck146`, `pilot10`,
+`clearcut100`, `named100`, `explicit100`: 456 entries, 2 games in two files;
+`tools_pilot20` is part of `explicit100`), drawn from the other 1,546 with seed 20261012 by
+the same code as before. (Corrected before generation: the first version said 474 and
+1,526.)
 
 ```python
 import json, random
