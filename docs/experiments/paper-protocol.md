@@ -279,6 +279,15 @@ The sample is of online play only.
 
 ### Training-size sweep
 
+> **Amended 10 Oct 2026, before any sweep run:** see
+> `2026-10-10-game-only-vs-mixed-student.md`, which replaces the sizes, seeding and judging
+> below. Only clear-cut position rows are kept, so the 1:2 mix tops out at about 3,550
+> train rows and the 5,000 point is replaced by "all rows at 1:2". A game-only arm is
+> trained at 400, 1,000 and 1,700 next to the mixed one. At 1,700, a pre-registered
+> non-inferiority test (δ = 0.30, Opus factual, paired over the 91 held-out games, 3 seeds)
+> decides whether position rows stay in the paper's training set. The text below is kept
+> as first registered.
+
 Four **nested** train-row sizes, each a superset of the smaller ones so only size varies:
 
 | Rows (train split) | Role |
@@ -301,6 +310,10 @@ Four **nested** train-row sizes, each a superset of the smaller ones so only siz
   alone didn't already provide?
 
 ### Seeding (revised 2026-09-25)
+
+> **Amended 10 Oct 2026:** 3 seeds at every point of both arms (24 runs). Opus and Gemini
+> judge all seeds of both arms at 1,700; Opus alone judges seed 0 elsewhere and the endpoint
+> seeds. See `2026-10-10-game-only-vs-mixed-student.md`.
 
 A 4-point curve with a noise estimate only at its two ends leaves the middle two points
 undefended — a reviewer has no way to tell a real step from seed wobble at 1,000 or 2,500
