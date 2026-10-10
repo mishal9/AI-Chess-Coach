@@ -127,3 +127,8 @@ claims, all true when read. QC then passes 257 of 296 (87%): 12 placement flags,
 `invented_defence`, 1 invented castling. **155 of the 257 (60%) are clear-cut.**
 
 The judged sample, and so the reading, waits for the Anthropic top-up.
+
+**Since (9–10 Oct):** the tool-augmented teacher was piloted
+(`2026-10-09-tool-augmented-teacher-pilot.md`). Its "Where to resume" section proposes
+folding this judge into a paired tools vs no-tools comparison; until that is decided, the
+judge above stays as registered.

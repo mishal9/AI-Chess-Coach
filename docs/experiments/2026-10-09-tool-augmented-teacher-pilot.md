@@ -108,9 +108,81 @@ the judged rate is still the only measure of what is left.
 - **It does not show that rows are more accurate.** QC cannot see the causal errors this is
   meant to fix. Only a judged sample with a board check of low-scoring rows can, as before.
 
-## Next
+## Where to resume (state at 10 Oct 2026)
 
-D is the version to judge: it keeps the student's prompt honest and its placement flags
-are back to the no-tools level, so the placement checker needs no change first. Next, a
-pre-registered judged run on 100 fresh games, D against v5's prompt on the same positions
-(judging pending the Anthropic top-up).
+Written so the next session can pick up from here. Nothing below has been run.
+
+### Decisions taken
+
+| Date | Decision | Where recorded |
+|---|---|---|
+| 8 Oct | Keep position rows despite ~6% confirmed errors, as a stated deviation from the 5% bar. Whether they enter training is decided by the student: a game-only vs mixed comparison on the held-out games, pre-registered before it runs. If the mixed student is less factual, the position rows come out. | `2026-10-08-explicit-defence-claims.md`, "Where this sits" |
+| 8 Oct | Stay with DeepSeek as teacher. Its terms allow distillation ("training other models (such as model distillation)", 4.2(3)); Gemini's forbid using the service "to develop models that compete", and Gemini is one of our judges. | this note's history; status page |
+| 9 Oct | Tools during generation, veto only (pilot D): the tools catch the teacher's mistakes, and it states only what the facts state, because the student has no tools. | this note, "Pilot D" |
+
+### Position rows so far
+
+| Version | Change | Factual | Confirmed errors (board-checked) |
+|---|---|---|---|
+| Old rows | one-line facts | 4.18 (same 133) | 8 / 150 = 5.3% |
+| 8 Oct | board in the facts | 4.38 (133) | 10 / 133 = 7.5% |
+| v3 | evaluation in words | 4.44 (fresh 100) | 6 / 100 = 6.0% |
+| v3, clear-cut | clear-cut filter, new games | 4.55 (100) | 6 / 100 = 6.0% |
+| v4 | named attackers and defenders | 4.51 (100) | 6 / 100 = 6.0% |
+| v5 | "name both pieces" rule | not judged | rule not followed (pronoun subjects 34% → 32%) |
+| D (pilot) | tools, veto only | not judged | — |
+
+Pooled over the last three judged samples: 18 / 300 = 6.0% (95% Wilson 3.8–9.3%), a lower
+bound (only rows at factual 3 or lower are board-checked).
+
+### Next steps, in order
+
+1. **Top up both accounts (user).** Balances: DeepSeek about $3.00, Anthropic about $0.15.
+2. **Settle the pending v5 judge.** `2026-10-08-explicit-defence-claims.md` pre-registered
+   judging 100 of its 155 clear-cut rows to choose the prompt for the corpus. Two options:
+   - (a) judge v5 as registered (about $1.35), then judge D separately;
+   - (b) **recommended:** fold it into one paired comparison (step 3) and record the change
+     in that note before anything is judged. The v5 rule was not followed, so v5 and v4
+     write nearly the same text, and the open question is now tools vs no tools.
+3. **Pre-register and run the paired comparison:** 100 fresh games (none of the 474 used
+   so far: `spotcheck146`, `pilot10`, `clearcut100`, `named100`, `explicit100`, which holds
+   `tools_pilot20`), generated twice, without tools (current prompt) and with
+   `--teacher-tools` (D). QC, clear-cut filter, then judge the same 100 positions in both
+   arms (about $2.70 of Opus; generation about $1.50 of DeepSeek). Same rules as before:
+   board-check every row at factual 3 or lower, borderline counts as an error, Wilson
+   intervals. Report alongside: `scripts/claim_subjects.py`, `scripts/claim_support.py`,
+   `invented_defence` flags read by hand, tool calls and tokens per row. Fix the reading
+   in advance, e.g. the tool teacher writes the corpus if its confirmed errors are lower
+   and its factual mean is not lower.
+4. **Generate the rest of the corpus** with the chosen teacher (about $9.50 without tools,
+   up to about 3× with tools, less with DeepSeek's cache-hit pricing).
+5. **Pre-register the game-only vs mixed student comparison** and amend `paper-protocol.md`
+   (arm sizes and the 1:2 mix depend on its outcome).
+
+### Still open from earlier
+
+- Not confirmed: keeping the checker v2 placement filter, and the 90/10/0 split (7 Oct audit).
+- Worth doing: add the defence check (moves and pronouns included) to the held-out claim
+  metric as `METRIC_VERSION` 3, so student coaching is scored for the same errors.
+- `docs/concept-mindmap.md`, `docs/learning-build-schedule.md` and `docs/learning-notes.md`
+  have uncommitted edits that are not part of this work; left as they are.
+
+### Code and data
+
+- Branch `feat/tool-augmented-teacher`, local only, stacked: `feat/explicit-defence-claims`
+  → `feat/named-defenders` → `feat/clear-cut-position-rows` → `feat/position-facts-board`
+  → `feat/deepseek-training-rows`. The remote copy of `feat/deepseek-training-rows` holds
+  stale pre-rewrite history, so check before pushing any of these.
+- Teacher: `training/board_tools.py`, `training.teacher.deepseek_tool_backend`
+  (first turn `tool_choice: "required"`, at most 8 rounds), `training.distill
+  --teacher-tools` (rows record `teacher.tools = "board-v1"` and `quality.tool_calls`).
+- Checks and measures: `eval.claims.check_defence_claims` (QC kind `invented_defence`),
+  `eval.claims.defence_claim_support`, `training.clear_cut`, `scripts/claim_subjects.py`,
+  `scripts/claim_support.py`. 617 tests pass.
+- Rows (git-ignored, `data/distill/`): `raw_deepseek_pos_v3*.jsonl`, `_v4`, `_v5` with their
+  `_qc` and `_clear` files and judge verdicts; pilots in `data/distill/pilot_tools/`
+  (`raw_tools_a`–`d`, and `v5_same20.jsonl`, the v5 rows for the same 20 games).
+- Game samples (git-ignored, `data/games/`): `spotcheck146`, `pilot10`, `clearcut100`
+  (seed 20261009), `named100` (20261010), `explicit100` (20261011), `tools_pilot20` (the
+  first 20 of `explicit100`). Each is drawn from `manifest.json` minus the earlier ones, by
+  the code in `2026-10-08-clear-cut-position-rows.md`.
