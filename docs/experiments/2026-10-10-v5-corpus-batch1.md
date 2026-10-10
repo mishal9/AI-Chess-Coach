@@ -94,4 +94,4 @@ rows would need a fresh set to measure it again.
 
   Either way, the registered 5,000-row point cannot be built, and a game-only arm stops at
   1,928 rows (about 1,735 in the train split). See
-  `2026-10-11-game-only-vs-mixed-student.md`.
+  `2026-10-10-game-only-vs-mixed-student.md`.
