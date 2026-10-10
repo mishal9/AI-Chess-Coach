@@ -39,6 +39,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+import chess
+
 from coach import prompts
 from eval import grounding
 
@@ -52,7 +54,12 @@ from eval import grounding
 #      on e2 would have been..."), targeting ("pointing the knight at f7"), conditional
 #      advice ("when your opponent has a pawn on d5") and -ing forms of advice verbs
 #      ("getting the bishop to e7").
-METRIC_VERSION = 2
+#   3  (2026-10-10) defence claims ("your knight on c6 protects the queen") are checked
+#      against every position of the game; one is false only if no position bears it out.
+#      Whole-game coaching from the current coaches makes none that resolve (0 in
+#      DeepSeek's 91 held-out games), so this is a sensor for a student trained on position
+#      rows carrying their defence claims into game coaching.
+METRIC_VERSION = 3
 
 # A flagged-mistake line from the facts block, e.g.
 #   - 12...Re8?! (inaccuracy): the engine preferred Nh5; cost about 10% win probability...
@@ -351,21 +358,10 @@ def check_castling(coaching_text: str, report: dict, coached_side: str) -> Claim
     return result
 
 
-def occupied_squares(report: dict) -> set[tuple[bool, str, str]]:
-    """Every ``(is_white, piece_letter, square)`` the game ever contained.
-
-    Built from each move's ``fen_before``, plus the position after the final move, which
-    no ``fen_before`` represents. A piece/square pair absent from this set was never on
-    the board — the only thing strong enough to call a placement claim invented.
-    """
-    import chess
-
-    seen: set[tuple[bool, str, str]] = set()
-
-    def absorb(board: "chess.Board") -> None:
-        for square, piece in board.piece_map().items():
-            seen.add((piece.color, piece.symbol().lower(), chess.square_name(square)))
-
+def game_boards(report: dict) -> list[chess.Board]:
+    """Every position of the game: each move's ``fen_before``, plus the position after the
+    final move, which no ``fen_before`` represents."""
+    boards = []
     moves = report.get("moves", [])
     board = None
     for move in moves:
@@ -373,14 +369,25 @@ def occupied_squares(report: dict) -> set[tuple[bool, str, str]]:
         if not fen:
             continue
         board = chess.Board(fen)
-        absorb(board)
+        boards.append(board)
     if board is not None and moves:
         try:  # the final position: push the last move onto the last recorded FEN
-            board.push_san(moves[-1]["san"])
-            absorb(board)
+            final = board.copy(stack=False)
+            final.push_san(moves[-1]["san"])
+            boards.append(final)
         except (ValueError, KeyError):
             pass  # a report whose last SAN will not parse simply contributes nothing
-    return seen
+    return boards
+
+
+def occupied_squares(report: dict) -> set[tuple[bool, str, str]]:
+    """Every ``(is_white, piece_letter, square)`` the game ever contained.
+
+    A piece/square pair absent from this set was never on the board — the only thing
+    strong enough to call a placement claim invented.
+    """
+    return {(piece.color, piece.symbol().lower(), chess.square_name(square))
+            for board in game_boards(report) for square, piece in board.piece_map().items()}
 
 
 def check_board_state(
@@ -435,6 +442,427 @@ def check_board_state(
     return result
 
 
+# The position facts' evaluation line, in its words form ("you are worse by about 3.1
+# pawns") or the earlier signed form ("(in pawns; + favours you): ... -3.1, ... -8.9").
+_EVAL_LINE_RE = re.compile(
+    r"^- Engine evaluation[^:\n]*: with the preferred move,? (?P<before>[^;,\n]+)[;,] "
+    r"after your move,? (?P<after>[^.\n]+(?:\.\d+[^.\n]*)?)\.$",
+    re.MULTILINE,
+)
+_EVAL_WORDS_RE = re.compile(r"you are (better|worse) by about (\d+(?:\.\d+)?) pawns")
+EVAL_CLEAR_PAWNS = 1.0  # a side is clearly better from a full pawn
+
+_MODIFIERS = r"(?:already|still|clearly|much|slightly|comfortably|objectively|well)\s+"
+# "you were already better", "left you clearly better", "your position remains better",
+# "a clearly winning position". Material ("ahead", "up a pawn") is left out: the facts
+# give material separately, and a side can be up material and still worse.
+_BETTER_CLAIM_RE = re.compile(
+    rf"\b(?:you(?:'re| are| were| remain| remained| stay| stayed| stand| stood)|"
+    rf"(?:left|leaves|leave|keeps|keep|kept) you|"
+    rf"your position (?:is|was|remains|remained|stays|stayed))\s+(?:{_MODIFIERS})*"
+    rf"(?:better|winning|on top)\b(?!\s+(?:off|to|than|or)\b)(?!\s+(?:a|an|the|back|"
+    rf"material|your|their|two|three)\b)"
+    rf"|\b(?:clearly|slightly|much|comfortably)\s+(?:better|winning)\s+position\b",
+    re.IGNORECASE,
+)
+_WORSE_CLAIM_RE = re.compile(
+    rf"\b(?:you(?:'re| are| were| stand| stood)|your position (?:is|was))\s+"
+    rf"(?:{_MODIFIERS})*(?:worse|losing|lost)\b(?!\s+(?:off|than)\b)(?!\s+(?:a|an|the|"
+    rf"material|your|their|two|three)\b)",
+    re.IGNORECASE,
+)
+
+
+_CONDITIONAL_RE = re.compile(r"\b(?:when|whenever|if|once|while)\s+\Z", re.IGNORECASE)
+
+
+def _eval_pawns(phrase: str) -> float | None:
+    """The coached side's evaluation in pawns from one phrase of the evaluation line."""
+    phrase = phrase.strip()
+    if "forced mate for you" in phrase or phrase == "you have a forced mate":
+        return 100.0
+    if "forced mate for the opponent" in phrase or phrase == "the opponent has a forced mate":
+        return -100.0
+    if phrase == "the position is about level":
+        return 0.0
+    m = _EVAL_WORDS_RE.fullmatch(phrase)
+    if m:
+        return float(m.group(2)) * (1 if m.group(1) == "better" else -1)
+    try:
+        return float(phrase)
+    except ValueError:
+        return None
+
+
+def check_eval_sign(coaching_text: str, facts_text: str) -> ClaimResult:
+    """Flag a student called better or winning when the evaluation says they were worse.
+
+    The 8 Oct 2026 spot-check found this in 5 of 10 confirmed errors: "you were already
+    better" at -3.1. Calling the student better is false when even the engine's preferred
+    move left them a pawn or more worse (a mistake only makes it worse, and a hypothetical
+    "would have left you better" describes exactly that preferred move); calling them
+    worse or losing is false when they stayed a pawn or more better after the move played.
+    Facts without an evaluation line (whole-game facts) check nothing.
+    """
+    result = ClaimResult()
+    m = _EVAL_LINE_RE.search(facts_text)
+    if not m:
+        return result
+    before, after = _eval_pawns(m.group("before")), _eval_pawns(m.group("after"))
+    if before is None or after is None:
+        return result
+    checks = [
+        (_BETTER_CLAIM_RE, before <= -EVAL_CLEAR_PAWNS, "better", m.group("before")),
+        (_WORSE_CLAIM_RE, after >= EVAL_CLEAR_PAWNS, "worse", m.group("after")),
+    ]
+    for pattern, false_here, claimed, actual in checks:
+        for claim in pattern.finditer(coaching_text):
+            if _CONDITIONAL_RE.search(coaching_text[: claim.start()]):
+                continue  # advice: "when you're winning, keep it simple"
+            result.checked += 1
+            if false_here:
+                result.violations.append(
+                    ClaimViolation(
+                        kind="eval_sign",
+                        move="",
+                        claimed=f"student {claimed}",
+                        actual=f"evaluation: {actual.strip()}",
+                        excerpt=_excerpt(coaching_text, claim.start(), claim.end()),
+                    )
+                )
+    return result
+
+
+# --- defence claims ---------------------------------------------------------------
+# "the knight on c6 no longer protects the queen", "supporting your knight on g6". The 8 Oct clear-cut spot-check found 4 of its 6 confirmed
+# errors misstating what defends what. A position row's facts list every piece, so the
+# boards before and after the move (and after the preferred move) settle these claims.
+_PIECE_NAMES = r"pawn|knight|bishop|rook|queen|king"
+_MENTION_RE = re.compile(
+    rf"\b(?:(?P<owner>your|the|their|black's|white's|opponent's|an?)\s+"
+    rf"(?:(?!(?:{_PIECE_NAMES})\b)[a-z]+\s+){{0,2}}?)?"
+    rf"(?:(?P<sq1>[a-h][1-8])[- ])?(?P<piece>{_PIECE_NAMES})\b"
+    # not "the rook's capture", "your pawns", "that bishop sacrifice"
+    rf"(?!'s|s\b|\s+(?:sacrifice|capture|move|trade|exchange|pair|check|ending)s?\b)"
+    rf"(?:\s+(?:on|at|from)\s+(?P<sq2>[a-h][1-8]))?\b",
+    re.IGNORECASE,
+)
+# A move names the piece on its destination square: "Qd5 … defends" is the queen on d5,
+# which stands there on the board after that move (when the facts describe one).
+_SAN_MENTION_RE = re.compile(
+    r"(?<![\w.])(?:\d+\.+\s*)?(?P<piece>[KQRBN])[a-h]?[1-8]?x?(?P<sq>[a-h][1-8])[+#]?(?![\w])"
+)
+_SAN_PIECES = {"K": "king", "Q": "queen", "R": "rook", "B": "bishop", "N": "knight"}
+# "it defends", "which still protected": the subject is the nearest piece or move before.
+_PRONOUN_SUBJECT_RE = re.compile(
+    r"\b(?:it|which)\s+(?:(?:also|still|already|now|then|only|directly|was|is|had|has|"
+    r"been|no\s+longer)\s+){0,2}(?=(?:defend|protect|guard|support)(?:s|ed|ing)?\b)",
+    re.IGNORECASE,
+)
+# "defended the b7 pawn indirectly": an x-ray, which direct coverage cannot settle.
+_INDIRECT_RE = re.compile(r"\A[^.;:!?]{0,40}\b(?:indirectly|x-ray|through)\b", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class _Mention:
+    """One piece the text names: "your knight on g6", a move ("Qd5"), or a pronoun
+    standing for the nearest of those before it."""
+    start: int
+    end: int
+    text: str
+    owner: str
+    piece: str
+    square: str | None
+
+
+def _mentions(sentence: str) -> list[_Mention]:
+    found = [_Mention(m.start(), m.end(), m.group(0), (m.group("owner") or "").lower(),
+                      m.group("piece").lower(), m.group("sq1") or m.group("sq2"))
+             for m in _MENTION_RE.finditer(sentence)]
+    found += [_Mention(m.start(), m.end(), m.group(0), "", _SAN_PIECES[m.group("piece")],
+                       m.group("sq"))
+              for m in _SAN_MENTION_RE.finditer(sentence)]
+    if re.search(r"\b(?:enemy|opponent's|opposing)\b", sentence, re.IGNORECASE):
+        found = [m if not re.search(r"\b(?:enemy|opponent's|opposing)\b", m.text, re.I)
+                 else _Mention(m.start, m.end, m.text, "their", m.piece, m.square)
+                 for m in found]
+    return sorted(found, key=lambda m: m.start)
+
+
+_DEFEND_RE = re.compile(
+    r"\b(?:defend|protect|guard|support)(?:s|ed|ing)?\b"
+    r"(?P<by>\s+(?:only\s+|solely\s+|just\s+|now\s+)?(?:by|with)\b)?", re.IGNORECASE
+)
+# Hypotheticals and purposes say nothing about the board: "Qd7 would protect the knight",
+# "you needed to guard f2", "if the rook defended g6".
+_MODAL_RE = re.compile(
+    r"(?:\b(?:would|could|might|should|can|will|must|may|if|whether|unless)\b[^.;:!?]{0,30}"
+    r"|\bto\s+)\Z",
+    re.IGNORECASE,
+)
+# One word may stand between the negation and the verb: "does not really defend",
+# "couldn't actually defend" (10 Oct paired run, #1419 p6).
+_NEGATION_RE = re.compile(r"(?:\b(?:not|never|nothing|no one|none)|n't)\s+(?:\w+\s+)?\Z",
+                          re.IGNORECASE)
+_PIECE_TYPES = {name: chess.PIECE_NAMES.index(name) for name in _PIECE_NAMES.split("|")}
+_SIDE_LIST_RE = re.compile(r"^- (?:Your|Opponent's) pieces \((White|Black)\): (.+)\.$",
+                           re.MULTILINE)
+_TO_MOVE_RE = re.compile(r"^The position before your move \((White|Black) to move\):$",
+                         re.MULTILINE)
+_MOVE_LINE_RES = (re.compile(r"^- Your move (\S+) ", re.MULTILINE),
+                  re.compile(r"^- The preferred move (\S+) ", re.MULTILINE))
+
+
+def facts_boards(facts_text: str) -> tuple[chess.Color, list[chess.Board]] | None:
+    """The coached colour and the boards a position row's facts describe: before the move,
+    after the move played and after the preferred move (each when it parses)."""
+    to_move = _TO_MOVE_RE.search(facts_text)
+    sides = _SIDE_LIST_RE.findall(facts_text)
+    if not to_move or len(sides) != 2:
+        return None
+    board = chess.Board(None)
+    for color_name, pieces in sides:
+        color = color_name == "White"
+        for part in pieces.split(", "):
+            name, _, square = part.partition(" on ")
+            if name not in _PIECE_TYPES or len(square) != 2:
+                return None
+            board.set_piece_at(chess.parse_square(square), chess.Piece(_PIECE_TYPES[name], color))
+    board.turn = to_move.group(1) == "White"
+    boards = [board]
+    for line_re in _MOVE_LINE_RES:
+        m = line_re.search(facts_text)
+        if m:
+            after = board.copy(stack=False)
+            try:
+                after.push_san(m.group(1))
+            except ValueError:
+                continue
+            boards.append(after)
+    return board.turn, boards
+
+
+def _spec(m: _Mention, you: chess.Color, same_as: chess.Color | None = None
+          ) -> tuple[chess.PieceType, list[chess.Color], chess.Square | None]:
+    """What a piece mention names: its type, the colours it could be, and its square when
+    the text gives one ("your knight on g6", "the f4-pawn", "Qd5"). ``same_as`` settles an
+    unowned mention's colour: in "the knight no longer protects the queen" both pieces are
+    the defender's side's."""
+    owner = m.owner
+    colors = ([you] if owner == "your" else [not you] if owner in ("their", "opponent's")
+              else [chess.WHITE] if owner == "white's" else [chess.BLACK]
+              if owner == "black's" else [same_as] if same_as is not None
+              else [chess.WHITE, chess.BLACK])
+    return (_PIECE_TYPES[m.piece], colors,
+            chess.parse_square(m.square.lower()) if m.square else None)
+
+
+def _squares(board: chess.Board, spec, color: chess.Color) -> list[chess.Square]:
+    piece, _, square = spec
+    if square is None:
+        return list(board.pieces(piece, color))
+    return [square] if board.piece_at(square) == chess.Piece(piece, color) else []
+
+
+def _defends(boards: list[chess.Board], defender, target) -> bool | None:
+    """Whether a piece matching ``defender`` covers one matching ``target`` (same colour)
+    on any board, or None when no board holds both. A mention without a square matches
+    every such piece, so "your queen defends the knight" passes if it does on any board,
+    wherever the queen stood."""
+    seen = False
+    for b in boards:
+        for color in set(defender[1]) & set(target[1]):
+            for d in _squares(b, defender, color):
+                for t in _squares(b, target, color):
+                    if d != t:
+                        seen = True
+                        if t in b.attacks(d):
+                            return True
+    return False if seen else None
+
+
+# Between the subject and the verb, a modal, a purpose ("to"), a relocation ("putting it
+# on e1 supports") or a pronoun that may point elsewhere makes the claim not about the
+# piece as it stood.
+_GAP_SKIP_RE = re.compile(
+    r"\b(?:would|could|might|should|can|will|must|may|if|whether|unless|to|it|they|"
+    r"when|once|after|before)\b|\b(?:on|into)\s+[a-h][1-8]\b",
+    re.IGNORECASE,
+)
+_COUNT_RE = re.compile(r"\s+(?:only\s+)?(?:once|twice|\w+\s+times|well|enough|adequately)\b",
+                       re.IGNORECASE)
+_PASSIVE_RE = re.compile(r"\b(?:is|was|are|were|be|been|being|remains?|stays?)\s+"
+                         r"(?:\w+\s+){0,2}\Z", re.IGNORECASE)
+
+
+def iter_defence_claims(coaching_text: str, facts_text: str):
+    """Every resolvable "X defends Y" claim in a position row's coaching, with its verdict.
+
+    Yields ``(defender, target, defender_spec, target_spec, verdict, excerpt)``: the two
+    mentions, what each names (see :func:`_spec`), and whether a matching defender covers
+    a matching target on any board the facts describe. The skipping rules are
+    :func:`check_defence_claims`'s.
+    """
+    parsed = facts_boards(facts_text)
+    if parsed:
+        yield from _iter_defence_claims_on(coaching_text, *parsed)
+
+
+def _iter_defence_claims_on(coaching_text: str, you: chess.Color, boards: list[chess.Board]):
+    """:func:`iter_defence_claims` against any boards: the coached colour ``you`` and the
+    positions a claim may be true on."""
+    starts = [0] + [m.end() for m in _SENTENCE_BREAK_RE.finditer(coaching_text)]
+    ends = starts[1:] + [len(coaching_text)]
+    for start, end in zip(starts, ends):
+        sentence = coaching_text[start:end]
+        mentions = _mentions(sentence)
+        verbs = list(_DEFEND_RE.finditer(sentence))
+        # In "defending your king and supporting your knight on g6" the king is an
+        # object, not the subject of "supporting".
+        objects = {next(m.start for m in mentions if m.start >= v.end())
+                   for v in verbs if any(m.start >= v.end() for m in mentions)}
+        objects = {o for o in objects for v in verbs
+                   if 0 <= o - v.end() <= 20
+                   and not re.search(r"[,;:()\u2014]", sentence[v.end():o])}
+        # "it" or "which" before a defence verb stands for the nearest earlier subject: in
+        # "your queen … it defended your knight, it defended your pawn" both are the queen.
+        for p in _PRONOUN_SUBJECT_RE.finditer(sentence):
+            earlier = [m for m in mentions if m.end <= p.start() and m.start not in objects]
+            if earlier:
+                a = earlier[-1]
+                mentions.append(_Mention(p.start(), p.start() + len(p.group(0).split()[0]),
+                                         a.text, a.owner, a.piece, a.square))
+        mentions.sort(key=lambda m: m.start)
+        for verb in verbs:
+            before = sentence[: verb.start()]
+            if _MODAL_RE.search(before) or _NEGATION_RE.search(before):
+                continue
+            if (_PASSIVE_RE.search(before) or _COUNT_RE.match(sentence, verb.end())) \
+                    and not verb.group("by"):
+                continue
+            prior = [m for m in mentions if m.end <= verb.start()
+                     and m.start not in objects and verb.start() - m.end <= 60]
+            after = [m for m in mentions if m.start >= verb.end()
+                     and m.start - verb.end() <= 20
+                     and not re.search(r"[,;:()\u2014]", sentence[verb.end():m.start])]
+            if (not prior or not after
+                    or re.match(r"\s+(?:it|them|itself|both)\b", sentence[verb.end():], re.I)):
+                continue  # "protecting it": the pronoun's piece is not the next mention
+            first, second = prior[-1], after[0]
+            if _GAP_SKIP_RE.search(sentence[first.end: verb.start()]):
+                continue
+            if verb.group("by") and re.search(r"\bby\b[^.;:!?]{0,30}\Z", sentence[:first.start]):
+                continue  # "attacked by your queen and your rook, defended only by the king"
+            if _INDIRECT_RE.search(sentence[verb.end():]):
+                continue
+            defender_m, target_m = (second, first) if verb.group("by") else (first, second)
+            if defender_m.owner in ("a", "an"):
+                continue  # generic: "an active rook that supports your passed pawn"
+            defender = _spec(defender_m, you)
+            target = _spec(target_m, you, defender[1][0] if len(defender[1]) == 1 else None)
+            if target[0] == chess.KING:
+                continue
+            if (target[2] is None and target[0] == defender[0]
+                    and _SAN_MENTION_RE.fullmatch(defender_m.text.strip(" *"))):
+                continue  # "Ne2, which defended the knight": saved it, not a pairing
+            verdict = _defends(boards, defender, target)
+            if verdict is None:
+                continue
+            yield (defender_m, target_m, defender, target, verdict,
+                   _excerpt(coaching_text, start + min(defender_m.start, target_m.start),
+                            start + max(defender_m.end, target_m.end)))
+
+
+def check_defence_claims(coaching_text: str, facts_text: str) -> ClaimResult:
+    """Flag "X defends Y" claims the board refutes.
+
+    Conservative, as the placement check is. A defence claim is false only if no piece
+    matching the defender covers one matching the target on any board the facts describe
+    (before the move, after it, after the preferred move). Kings as targets are skipped
+    ("the f7 pawn defends your king" means shelter), as are passives without "by" ("was
+    defended only once" is a count, not a pairing), negations ("no longer" is kept: it
+    asserts the piece did), hypotheticals, purposes and relocations. "Hanging" is not
+    checked: the coaching uses it loosely for a piece that loses an exchange, which direct
+    attacker and defender counts cannot settle. A move names the piece on its destination
+    ("Qd5 defends" is the queen on d5, after that move), and "it" or "which" right before
+    the verb stands for the nearest earlier piece or move that is not itself an object.
+    Facts without a board check nothing.
+    """
+    result = ClaimResult()
+    for defender_m, target_m, _, _, verdict, excerpt in iter_defence_claims(
+            coaching_text, facts_text):
+        result.checked += 1
+        if not verdict:
+            result.violations.append(ClaimViolation(
+                kind="invented_defence", move="",
+                claimed=f"{defender_m.text} defends {target_m.text}",
+                actual="no such piece covers the other on any board in the facts",
+                excerpt=excerpt))
+    return result
+
+
+def check_game_defence_claims(coaching_text: str, report: dict, coached_side: str
+                              ) -> ClaimResult:
+    """:func:`check_defence_claims` for whole-game coaching, whose facts have no board.
+
+    As conservative as :func:`check_board_state`: a claim is false only if no piece
+    matching the defender covers one matching the target at **any** point in the game.
+    """
+    result = ClaimResult()
+    boards = game_boards(report)
+    if not boards:
+        return result
+    for defender_m, target_m, _, _, verdict, excerpt in _iter_defence_claims_on(
+            coaching_text, coached_side == "white", boards):
+        result.checked += 1
+        if not verdict:
+            result.violations.append(ClaimViolation(
+                kind="invented_defence", move="",
+                claimed=f"{defender_m.text} defends {target_m.text}",
+                actual="no such piece covers the other at any point in the game",
+                excerpt=excerpt))
+    return result
+
+
+_UNDER_ATTACK_RE = re.compile(
+    r"^- (?:Your|Opponent's|After your move, your) pieces under attack: (.+)\.$", re.MULTILINE)
+_ATTACKED_ENTRY_RE = re.compile(r"\w+ on ([a-h][1-8]) \(attackers \d+(?:: ([^;]*))?; "
+                                r"defenders \d+(?:: ([^)]*))?\)")
+
+
+def facts_defence_pairs(facts_text: str) -> set[tuple[chess.Square, chess.Square]]:
+    """``(defender, target)`` square pairs the facts block names, from its attacked-piece
+    lines ("queen on d5 (attackers 1: knight on c3; defenders 1: pawn on e6)"). Only
+    attacked pieces are listed, so a true defence of an unattacked piece is not here."""
+    pairs = set()
+    for line in _UNDER_ATTACK_RE.findall(facts_text):
+        for target, _, defenders in _ATTACKED_ENTRY_RE.findall(line):
+            for square in re.findall(r"on ([a-h][1-8])", defenders or ""):
+                pairs.add((chess.parse_square(square), chess.parse_square(target)))
+    return pairs
+
+
+def defence_claim_support(coaching_text: str, facts_text: str) -> dict[str, int]:
+    """How a row's defence claims stand against its facts: ``stated`` (the facts name this
+    defender for this target), ``unstated`` (true on the board, but the facts do not say
+    so) and ``false``. A teacher with tools should not add unstated ones: the student sees
+    only the facts and cannot check them."""
+    counts = {"stated": 0, "unstated": 0, "false": 0}
+    parsed = facts_boards(facts_text)
+    if not parsed:
+        return counts
+    _, boards = parsed
+    stated = facts_defence_pairs(facts_text)
+    for _, _, defender, target, verdict, _ in iter_defence_claims(coaching_text, facts_text):
+        if not verdict:
+            counts["false"] += 1
+            continue
+        pairs = {(d, t) for b in boards for color in set(defender[1]) & set(target[1])
+                 for d in _squares(b, defender, color) for t in _squares(b, target, color)}
+        counts["stated" if pairs & stated else "unstated"] += 1
+    return counts
+
+
 def _merge(*results: ClaimResult) -> ClaimResult:
     merged = ClaimResult()
     for r in results:
@@ -450,7 +878,7 @@ def check_claims_from_report(
     max_mistakes: int = 6,
     facts: str | None = None,
 ) -> ClaimResult:
-    """Full check: role inversion, invented castling, invented placement.
+    """Full check: role inversion, invented castling, invented placement, invented defence.
 
     Mirrors :func:`eval.grounding.grounding_from_report` — the facts block is rebuilt
     exactly as the coach received it, so the roles checked are the roles it was given.
@@ -464,4 +892,5 @@ def check_claims_from_report(
         check_roles(coaching_text, facts),
         check_castling(coaching_text, report, coached_side),
         check_board_state(coaching_text, report, coached_side),
+        check_game_defence_claims(coaching_text, report, coached_side),
     )

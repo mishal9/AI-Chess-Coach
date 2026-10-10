@@ -303,5 +303,214 @@ def test_a_move_attributed_to_the_opponent_is_not_checked_against_the_coached_si
     assert [v.kind for v in flagged.violations] == ["role_inversion"]
 
 
-def test_metric_version_is_2():
-    assert claims.METRIC_VERSION == 2
+def test_metric_version_is_3():
+    assert claims.METRIC_VERSION == 3
+
+
+# --- v3: defence claims in whole-game coaching, against every position of the game ---
+
+def test_game_defence_claim_true_on_the_board_passes():
+    result = claims.check_game_defence_claims(
+        "Your knight on c6 defended your pawn on e5.", OPENING, "black")
+    assert result.ok and result.checked == 1
+
+
+def test_game_defence_claim_never_true_is_flagged():
+    result = claims.check_game_defence_claims(
+        "Your bishop on c5 protected your pawn on e5.", OPENING, "black")
+    assert [v.kind for v in result.violations] == ["invented_defence"]
+    assert "any point in the game" in result.violations[0].actual
+
+
+def test_game_defence_claim_true_at_any_point_passes():
+    # The f1 bishop covers e2 only before 1.e4; any position of the game is enough.
+    result = claims.check_game_defence_claims(
+        "Your bishop on f1 protected your pawn on e2.", OPENING, "white")
+    assert result.ok and result.checked == 1
+
+
+def test_generic_game_coaching_checks_no_defence_claim():
+    # What the current coaches write in whole-game coaching (DeepSeek, 91 held-out games).
+    for text in ("You were defending a position that was already slightly worse.",
+                 "Qe2 keeps the queen better placed to support the center."):
+        result = claims.check_game_defence_claims(text, OPENING, "white")
+        assert result.ok and result.checked == 0, text
+    assert claims.check_game_defence_claims(
+        "Your knight on c6 defended your pawn on e5.", {"moves": []}, "black").checked == 0
+
+
+def test_full_check_includes_game_defence_claims():
+    result = claims.check_claims_from_report(
+        "Your bishop on c5 protected your pawn on e5.", OPENING, "black", facts="")
+    assert [v.kind for v in result.violations] == ["invented_defence"]
+
+
+WORSE_FACTS = ("- Engine evaluation: with the preferred move, you are worse by about 3.1 pawns; "
+               "after your move, you are worse by about 8.9 pawns.")
+OLD_WORSE_FACTS = ("- Engine evaluation (in pawns; + favours you): with the preferred move "
+                   "-1.2, after your move -3.9.")
+
+
+@pytest.mark.parametrize("text", [
+    # the 8 Oct spot-check's confirmed errors
+    "You didn't need to force anything — you were already better, and g5 keeps it.",
+    "The engine says that would have left you clearly better.",
+    "You keep a solid, slightly better position where White has no easy targets.",
+    "Your position remains clearly better because your pieces work together.",
+    "The evaluation swings from a clearly winning position for you to a forced mate.",
+])
+def test_calling_a_worse_student_better_is_flagged(text):
+    for facts in (WORSE_FACTS, OLD_WORSE_FACTS):
+        result = claims.check_eval_sign(text, facts)
+        assert [v.kind for v in result.violations] == ["eval_sign"], (text, facts)
+
+
+@pytest.mark.parametrize("text", [
+    "Ask whether the reply leaves you better or worse.",            # a question, not a claim
+    "That capture looks natural: you're winning a central pawn.",   # material, not standing
+    "When you're winning, prioritize king safety.",                 # advice
+    "You were already worse, and this made it much harder.",        # true
+    "You'd be better off keeping the rook.",                        # idiom
+])
+def test_other_uses_of_better_and_winning_pass(text):
+    assert claims.check_eval_sign(text, WORSE_FACTS).ok
+
+
+def test_better_is_fine_when_the_evaluation_agrees_and_worse_is_checked_too():
+    better = ("- Engine evaluation: with the preferred move, you are better by about 2.5 "
+              "pawns; after your move, you are better by about 1.2 pawns.")
+    assert claims.check_eval_sign("You were clearly better here.", better).ok
+    flagged = claims.check_eval_sign("After that move you were losing.", better)
+    assert [v.kind for v in flagged.violations] == ["eval_sign"]
+    # material, not standing (8 Oct v3 run, #1279: the check's one false flag)
+    assert claims.check_eval_sign("Suddenly you're losing your rook in the corner.", better).ok
+    level = ("- Engine evaluation: with the preferred move, the position is about level; "
+             "after your move, you are worse by about 0.9 pawns.")
+    assert claims.check_eval_sign("You were slightly better.", level).ok  # under a pawn
+
+
+def test_facts_without_an_evaluation_check_nothing():
+    result = claims.check_eval_sign("You were already better.", FACTS)
+    assert result.ok and result.checked == 0
+
+
+# --- defence claims ---------------------------------------------------------------
+BOARD_FACTS = """\
+The position before your move (Black to move):
+- Your pieces (Black): king on e8, queen on d5, rook on a8, knight on c6, pawn on e6.
+- Opponent's pieces (White): king on g1, queen on f1, knight on c3.
+- Your move e5 captured nothing.
+- The preferred move Qd7 would capture nothing."""
+
+
+def test_defence_claim_the_board_refutes_is_flagged():
+    # 8 Oct clear-cut spot-check, #828: d5's one defender was the e6 pawn.
+    result = claims.check_defence_claims(
+        "After e5, the knight on c6 no longer protects the queen.", BOARD_FACTS)
+    assert [v.kind for v in result.violations] == ["invented_defence"]
+    flagged = claims.check_defence_claims("Your queen is protected by the knight on c6.",
+                                          BOARD_FACTS)
+    assert [v.kind for v in flagged.violations] == ["invented_defence"]
+
+
+def test_true_defence_claim_passes():
+    result = claims.check_defence_claims("The pawn on e6 defends your queen.", BOARD_FACTS)
+    assert result.ok and result.checked == 1
+
+
+def test_defence_claims_skip_what_is_not_a_pairing():
+    for text in (
+        "The knight on c6 would protect your queen.",       # hypothetical
+        "The knight on c6 does not defend the queen.",       # negation
+        "The knight on c6 couldn't actually defend the queen.",  # negation, adverb between
+        "The knight on c6 didn't really protect the queen.",
+        "Your queen was defended only once.",                # a count
+        "An active knight supports your queen.",             # generic
+        "The knight on c6 defends your king.",               # shelter, not coverage
+        "You moved the knight to defend your queen.",        # purpose
+    ):
+        result = claims.check_defence_claims(text, BOARD_FACTS)
+        assert result.ok and result.checked == 0, text
+
+
+def test_facts_without_a_board_check_no_defence():
+    result = claims.check_defence_claims("The knight on c6 protects the queen.", FACTS)
+    assert result.ok and result.checked == 0
+
+
+def test_defended_only_by_is_passive():
+    # 8 Oct v4 run: named defenders made "X defended only by Y" common.
+    true = claims.check_defence_claims("That left your queen defended only by the pawn on e6.",
+                                       BOARD_FACTS)
+    assert true.ok and true.checked == 1
+    false = claims.check_defence_claims(
+        "That left your queen defended only by the knight on c6.", BOARD_FACTS)
+    assert [v.kind for v in false.violations] == ["invented_defence"]
+
+
+def test_pronoun_or_clause_break_after_the_verb_skips():
+    for text in ("The knight on c6 no longer protects it, and the queen falls.",
+                 "You kept the knight defended, but you abandoned the queen."):
+        result = claims.check_defence_claims(text, BOARD_FACTS)
+        assert result.ok and result.checked == 0, text
+
+
+def test_an_agent_of_an_earlier_by_is_not_the_defended_piece():
+    # 8 Oct v4 run, #1014: the a7 pawn, not the rook, was "defended only by the king".
+    text = ("The pawn on e6 was attacked by both their queen and the knight on c3, "
+            "defended only by their king.")
+    assert claims.check_defence_claims(text, BOARD_FACTS).checked == 0
+
+
+def test_a_move_names_the_piece_on_its_destination():
+    # 8 Oct v4 run, #948: "Qd5 … where it defends your bishop on g2" through a pawn.
+    true = claims.check_defence_claims("Qd7 was better: it defends your knight on c6.",
+                                       BOARD_FACTS)
+    assert true.ok and true.checked == 1
+    false = claims.check_defence_claims("Qd7 was better: it defends your rook on a8.",
+                                        BOARD_FACTS)
+    assert [v.kind for v in false.violations] == ["invented_defence"]
+    assert claims.check_defence_claims("Qd7 guards your rook on a8.", BOARD_FACTS).violations
+
+
+def test_repeated_it_keeps_the_first_subject():
+    # 8 Oct v3 run, #501: each "it" is the queen, not the previous object.
+    text = ("Before the move, your queen on d5 was doing two jobs: it defended your knight "
+            "on c6, and it defended your pawn on e6.")
+    result = claims.check_defence_claims(text, BOARD_FACTS)
+    assert result.ok and result.checked == 2
+
+
+def test_move_saving_its_own_piece_and_indirect_defence_are_skipped():
+    for text in ("Qd7, which defended the queen, was the move.",
+                 "The queen on d5 defended the rook on a8 indirectly."):
+        result = claims.check_defence_claims(text, BOARD_FACTS)
+        assert result.ok and result.checked == 0, text
+
+
+def test_defended_with_is_passive():
+    # 8 Oct v5 run, #749: "White had it defended with the pawn on b2".
+    result = claims.check_defence_claims(
+        "You had your queen defended with the pawn on e6.", BOARD_FACTS)
+    assert result.ok and result.checked == 1
+
+
+SUPPORT_FACTS = BOARD_FACTS + """
+- Your pieces under attack: queen on d5 (attackers 1: knight on c3; defenders 1: pawn on e6).
+- Opponent's pieces under attack: none."""
+
+
+def test_facts_defence_pairs_read_the_attacked_piece_lines():
+    import chess
+    assert claims.facts_defence_pairs(SUPPORT_FACTS) == {(chess.E6, chess.D5)}
+
+
+def test_defence_claim_support_separates_stated_unstated_false():
+    support = claims.defence_claim_support
+    assert support("The pawn on e6 defends your queen on d5.", SUPPORT_FACTS) == {
+        "stated": 1, "unstated": 0, "false": 0}
+    # True on the board (after Qd7 the queen covers c6), but no facts line says so.
+    assert support("Qd7 was better: it defends your knight on c6.", SUPPORT_FACTS) == {
+        "stated": 0, "unstated": 1, "false": 0}
+    assert support("The knight on c6 protects your queen on d5.", SUPPORT_FACTS) == {
+        "stated": 0, "unstated": 0, "false": 1}

@@ -1,7 +1,8 @@
 """Quality control for distilled rows: every check we have, run on what is stored.
 
 ``training.distill`` gates a row on one thing, its grounding score. That leaves the claim
-checkers (``eval.claims``: role inversion, invented castling, invented piece placement),
+checkers (``eval.claims``: role inversion, invented castling, invented piece placement,
+the evaluation's sign, defence claims),
 which the paper reports on held-out coaching, unrun on training targets. This module runs
 all of them over a raw distillation file, with no teacher, no judge and no engine, so a new
 teacher's rows can be held to the same bar as the Opus rows they would replace.
@@ -23,6 +24,8 @@ so two teachers are compared on identical positions.
 Usage:
     python -m training.qc data/distill/raw_deepseek.jsonl
     python -m training.qc data/distill/raw_deepseek.jsonl --baseline data/distill/raw_v2.jsonl
+    python -m training.qc data/distill/raw_deepseek.jsonl \
+        --passed-out data/distill/deepseek_qc.jsonl --out data/distill/deepseek_qc_report.json
 """
 
 from __future__ import annotations
@@ -38,7 +41,7 @@ from pathlib import Path
 import chess
 
 from coach import prompts
-from engine.pgn import load_game
+from engine.pgn import iter_games
 from eval import claims, grounding
 from training import corpus
 from training.schema import DistillRecord
@@ -57,15 +60,19 @@ _PREAMBLE_RE = re.compile(
 )
 
 
-def replay_report(pgn_path: Path, game_index: int) -> dict:
+def replay_report(pgn_path: Path, game_index: int, games: list | None = None) -> dict:
     """The slice of a report the claim checkers read, rebuilt from the PGN alone.
 
     ``check_castling`` needs each move's side and SAN; ``check_board_state`` needs each
     move's ``fen_before``. Neither depends on an engine evaluation, so this is exact.
+    ``games`` is the file already parsed by :func:`iter_games`; without it the file is
+    parsed here, which for a 2,000-game corpus is too slow to do once per game.
     """
-    game = load_game(pgn_path, game_index)
-    if game is None:
+    if games is None:
+        games = list(iter_games(pgn_path))
+    if game_index >= len(games):
         raise SystemExit(f"No game at index {game_index} in {pgn_path}")
+    game = games[game_index]
     board = game.board()
     moves = []
     for move in game.mainline_moves():
@@ -103,6 +110,8 @@ def check_row(record: DistillRecord, report: dict, heldout: set[str]) -> dict:
         claims.check_roles(text, record.facts),
         claims.check_castling(text, report, side),
         claims.check_board_state(text, report, side),
+        claims.check_eval_sign(text, record.facts),
+        claims.check_defence_claims(text, record.facts),
     )
     structure = structure_problems(text)
 
@@ -157,12 +166,15 @@ def heldout_game_keys(corpus_dir: Path) -> set[str]:
 def run_qc(records: list[DistillRecord], corpus_dir: Path) -> list[dict]:
     heldout = heldout_game_keys(corpus_dir)
     reports: dict[tuple[str, int], dict] = {}
+    parsed: dict[str, list] = {}  # each PGN file parsed once, not once per game
     results = []
     seen = Counter(r.completion for r in records)
     for rec in records:
         ident = (rec.source["pgn"], rec.source["game_index"])
         if ident not in reports:
-            reports[ident] = replay_report(corpus_dir / ident[0], ident[1])
+            if ident[0] not in parsed:
+                parsed[ident[0]] = list(iter_games(corpus_dir / ident[0]))
+            reports[ident] = replay_report(corpus_dir / ident[0], ident[1], parsed[ident[0]])
         result = check_row(rec, reports[ident], heldout)
         if seen[rec.completion] > 1:
             result["integrity"].append("duplicate_completion")
@@ -223,6 +235,15 @@ def load_records(path: Path) -> list[DistillRecord]:
         return [DistillRecord.from_dict(json.loads(line)) for line in fh if line.strip()]
 
 
+def write_passed(records: list[DistillRecord], results: list[dict], path: Path) -> None:
+    """Write the records whose QC result passed, in their original order."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as fh:
+        for rec, result in zip(records, results, strict=True):
+            if result["passed"]:
+                fh.write(json.dumps(rec.to_dict(), ensure_ascii=False) + "\n")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Quality-control distilled rows.")
     parser.add_argument("rows", type=Path, help="raw record JSONL from training.distill")
@@ -232,6 +253,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="directory holding the corpus.pgn the rows came from")
     parser.add_argument("--out", type=Path, default=None,
                         help="write per-row results and the summary as JSON here")
+    parser.add_argument("--passed-out", type=Path, default=None,
+                        help="write the rows that pass every check here, unchanged, as the "
+                        "QC-filtered raw JSONL for training.dataset")
     return parser
 
 
@@ -254,6 +278,11 @@ def main(argv: list[str] | None = None) -> int:
             print(format_summary(label, summarize([table[k] for k in shared])))
         payload["baseline"] = {"file": str(args.baseline), "shared": len(shared),
                                "summary": summarize(base_results)}
+
+    if args.passed_out:
+        write_passed(records, results, args.passed_out)
+        n = sum(r["passed"] for r in results)
+        print(f"\nWrote {n} of {len(records)} rows to {args.passed_out}", file=sys.stderr)
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
