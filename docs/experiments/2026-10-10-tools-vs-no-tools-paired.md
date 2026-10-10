@@ -209,3 +209,42 @@ down a rook"). The tools could have checked every one of them, but the teacher d
 call them on those claims. The 3.5 calls per row went to relations the teacher was already
 checking. This matches pilot D's #328 p22, and Kim et al.'s finding that adding information
 cuts static errors but not reasoning errors.
+
+## Against the published result (read 10 Oct 2026, after the result above)
+
+Hebbar, Sheng, Oh and Viswanath, "Hallucinations on the Board: Tool-Augmented Evaluation of
+LLM Chess Commentary", arXiv 2608.04240v1 (4 Aug 2026), is the result that motivated the
+tools pilot. Read in full, it does not contradict ours. It tests a different contrast:
+
+- **Their baseline was nearly bare.** Without tools, models get "only the board state as a
+  FEN string and the move played" and "rely entirely on internal chess knowledge"
+  (Section 4.1). With tools, they may call 17 tools before writing (Table 4, Appendix B.1):
+  position queries (`get_piece_at`, `get_material`, …), attack and defence
+  (`count_attackers_defenders`, `is_pinned`, …), geometry, `try_variation`, and Stockfish
+  (`get_engine_eval`, `get_top_moves`, `compare_moves`). Our facts block already states most
+  of what those tools return: the board, named attackers and defenders, capture-marked
+  engine lines and the evaluation.
+- **There is no middle condition.** No condition gives the model structured facts in the
+  prompt without tools. Their gain (DeepSeek V4 Pro 36.7% → 14.4% incorrect sub-claims,
+  Table 2) therefore mixes two effects: having board and engine information at all, and
+  using tools to get it. This run measures the step they do not. Given that information in
+  the prompt, tools added nothing we could detect (7 vs 8 confirmed errors in 100 paired
+  rows).
+- **Their error types agree with ours.** Tools "shift the distribution rather than
+  uniformly shrinking it" (Section 6.1): legality checks and board-state queries "largely
+  eliminate low-level hallucinations", and errors concentrate in tactical reasoning. That
+  is the residue in our rows. Their per-category numbers are in a figure we did not read.
+- **Gains shrink as the baseline improves** (Table 2, without → with tools): DeepSeek V4 Pro
+  36.7% → 14.4%, GPT-5.4 22.0% → 9.2%, Claude Opus 4.7 20.8% → 13.4%, Gemini 3.1 Pro
+  10.8% → 7.5%.
+- **Their judge shares the generator's tools.** Sub-claims are judged by GPT-5.4 "equipped
+  with the full tool suite" (Stockfish 14.1, depth 18). A writer with tools may favour the
+  claims tools can verify, which could flatter the with-tools condition. Human agreement
+  with the judge is modest: 69–83% per annotator, Fleiss' κ 0.285 on 50 claims.
+
+The numbers are not comparable across the two studies: different metric (their sub-claim
+error rate vs our judge score plus a board check of low scorers), positions, prompts and
+judge. What the paper can say, as worded for it: "In 2608.04240 the no-tool baseline
+received only a FEN and the move. With structured board and engine facts in the prompt,
+adding tools gave no detectable gain (7 vs 8 confirmed errors in 100 paired rows; one
+teacher; a sample that detects only large effects).

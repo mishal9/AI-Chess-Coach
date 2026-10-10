@@ -14,10 +14,13 @@ defends your bishop on g2" through a pawn; "after Rxd6 you are left with a knigh
 rook"). Prompt rules did not move the teacher: "name both pieces" left pronoun subjects at
 32% (v5). Published work points the same way. Kim et al. (NAACL 2025) found that feeding
 engine signals and enumerated attacks cut static errors (non-existent pieces 46% → 20%) but
-left reasoning errors unchanged. arXiv 2608.04240 (Aug 2026) let models call board and
-engine tools while writing chess commentary, and DeepSeek V4 Pro's incorrect sub-claims fell
-from 36.7% to 14.4% (its baseline saw only a FEN, so part of that gain our facts block
-already gives).
+left reasoning errors unchanged. Hebbar et al., arXiv 2608.04240 (Aug 2026), let models call
+17 board and Stockfish tools while writing chess commentary, and DeepSeek V4 Pro's incorrect
+sub-claims fell from 36.7% to 14.4% (Table 2). Without tools, its models received "only the
+board state as a FEN string and the move played" (Section 4.1): no engine evaluation, best
+move, or attackers and defenders. So part of that gain our facts block already gives. (Read
+in full 10 Oct; see `2026-10-10-tools-vs-no-tools-paired.md`, "Against the published
+result".)
 
 ## What was built
 
