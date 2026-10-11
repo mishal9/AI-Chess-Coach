@@ -115,6 +115,9 @@ the judged rate is still the only measure of what is left.
 
 ## Where to resume (state at 10 Oct 2026, late)
 
+> **Superseded 11 Oct 2026.** Resume from "Where to resume" at the end of
+> `2026-10-10-game-only-vs-mixed-student.md`. The section below is kept as it was.
+
 Written so the next session can pick up from here. Steps 2–3 of the earlier list are done
 (below); the steps listed below have not been run.
 
