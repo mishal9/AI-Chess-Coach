@@ -94,15 +94,94 @@ def anthropic_backend(messages: list[dict], model: str | None = None) -> str:
     import anthropic
 
     _load_dotenv()
-    system, turns = _split_system(messages)
     client = anthropic.Anthropic()
-    response = client.messages.create(
-        model=model or DEFAULT_ANTHROPIC_MODEL,
-        max_tokens=1024,
-        system=system,
-        messages=[{"role": m["role"], "content": m["content"]} for m in turns],
-    )
-    return "".join(b.text for b in response.content if b.type == "text").strip()
+    response = client.messages.create(**anthropic_params(messages, model))
+    return _text(response)
+
+
+def anthropic_params(messages: list[dict], model: str | None = None) -> dict:
+    """The exact request :func:`anthropic_backend` sends. The batch path uses it too, so a
+    batched verdict comes from the same request as a direct one, only billed at half price."""
+    system, turns = _split_system(messages)
+    return {
+        "model": model or DEFAULT_ANTHROPIC_MODEL,
+        "max_tokens": 1024,
+        "system": system,
+        "messages": [{"role": m["role"], "content": m["content"]} for m in turns],
+    }
+
+
+def _text(message) -> str:
+    return "".join(b.text for b in message.content if b.type == "text").strip()
+
+
+def anthropic_batch(
+    requests: list[list[dict]],
+    model: str | None = None,
+    state_path=None,
+    poll_seconds: float = 60.0,
+    client=None,
+    progress=None,
+) -> list[str | Exception]:
+    """Judge many message lists through the Message Batches API, at half the token price.
+
+    Returns one entry per request, in order: the reply text, or an exception for a request
+    that errored, was canceled or expired (rerun those). Most batches end within an hour;
+    the API allows up to 24.
+
+    ``state_path`` makes a run safe to interrupt: the batch id is written there right after
+    submission, and a later call with the same requests polls that batch instead of paying
+    for a second one. The file is removed once the results are read.
+    """
+    import json
+    from pathlib import Path
+
+    if client is None:
+        import anthropic
+
+        _load_dotenv()
+        client = anthropic.Anthropic()
+    params = [anthropic_params(m, model) for m in requests]
+    # custom_id allows only [A-Za-z0-9_-]{1,64}, so requests are numbered, not keyed.
+    ids = [f"r{i:06d}" for i in range(len(params))]
+    fingerprint = json.dumps(params, sort_keys=True)
+    state = Path(state_path) if state_path else None
+
+    batch_id = None
+    if state is not None and state.exists():
+        saved = json.loads(state.read_text(encoding="utf-8"))
+        if saved.get("fingerprint") == fingerprint:
+            batch_id = saved["batch_id"]
+    if batch_id is None:
+        batch = client.messages.batches.create(
+            requests=[{"custom_id": i, "params": p} for i, p in zip(ids, params)])
+        batch_id = batch.id
+        if state is not None:
+            state.write_text(json.dumps({"batch_id": batch_id, "fingerprint": fingerprint}),
+                             encoding="utf-8")
+
+    while True:
+        batch = client.messages.batches.retrieve(batch_id)
+        if batch.processing_status == "ended":
+            break
+        if progress:
+            counts = batch.request_counts
+            progress(f"batch {batch_id}: {counts.processing} processing, "
+                     f"{counts.succeeded} succeeded, {counts.errored} errored")
+        time.sleep(poll_seconds)
+
+    found: dict[str, str | Exception] = {}
+    for item in client.messages.batches.results(batch_id):
+        result = item.result
+        if result.type == "succeeded":
+            found[item.custom_id] = _text(result.message)
+        elif result.type == "errored":
+            found[item.custom_id] = RuntimeError(f"errored: {result.error}")
+        else:
+            found[item.custom_id] = RuntimeError(result.type)  # canceled or expired
+    if state is not None and state.exists():
+        state.unlink()
+    return [found.get(i, RuntimeError("missing from batch results")) for i in ids]
 
 
 def gemini_backend(messages: list[dict], model: str | None = None) -> str:

@@ -97,11 +97,22 @@ def judge_coaching(
     overrides that backend's default model. The backend owns provider-specific concerns
     like temperature, so callers don't have to.
     """
-    if coached_side is None:
-        coached_side = prompts.choose_coached_side(report)
     if backend is None:
         backend = backends.DEFAULT_BACKEND
-    facts = prompts.format_report_facts(report, coached_side, max_mistakes)
-    messages = build_judge_messages(coaching_text, facts)
+    messages = report_judge_messages(coaching_text, report, coached_side, max_mistakes)
     raw = backend(messages, model=model)
     return parse_verdict(raw)
+
+
+def report_judge_messages(
+    coaching_text: str,
+    report: dict,
+    coached_side: str | None = None,
+    max_mistakes: int = 6,
+) -> list[dict]:
+    """The judge messages :func:`judge_coaching` sends: the coaching against the facts
+    rebuilt from ``report``. Batch judging builds its requests here too."""
+    if coached_side is None:
+        coached_side = prompts.choose_coached_side(report)
+    facts = prompts.format_report_facts(report, coached_side, max_mistakes)
+    return build_judge_messages(coaching_text, facts)

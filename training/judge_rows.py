@@ -19,6 +19,9 @@ Usage:
     python -m training.judge_rows data/distill/deepseek_pos_v2_qc.jsonl \
         --same-as data/distill/deepseek_qc_judged.jsonl --kind position \
         --out data/distill/deepseek_pos_v2_judged.jsonl --max-judge-calls 150
+
+``--batch`` sends the rows as one Message Batch at half the price; see
+:func:`eval.backends.anthropic_batch`.
 """
 
 from __future__ import annotations
@@ -54,7 +57,11 @@ def same_rows(records: list[DistillRecord], verdicts: Path,
 def judge_row(record: DistillRecord, backend, model: str | None) -> dict:
     """One verdict for one row, scored against the row's own facts block."""
     messages = judge.build_judge_messages(record.completion, record.facts)
-    verdict = judge.parse_verdict(backend(messages, model=model))
+    return verdict_row(record, backend(messages, model=model))
+
+
+def verdict_row(record: DistillRecord, raw: str) -> dict:
+    verdict = judge.parse_verdict(raw)
     return {"key": row_key(record), "kind": record.kind, **verdict.to_dict()}
 
 
@@ -111,12 +118,18 @@ def build_parser() -> argparse.ArgumentParser:
                         help="keep verdicts already in --out and judge only the rest")
     parser.add_argument("--max-judge-calls", type=int, default=50,
                         help="refuse to start if more rows than this need judging")
+    parser.add_argument("--batch", action="store_true",
+                        help="send all rows as one Message Batch: half the price, results "
+                             "usually within an hour. Interrupt and rerun with --resume to "
+                             "keep waiting on the same batch (its id is kept in "
+                             "<out>.batch.json)")
     return parser
 
 
-def main(argv: list[str] | None = None, backend=None) -> int:
+def main(argv: list[str] | None = None, backend=None, batch_fn=None) -> int:
     args = build_parser().parse_args(argv)
     backend = backend or backends.anthropic_backend
+    batch_fn = batch_fn or backends.anthropic_batch
     records = load_records(args.rows)
     excluded = {k for path in args.exclude for k in load_done(path)}
     records = [r for r in records if row_key(r) not in excluded]
@@ -136,9 +149,28 @@ def main(argv: list[str] | None = None, backend=None) -> int:
         return 1
 
     model = args.judge_model or backends.DEFAULT_ANTHROPIC_MODEL
-    print(f"Judging {len(todo)} rows ({len(done)} already judged) with {model}.",
+    print(f"Judging {len(todo)} rows ({len(done)} already judged) with {model}"
+          f"{' as one batch' if args.batch else ''}.",
           file=sys.stderr)
     failed = 0
+    if args.batch:
+        replies = batch_fn(
+            [judge.build_judge_messages(r.completion, r.facts) for r in todo],
+            model=args.judge_model, state_path=args.out.with_name(args.out.name + ".batch.json"),
+            progress=lambda msg: print(msg, file=sys.stderr, flush=True))
+        with args.out.open("a", encoding="utf-8") as fh:
+            for i, (rec, raw) in enumerate(zip(todo, replies), 1):
+                try:
+                    if isinstance(raw, Exception):
+                        raise raw
+                    verdict = verdict_row(rec, raw)
+                except Exception as exc:
+                    failed += 1
+                    print(f"[{i}/{len(todo)}] {row_key(rec)} FAILED: {exc!r}", file=sys.stderr)
+                    continue
+                fh.write(json.dumps(verdict, ensure_ascii=False) + "\n")
+                done[verdict["key"]] = verdict
+        todo = []
     with args.out.open("a", encoding="utf-8") as fh, \
             ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
         futures = {pool.submit(judge_row, r, backend, args.judge_model): r for r in todo}

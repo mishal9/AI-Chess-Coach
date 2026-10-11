@@ -27,13 +27,17 @@ import json
 import sys
 from pathlib import Path
 
-from eval.judge import judge_coaching
+from eval.judge import judge_coaching, parse_verdict, report_judge_messages
 from eval.recheck import DEFAULT_MANIFEST, analyze_manifest, report_depth
 from eval.run import _JUDGE_BACKENDS, aggregate
 
 # Judge names exactly as `eval.run` spells them, so `--judge gemini` means the same thing
 # in both tools.
 JUDGES = dict(_JUDGE_BACKENDS)
+
+
+class BatchJudgingIncomplete(RuntimeError):
+    """Some batched judgements failed; the rest are kept, and a re-run retries them."""
 
 
 def rejudge(
@@ -45,6 +49,8 @@ def rejudge(
     limit: int | None = None,
     progress=None,
     out_path: Path | None = None,
+    batch: bool = False,
+    batch_fn=None,
 ) -> dict:
     """Return a copy of ``report`` with every rubric replaced by ``judge``'s scoring.
 
@@ -53,6 +59,10 @@ def rejudge(
     run. A free-tier daily quota is a hard stop that can land mid-run, and losing the
     judgements already paid for to it would be the same fragility ``eval.run`` was
     criticised for.
+
+    ``batch`` (Anthropic judge only) sends every game still to judge as one Message Batch,
+    at half the price, and fills the rubrics in when it ends. With ``out_path``, the batch
+    id is kept in ``<out_path>.batch.json``, so an interrupted run resumes the same batch.
     """
     backend = JUDGES[judge]
     games = report["games"]
@@ -71,6 +81,7 @@ def rejudge(
         out = json.loads(out_path.read_text(encoding="utf-8"))
     else:
         out = json.loads(json.dumps(report))  # deep copy; never mutate the input
+    pending = []
     for i, (entry, game) in enumerate(zip(analyzed, out["games"])):
         if limit is not None and i >= limit:
             break
@@ -85,6 +96,10 @@ def rejudge(
             continue
         if game.get("judged_by") == target_model:
             continue  # already scored by this judge on an earlier, interrupted run
+        if batch:
+            pending.append((game, report_judge_messages(text, entry["report"],
+                                                       game.get("coached_side"))))
+            continue
         if progress:
             progress(i + 1, len(games), entry["pgn"])
         score = judge_coaching(
@@ -94,19 +109,46 @@ def rejudge(
             backend=backend,
             model=judge_model,
         )
-        game["rubric"] = {
-            "scores": dict(score.scores),
-            "overall": score.overall,
-            "rationale": score.rationale,
-        }
-        game["judged_by"] = target_model
+        _set_rubric(game, score, target_model)
         if out_path is not None:
             _write(out_path, out)
+
+    if pending:
+        if judge != "anthropic":
+            raise ValueError("batch judging is implemented for the anthropic judge only")
+        from eval import backends
+
+        replies = (batch_fn or backends.anthropic_batch)(
+            [messages for _, messages in pending], model=judge_model,
+            state_path=(out_path.with_name(out_path.name + ".batch.json")
+                        if out_path is not None else None),
+            progress=(lambda msg: progress(0, len(games), msg)) if progress else None)
+        failed = 0
+        for (game, _), raw in zip(pending, replies):
+            if isinstance(raw, Exception):
+                failed += 1
+                continue
+            _set_rubric(game, parse_verdict(raw), target_model)
+        if out_path is not None:
+            _write(out_path, out)
+        if failed:
+            raise BatchJudgingIncomplete(
+                f"{failed} batched judgement(s) failed; re-run to retry them "
+                f"(the {len(pending) - failed} that succeeded are kept)")
 
     out["judge_model"] = target_model
     out["rejudged_from"] = report.get("judge_model")
     _reaggregate(out)
     return out
+
+
+def _set_rubric(game: dict, score, model: str) -> None:
+    game["rubric"] = {
+        "scores": dict(score.scores),
+        "overall": score.overall,
+        "rationale": score.rationale,
+    }
+    game["judged_by"] = model
 
 
 def _write(path: Path, report: dict) -> None:
@@ -151,6 +193,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--limit", type=int, default=None,
                         help="judge only the first N games (for a cheap smoke test)")
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--batch", action="store_true",
+                        help="anthropic judge only: one Message Batch at half the price; "
+                             "re-run with the same --out to resume waiting on it")
     return parser
 
 
@@ -173,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
             limit=args.limit,
             progress=progress,
             out_path=args.out,
+            batch=args.batch,
         )
     except GeminiDailyQuotaExhausted as exc:
         done = judged_count(
@@ -181,6 +227,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"\n{exc}\nKept {done} judgement(s) in {args.out}; re-run to continue.",
               file=sys.stderr)
+        return 2
+    except BatchJudgingIncomplete as exc:
+        print(f"\n{exc}", file=sys.stderr)
         return 2
 
     _write(args.out, out)
