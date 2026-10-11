@@ -10,6 +10,13 @@ The project has two outputs, planned in [`PLAN.md`](./PLAN.md):
 2. **The research** — a fine-tuning and evaluation study of grounded coaching (`eval/`, `training/`,
    write-ups in [`docs/experiments/`](./docs/experiments/)).
 
+**Research status (11 Oct 2026):** the DeepSeek-V4 Pro teacher passed its gate on the 91-game
+held-out set (factual 4.74), and its training data is finished: a 2,000-game Lichess corpus
+(Sep 2023 – Aug 2026) and eight registered training sets. Next is the pre-registered game-only
+vs mixed student comparison (24 Qwen3-8B QLoRA runs). See
+[`docs/experiments/README.md`](./docs/experiments/README.md) for every result and the
+current resume point.
+
 ## Layout
 
 ```
