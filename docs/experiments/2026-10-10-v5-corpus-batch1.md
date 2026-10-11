@@ -144,3 +144,27 @@ python -m training.sweep --game data/distill/deepseek_qc.jsonl \
 Every smaller set of an arm is a prefix of the larger ones, and no set has a game in both
 train and validation (checked). The game rows are the 28 Sep QC-passed rows
 (`deepseek_qc.jsonl`, kind `game` only). That file's older position rows are not used.
+
+## Confirmation samples before training (fixed 11 Oct 2026, before any row was judged)
+
+These are not a gate in the registration. They check the finished corpus before GPU money is
+spent.
+
+1. **Position rows:** 100 clear-cut QC-passed rows from batch-2 games, none judged before
+   (pool of 1,765 in `deepseek_pos_v5_batch2_clear.jsonl`), seed 20261015.
+2. **Game rows:** 100 more of the 1,928 QC-passed game rows (`deepseek_qc_game.jsonl`),
+   excluding the 50 judged on 7 Oct, seed 20261015.
+
+Both use the same judge and procedure as before: `claude-opus-4-8` with the rubric, a board
+check of every row at factual 3 or lower (real error or judge miss), borderline counted as
+an error, and Wilson 95% intervals.
+
+**Reading, fixed now.**
+- Position rows: up to 9 confirmed errors out of 100 is consistent with the pooled 6.25%
+  (4.3–9.1%), and training proceeds as registered. At 10 or more, training waits and the user
+  decides, since the corpus would then be worse than every earlier sample.
+- Game rows: the result is pooled with the 7 Oct 50 and reported. At 5 or more confirmed
+  errors in the 100, the same pause applies.
+
+A third, free measure reports phrasing variety per arm: how often each opening and stock
+phrase recurs across the train rows.
