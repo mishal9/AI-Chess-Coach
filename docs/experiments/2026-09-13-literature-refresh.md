@@ -72,3 +72,32 @@ Gate 3 exposed, and answer the reviewer who asks "why not ACT-Eval?".
 Recommendation: spend at most half a day checking whether it runs on whole-game text. If it
 doesn't, cite it and move on. The standing rule against new experiments after the freeze still
 applies.
+
+## Addendum 2026-10-11: work on the errors training data quality didn't fix
+
+Prompted by "What didn't move" in the position-row work (7–10 Oct): (1) confirmed errors stayed at
+about 6% (pooled no-tools 29 / 500 = 5.8%, 4.1–8.2%), now mostly causal and relational stories
+(which piece defends what, why a move lost); (2) the "name both pieces" rule was not followed
+(pronoun subjects 34% → 32%); (3) board tools at generation gave 8 confirmed errors vs 7 without
+(`2026-10-10-tools-vs-no-tools-paired.md`). Found by web search on 11 Oct; most entries were
+read only as search summaries. **Same rule as above: check every number against the PDF before
+citing.** Entries marked *(memory)* were not looked up this pass, so confirm the IDs too.
+
+| Paper | What it does | Relation to us |
+|---|---|---|
+| Hebbar et al. arXiv:2608.04240 (above) | Their error analysis: with board and legality tools, the remaining errors are tactical: misjudging whether an idea works, missing defensive resources, inventing forcing lines | **Supports our residual-error finding.** Same split as ours: board-state errors fixable, reasoning errors not. Our paired run adds structured facts without tools, which none of their conditions has |
+| Kim et al. arXiv:2410.20811 (NAACL 2025) | Engine concepts cut static errors, not reasoning errors; suggest GCC-Eval as a training objective | Already cited; cite here as the second independent report of the same split |
+| *Do Chess Explanations Reflect Model Decisions?* arXiv:2609.22245 | Behavioural and token-level tests of whether LLM chess explanations reflect what drove the move; compares how LLM and human explanations refer to the board | Framing for "why a move lost" errors: a causal story can be fluent and unfaithful. Related work only |
+| Puduppully, Dong, Lapata. *Data-to-Text Generation with Content Selection and Planning.* arXiv:1809.00582 *(memory)* | Generate a content plan, then verbalize it | **Future work, most promising fix.** The teacher emits typed claims (`defends(Qd5, Bg2)`), python-chess checks each one exactly, and only verified claims are written as prose. Removes the parsing limit on `invented_defence` (4 of 18 confirmed errors caught) and the pronoun problem |
+| Dhuliawala et al. *Chain-of-Verification.* arXiv:2309.11495; Gao et al. *RARR.* arXiv:2210.08726; Min et al. *FActScore.* arXiv:2305.14251 *(memory)* | Decompose output into claims, verify each, revise | The decompose–verify–revise family. Our checkers are the verify step without the revise loop |
+| Wanner et al. *A Closer Look at Claim Decomposition.* arXiv:2403.11903 | FActScore-style precision depends on how claims are split (DecompScore) | Caveat for any claim-level error rate we report, including ACT-Eval comparisons |
+| Huang et al. *Large Language Models Cannot Self-Correct Reasoning Yet.* arXiv:2310.01798 *(memory)* | Intrinsic self-correction without an external signal rarely helps reasoning | **Explains our tools null.** In the veto-only pilot the model chose which claims to check and skipped the ones that went wrong. Any revise loop must be driven by the deterministic checker, not the model |
+| "Semantic Gravity Wells" (2026 preprint; ID not found, seen only in a search summary) | "Do not use X" instructions often fail by priming X | Possible explanation of the ignored "name both pieces" rule. Verify it exists before citing |
+| DECO-G, arXiv:2510.03595; *Thinking Before Constraining*, arXiv:2601.07525 | Format constraints at decode time can hurt reasoning; constrain after reasoning | Design note if we force named subjects or typed claims |
+| *Grounded Chess Reasoning via Master Distillation*, arXiv:2603.20510; *Xiangqi-R1*, arXiv:2507.12215 | SFT cold start, then RLVR / GRPO with verifiable rewards (puzzles; Chinese chess) | Verification trained into the model rather than offered as an optional tool. Neither uses an engine or board checker as a reward for *commentary*; none found that does |
+| Tian et al. *Fine-tuning Language Models for Factuality* (FactTune). arXiv:2311.08401; Chaduvula et al. *F-DPO*, arXiv:2601.03027 | DPO on pairs ranked by automatic factuality scores, no human labels | **Future work:** our claim checker and board check can rank student outputs, so a mixed student could be DPO'd away from what it learned from the ~6% bad position rows |
+
+**Use in the paper.** §2 and the limitations: the residual ~6% is the reasoning-error class that
+2608.04240 and 2410.20811 also leave unsolved, and Huang et al. explain why optional tools don't
+help. Future work: typed claims before prose, and checker-ranked DPO for the student. None of this
+changes the registered game-only vs mixed comparison.
