@@ -1,6 +1,6 @@
 # Chess Analyzer — Concept Mindmap
 
-A one-glance map of the system's six layers and their key ideas.
+A one-glance map of the system's layers and their key ideas, as built (updated 2026-10-08).
 Renders on GitHub and any Mermaid-aware viewer.
 
 ```mermaid
@@ -11,28 +11,31 @@ mindmap
       ("Split by reliability")
       ("Narrow LLM job = small model wins")
     Engine Layer
-      ("Stockfish + python-chess")
-      ("Centipawn loss")
-      ("Classify: inaccuracy ?! mistake ? blunder ??")
+      ("Stockfish + python-chess, depth 18")
+      ("Win prob = sigmoid of centipawns")
+      ("Classify on win-prob loss 0.10 / 0.20 / 0.30")
       ("Mate to cp = 10000 minus N")
-      ("Evaluate each position once")
+      ("Evaluate each position once, cache each game")
     LLM Coach
-      ("Qwen2.5-3B Instruct")
-      ("QLoRA on free Colab T4")
-      ("Merge to GGUF run on Ollama")
+      ("Qwen3-8B on Ollama")
+      ("Grounded facts block")
+      ("QLoRA 4-bit NF4 on RunPod")
+      ("Merge to GGUF Q4_K_M")
       ("Distillation builds the dataset")
-      ("Small model first rule")
-    Memory and RAG
-      ("Chroma vector DB per user")
-      ("Retrieve recurring weaknesses")
-      ("Fast loop = retrieval now")
-      ("Slow loop = monthly refine")
+    Memory
+      ("SQLite history per user")
+      ("Rule-based motif tags")
+      ("Profile in the facts block")
+      ("Trend vs one standard error")
     Evaluation
-      ("Held-out test games")
-      ("Rubric: correct clear actionable")
-      ("Fine-tuned must beat baseline")
+      ("Grounding = cited minus given moves")
+      ("Claim checkers")
+      ("LLM judges + rubric")
+      ("Prompted and template controls")
+      ("TOST, Wilcoxon, Pearson, Kendall")
+      ("Pre-registered pass bars")
     Serving
-      ("FastAPI + Web UI")
-      ("Docker free tier")
-      ("Public URL paste a game")
+      ("FastAPI + server-rendered pages")
+      ("Sync chess.com, coach a game")
+      ("Runs locally")
 ```

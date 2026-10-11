@@ -2,6 +2,10 @@
 
 *Building an AI chess coach, end-to-end. The goal isn't just the app — it's learning **production AI engineering** by building it.*
 
+*Rewritten 2026-10-08 to match the code. The first version described the original plan
+(centipawn thresholds, Qwen2.5-3B on Colab, Chroma RAG, a hosted demo); that is in git history.
+What changed and why is in [`PLAN.md`](../PLAN.md) and [`docs/experiments/`](./experiments/).*
+
 ---
 
 ## 1. The Big Idea — Why split the system?
@@ -12,10 +16,11 @@ So we **separate responsibilities** — each component does only what it's good 
 
 | Layer | Job | Tool |
 |---|---|---|
-| **Engine** | Objective truth (what's a blunder?) | Stockfish |
-| **LLM Coach** | Explain it in plain language | Fine-tuned small LLM |
-| **Memory** | Personalize over time | RAG / vector DB |
-| **Serving** | Make it usable | FastAPI + Web UI |
+| **Engine** | Objective truth (what's a blunder?) | Stockfish + `python-chess` |
+| **LLM Coach** | Explain it in plain language | Qwen3-8B (fine-tuned or base) on Ollama |
+| **Memory** | Personalize over time | SQLite history + rule-based motif tags |
+| **Serving** | Make it usable | FastAPI, server-rendered pages |
+| **Eval** | Decide whether any of it is good | Grounding metric, claim checkers, LLM judges, statistics |
 
 **Key insight:** narrowing the LLM's job to *"explain these facts"* is exactly what lets a **small** model succeed. We never ask it to *calculate* chess — only to *talk about* it.
 
@@ -24,71 +29,95 @@ So we **separate responsibilities** — each component does only what it's good 
 ## 2. The Pipeline at a Glance
 
 ```
-PGN game
+PGN game (chess.com sync or upload)
    │
    ▼
-[Stockfish] ──► objective per-move analysis
-   │            (cp-loss, blunder tags, best move)
+[Stockfish, depth 18] ──► per-move analysis, cached per game + depth + engine build
+   │                      (win-prob loss, label, best move, engine line)
+   ▼
+[Memory] ──► motif tags (hung material, dropped pawn, missed capture, fork, back rank)
+   │         + a profile of recurring mistakes with a noise-aware trend
+   ▼
+[Facts block] ──► the only things the coach is allowed to cite
+   │
    ▼
 [LLM Coach] ──► natural-language explanation + lessons
    │
    ▼
-[RAG / Memory] ──► personalized to the player's history
+[Grounding check] ──► "every move it cited was real" note, stored with the coaching
    │
    ▼
-[FastAPI + UI] ──► paste a game → get coached
+[FastAPI pages] ──► dashboard → game list → game page → "coach this game"
 ```
 
 ---
 
-## 3. Core Concept — Centipawn Loss
+## 3. Core Concept — Win-Probability Loss
 
-Everything is measured in **centipawns (cp)** from **White's point of view**:
+Evaluations come from Stockfish in **centipawns (cp)** from **White's point of view**:
 - `+100` ≈ "White is up one pawn"
 - negative = good for Black
 
-**Centipawn loss** = how much a move *worsened* your position vs. the engine's best:
+The first version judged moves by raw **centipawn loss**. That breaks in decided positions:
+going from +900 to +600 is a 300cp "blunder" that changes nothing. So each eval is mapped
+onto a **win probability** with a logistic sigmoid (Lichess's fitted constant):
 
 ```
-White to move:   loss = eval_before_best − eval_after
-Black to move:   loss = eval_after − eval_before_best
-(clamp negatives to 0 — you can't beat "best")
+win_prob(cp) = 1 / (1 + e^(−0.00368208 · cp))      cp = 0 → 0.5
 ```
 
-> 💡 **Why clamp at 0?** Search noise at finite depth can make a move look *better* than the engine's earlier "best." That's an artifact, not brilliance — so we floor it at zero.
+A move's loss is the drop in the **mover's** win probability (White's, or its complement for
+Black), clamped at 0:
 
-### Mistake classification (Lichess/chess.com convention)
+```
+loss = max(0, wp_mover(eval_before_best) − wp_mover(eval_after))
+```
 
-| Label | cp-loss | Symbol |
+> 💡 **Why this works:** the sigmoid saturates. Already-winning or already-lost positions sit
+> near 1 or 0, so even large cp swings there produce small win-probability drops — no fake blunders.
+
+> 💡 **Why clamp at 0?** Search noise at finite depth can make a move look *better* than the
+> engine's earlier "best." That's an artifact, not brilliance — so we floor it at zero.
+
+### Mistake classification (Lichess convention, on win-probability loss)
+
+| Label | Win-prob loss | Symbol |
 |---|---|---|
 | Best | 0 | |
-| Good | 1–49 | |
-| Inaccuracy | 50–99 | ?! |
-| Mistake | 100–299 | ? |
-| Blunder | ≥ 300 | ?? |
+| Good | < 0.10 | |
+| Inaccuracy | 0.10–0.19 | ?! |
+| Mistake | 0.20–0.29 | ? |
+| Blunder | ≥ 0.30 | ?? |
 
 ### Handling forced mate
-A mate isn't a material count — it's *winning*. Map **"mate in N"** to a huge cp value (`10 000 − N`), so a mate-in-1 outranks a mate-in-5, and any mate outranks any material edge.
+A mate isn't a material count — it's *winning*. Map **"mate in N"** to `10 000 − N` cp, so a
+mate-in-1 outranks a mate-in-5. Through the sigmoid, any mate saturates near 1/0.
+
+### ACPL is still kept — with a cap
+Average centipawn loss is shown for familiarity. Each eval is capped at **±1000** before
+differencing, so one decided position can't swamp the average.
+
+### Labels depend on depth
+Re-running the held-out games at depth 20 changed 8% of game labels (12% from 16 → 18).
+Labels near a threshold are noisy; treat them as such
+(`experiments/2026-09-26-depth-20-label-stability.md`).
 
 ---
 
-## 4. Engineering Detail — Evaluate Each Position *Once*
-
-A subtle but important optimization in the analysis loop:
+## 4. Engineering Detail — Evaluate Each Position *Once*, Cache Each Game *Once*
 
 > The position **after** move *i* is the **same** as the position **before** move *i+1*.
 
-So we evaluate each board position **exactly once** and reuse the result as both:
-- the *"after"* for the move that created it, and
-- the *"before"* for the next move.
+So each board position is evaluated **exactly once** and reused as both the *"after"* of the
+move that created it and the *"before"* of the next move — roughly **halving** engine calls.
 
-This roughly **halves** the number of (expensive) engine calls. *Small idea, big runtime win — this is the kind of thinking that matters at scale.*
+The same idea one level up: Stockfish is deterministic at a fixed depth, so a whole game's
+report is cached (`engine/cache.py`), keyed by the game, the depth, the Stockfish build and a
+hash of the analyzer code. Change the scoring code and old entries invalidate themselves.
 
 ---
 
 ## 5. The "Small Model First" Philosophy
-
-The project's discipline rule:
 
 > **Extract all the performance you can from a small model before scaling parameters.**
 
@@ -98,55 +127,105 @@ The order of attack when quality is lacking:
 3. **Better training** (fine-tuning recipe)
 4. *Only then* — a bigger model
 
-**Why?** A 3B model that fits a free GPU and runs on a laptop is cheap, fast, and learnable. Scaling params is the *last* resort, not the first.
+In practice the project started on Qwen2.5-3B and moved to **Qwen3-8B**, which still runs
+locally on a 16GB Mac as a Q4 GGUF. The 3B fine-tune was superseded before it was evaluated, so
+the comparisons that matter use the 8B base, prompted, as the control
+(`experiments/2026-08-14-prompted-8b-control.md`).
 
 ---
 
-## 6. Fine-Tuning — QLoRA in a Nutshell
+## 6. Fine-Tuning — QLoRA + Distillation
 
-We can't train a 3B+ model on a 16GB M1. So:
+We can't train an 8B model on a 16GB M1. So:
 
-- **QLoRA** = Quantized base model (4-bit) + **LoRA** adapters (tiny trainable matrices).
-- Only the adapters train → fits a **free Colab T4**.
-- Adapters are *small* (MBs), easy to version and swap.
+- **QLoRA** = base model quantized to **4-bit NF4** (with double quantization) + **LoRA**
+  adapters (small low-rank trainable matrices). Only the adapters train.
+- Recipe (`training/qlora_8b_runpod.ipynb`, on a rented RunPod GPU): rank **r = 16**,
+  **α = 32**, dropout 0.05; learning rate **1e-4** with a **cosine** schedule and 5% warmup;
+  batch 2 × **gradient accumulation** 8 = effective batch 16; 3 epochs.
 
 **The export path:**
 ```
-LoRA adapter → merge into base → convert to GGUF → run via Ollama on the Mac
+LoRA adapter → merge into base → convert to GGUF (Q4_K_M) → Modelfile → Ollama
 ```
 
-**Distillation** builds the dataset: a *large* model writes high-quality coaching for many analyzed positions → those `(analysis → coaching)` pairs train the small model. **This dataset is the project's moat.**
+**Distillation** builds the dataset: a *large* teacher model writes coaching for analyzed
+positions, and those `(facts → coaching)` pairs train the small model. Rows are filtered by a
+QC step (grounding + claim checks) before training.
+
+**Leakage-safe split:** a row's train/val/test split comes from a SHA-256 hash of its game key,
+so the split is reproducible with no stored shuffle and every position from one game lands in
+the same split.
+
+**What it showed:** distillation reproduced the base model's judged factual quality (3.72 vs
+3.72) and improved citation hygiene, but did not exceed it — and a template coach with no
+model at all scored higher on factual accuracy. The LLM's edge is actionability.
+
+> ⚠️ **Teacher licence:** some providers' terms forbid using outputs as training targets. Check
+> before training on a teacher's rows (see `PLAN.md`).
 
 ---
 
-## 7. RAG / Memory — "Gets Smarter Every Game"
+## 7. Memory — "Gets Smarter Every Game"
 
-Per user, store every analyzed game + its mistakes + recurring **themes** in a **vector DB (Chroma)**.
+Per user, every analyzed game is stored in **SQLite** (`memory/store.py`). No vector database:
+the questions the coach needs answered ("how often do you hang material?") are counts over
+structured data, which SQL answers exactly.
 
-At coaching time, **retrieve** the player's history:
-> *"You keep hanging pieces in the middlegame."*
+- **Motif tags** (`memory/motifs.py`): deterministic rules replay the engine line to tag hung
+  material, dropped pawns, missed captures, allowed forks and back-rank problems.
+- **Profile** (`memory/profile.py`): recurring motifs, mistakes by game phase and opening, and
+  a trend.
+- **The profile is rendered into the facts block**, so the coach can say "this is the fourth
+  time" and the grounding check still applies to it.
 
-**Two timescales of "learning":**
-- **Now (RAG):** retrieval personalizes *this* session immediately.
-- **Later (periodic refresh):** a *monthly* fine-tune on aggregated coaching data.
+### The trend is noise-aware
+Comparing earlier games with recent ones, the gap in mistakes per game is only reported when
+it exceeds one **standard error of the difference in means**:
 
-⚠️ **Not** per-game retraining — that's impractical and unnecessary. The memory layer does the fast personalization; retraining is occasional.
+```
+noise_floor = √( s₁²/n₁ + s₂²/n₂ )
+```
+
+Smaller gaps are reported as *"unclear"* rather than "you're getting worse". A
+severity-weighted signal (win probability thrown away per game) is shown alongside, because a
+raw count jumps by a whole unit when a move crosses a threshold.
+
+*Not built:* embedding-based retrieval ("find past positions like this one") is parked in
+`PLAN.md`, as is a periodic re-fine-tune.
 
 ---
 
 ## 8. Evaluation — How We Know It's Good Enough
 
-You can't improve what you don't measure. The **eval harness** is the referee:
+You can't improve what you don't measure. The **eval harness** (`eval/`) is the referee:
 
-- Held-out test games with **known** engine analysis.
-- A **coaching-quality rubric**:
-  - **Factual correctness** (matches the engine)
-  - **Clarity**
-  - **Actionability**
-  - Correctly identifies the **key** mistake
-- Compare: *prompted baseline* vs. *fine-tuned* vs. *(only if needed)* larger model.
+- **Held-out set:** 29 games in buckets (one blunder, multi-blunder, slow loss, clean draw, …).
+- **Grounding metric** (`eval/grounding.py`): every move the coaching cites, minus the moves in
+  the facts block = hallucinated moves. A set difference, no LLM. Its first version flagged
+  square names in prose ("your rook on b7") as moves — 84–94% of all its flags — so it was
+  audited and fixed.
+- **Claim checkers** (`eval/claims.py`): catch true moves described falsely, such as swapping
+  the played move with the engine's move, or calling a king move castling.
+- **LLM judge with a rubric** (`eval/rubric.py`, `eval/judge.py`): factual accuracy, clarity,
+  actionability and more, on a 1–5 scale. Re-scored with a second judge to check agreement.
+- **Controls:** a prompted base model (same size, no fine-tune) and a **template coach** with no
+  model at all. A result with no floor can't be placed on a scale.
+- **Human ratings** (`eval/human_rating.py`): a stratified sample, scored by people, with
+  consensus by median.
 
-> The fine-tuned model must **beat the prompting baseline** to justify its existence. The eval is what *enforces* the "small model first" rule.
+### The statistics
+
+| Question | Tool |
+|---|---|
+| Is the fine-tune *the same as* the baseline? | **TOST** (two one-sided t-tests) on paired per-game differences, against a pre-registered margin (Δ = 0.30 rubric points), with the matching **90% CI** |
+| Does it hold without normality? | **Wilcoxon signed-rank** test on the same differences |
+| Could this sample have seen an effect at all? | **Minimum detectable effect** at 80% power, and `n ≈ ((z₀.₉₇₅ + z₀.₈)·σ/Δ)²` for planning |
+| Do two judges (or a judge and humans) agree? | **Pearson r** and **Kendall's τ** (τ because 1–5 scores are ordinal), exact match, within-one, bias |
+| What counts as a pass? | Thresholds **pre-registered** in each experiment doc before the run |
+
+> The fine-tuned model must **beat the prompting baseline** — and the template floor — to
+> justify its existence. The eval is what *enforces* the "small model first" rule.
 
 ---
 
@@ -155,29 +234,29 @@ You can't improve what you don't measure. The **eval harness** is the referee:
 | Concern | Choice | Why |
 |---|---|---|
 | Engine | Stockfish + `python-chess` | Free, superhuman, scriptable |
-| Base model | Qwen2.5-3B-Instruct | Strong small instruct model, QLoRA-friendly |
-| Fine-tuning | QLoRA (`trl`/`peft`) on Colab | Fits a free T4 |
-| Local serving | Ollama (GGUF) | One command, ~2–3GB for a Q4 3B |
-| Vector DB | Chroma | Zero-infra, embedded |
-| Embeddings | `sentence-transformers` (bge-small) | Local, free |
-| Backend | FastAPI | Async, easy to containerize |
-| Hosting | HF Spaces / Fly.io / Render | Start at **$0** |
+| Base model | Qwen3-8B | Strong small instruct model; Q4 GGUF fits a 16GB Mac |
+| Fine-tuning | QLoRA (`trl`/`peft`/`bitsandbytes`) on RunPod | 4-bit base + adapters fit one rented GPU |
+| Local serving | Ollama (GGUF + Modelfile) | One command, runs on the laptop |
+| Memory | SQLite | Zero-infra; the questions are counts, not similarity |
+| Backend | FastAPI + Jinja2 | Server-rendered, no JS toolchain |
+| Judges | Claude Opus, Gemini 3.1 Pro (API) | Two judges to check each other |
+| Statistics | `scipy` | t-distribution, Wilcoxon, correlations |
 
-**Environment gotcha learned the hard way:** system Python 3.14 has no ML wheels yet → pin a **Python 3.12** venv (managed with `uv`) for all ML work.
+Hosting for other players is parked; the app runs locally.
+
+**Environment gotcha learned the hard way:** system Python 3.14 has no ML wheels yet → pin a
+**Python 3.12** venv (managed with `uv`) for all ML work.
 
 ---
 
 ## 10. Transferable Lessons
 
-These outlive the chess project:
+These outlive the chess project (the full list is in [`lessons-learned.md`](./lessons-learned.md)):
 
 1. **Decompose by reliability** — give deterministic work to deterministic tools; give language work to the LLM.
 2. **Validate each layer alone** before stacking the next (the engine report is useful *before* any LLM).
-3. **Baseline before fine-tuning** — prompting sets the bar that training must clear.
-4. **Measure with a rubric**, not vibes.
+3. **Baseline before fine-tuning** — and add a no-model floor; each control changed a conclusion here.
+4. **Measure with a rubric**, not vibes — then **audit the metric**; this one was wrong in both directions.
 5. **Cheap + small first** — scale only when the data shows you must.
-6. **Two learning loops:** fast (retrieval) vs. slow (retraining).
-
----
-
-*Phase 0 ✅ Foundations · Phase 1 ◐ Engine analysis (in progress) · Phases 2–6 ahead.*
+6. **Pre-register the pass bar**, and report a failed result as a failure.
+7. **Respect noise** — small samples and threshold labels fool you; say "unclear" when it is.

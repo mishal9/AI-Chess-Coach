@@ -1,5 +1,10 @@
 # 12-Week Interleaved Schedule — Build + Learn
 
+> **Historical plan, kept for the record (note added 2026-10-08).** The build steps below were
+> later changed: the coach is Qwen3-8B (QLoRA on RunPod, not Qwen2.5-3B on Colab), memory is
+> SQLite with rule-based motif tags (no Chroma), and the app runs locally (no public demo yet).
+> For the current system see [`learning-notes.md`](./learning-notes.md) and [`PLAN.md`](../PLAN.md).
+
 **Goal:** finish the chess analyzer through a deployed, evaluated demo while learning AI/ML
 fundamentals, AI engineering, and ML system design — and publishing as you go.
 
