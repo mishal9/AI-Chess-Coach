@@ -71,6 +71,61 @@ Move quality is judged by the drop in the mover's **win probability**, so alread
 positions and forced mates don't produce false blunders, and playing the engine's own top choice
 always scores as best.
 
+## Research commands
+
+Needs the `eval` extra (`uv pip install -e '.[eval]'`) and API keys in a git-ignored `.env`:
+`DEEPSEEK_API_KEY` (teacher), `ANTHROPIC_API_KEY` (Opus judge), `GEMINI_API_KEY` (second judge).
+Each stage's exact invocation, seeds and costs are in its write-up in
+[`docs/experiments/`](./docs/experiments/); these are the commands behind the current data.
+
+```bash
+# 1. Training corpus: 2,000 games from the Lichess database export, balanced by rating band and
+#    time control, disjoint from the held-out games and players → data/games/
+python -m training.corpus --from-db 2023-09:2026-08 --canonical-seed 0
+
+# 2. Teacher rows from DeepSeek (game rows, then v5 position rows); --resume continues a cut-off run
+python -m training.distill --sources data/games/manifest.json --teacher deepseek \
+    --teacher-thinking disabled --workers 8 --retries 1 --positions-per-game 4 \
+    --resume --out data/distill/raw_deepseek.jsonl --max-teacher-calls 20000
+python -m training.distill --sources data/games/<batch>.json --teacher deepseek \
+    --teacher-thinking disabled --workers 8 --retries 1 --positions-per-game 4 \
+    --no-game-rows --resume --out data/distill/raw_deepseek_pos_v5.jsonl
+
+# 3. Quality control, then keep position rows with a clear-cut tactic
+python -m training.qc data/distill/raw_deepseek.jsonl --passed-out data/distill/deepseek_qc.jsonl
+python -m training.qc data/distill/raw_deepseek_pos_v5.jsonl \
+    --passed-out data/distill/deepseek_pos_v5_qc.jsonl
+python -m training.clear_cut data/distill/deepseek_pos_v5_qc.jsonl \
+    --out data/distill/deepseek_pos_v5_clear.jsonl
+
+# 4. Spot-check rows with the Opus judge (--batch: Message Batches API, half price)
+python -m training.judge_rows data/distill/deepseek_pos_v5_clear.jsonl --n 100 --seed 0 \
+    --out <verdicts>.jsonl --batch
+
+# 5. The registered training sets: game-only (G) and mixed 1:2 (M), split 90/10 by game
+python -m training.sweep --game data/distill/deepseek_qc.jsonl \
+    --position data/distill/deepseek_pos_v5_clear.jsonl \
+    --position data/distill/deepseek_pos_paired_plain_clear.jsonl \
+    --arm G:400,1000,1700 --arm M:400,1000,1700,2500,all \
+    --out-root training/datasets --prefix sweep-v5
+
+# 6. Fine-tune: training/qlora_8b_runpod.ipynb on a Runpod GPU (Qwen3-8B QLoRA → GGUF),
+#    then register the GGUF in Ollama with a Modelfile copied from models/Modelfile.qwen-coach-8b-v2
+
+# 7. Evaluate a coach on the 91 held-out games (depth 18): grounding and claims first, judges after
+python -m eval.run --coach-model <ollama model> --no-judge --out eval/reports/<run>.json --resume
+python -m eval.rejudge eval/reports/<run>.json --judge anthropic --batch --out eval/reports/<run>__opus.json
+python -m eval.rejudge eval/reports/<run>.json --judge gemini --out eval/reports/<run>__gemini.json
+
+# 8. Compare runs: per-axis diff, equivalence test (TOST), and judge agreement
+python -m eval.compare <baseline>.json <candidate>.json
+python -m eval.equivalence <baseline>.json <candidate>.json --delta 0.30
+python -m eval.equivalence --agreement <run>__opus.json <run>__gemini.json
+```
+
+Rows, games and datasets under `data/` and `training/datasets/` are git-ignored; reports in
+`eval/reports/` and dataset manifests are committed.
+
 ## Tests
 
 CI runs bare `pytest` (not `python -m pytest`). Engine tests skip when Stockfish is missing, and
