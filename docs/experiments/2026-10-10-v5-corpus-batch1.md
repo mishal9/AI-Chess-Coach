@@ -95,3 +95,135 @@ rows would need a fresh set to measure it again.
   Either way, the registered 5,000-row point cannot be built, and a game-only arm stops at
   1,928 rows (about 1,735 in the train split). See
   `2026-10-10-game-only-vs-mixed-student.md`.
+
+## Batch 2 and the sweep datasets (10–11 Oct 2026)
+
+**Batch 2:** the remaining 1,300 games in seeded random order (seed 20261014,
+`data/games/corpus_batch2_rest.json`). That is the 946 games with no rows and the 354
+older-prompt sample games rewritten with v5, as registered. The command is the same as
+batch 1, with `--sources data/games/corpus_batch2_rest.json --max-teacher-calls 11000`.
+The run took about 46 minutes. One game (#385) failed on a dropped connection, and a rerun
+with `--resume` regenerated it. Batch 2 wrote 3,726 rows; 4,453 calls; 5.69M input + 1.28M
+output tokens. The user topped up DeepSeek during the run, and the balance afterwards was
+$2.75.
+
+**The full v5 corpus** (`raw_deepseek_pos_v5.jsonl`, 1,900 games; the other 100, `paired100`,
+are in the paired run's plain arm):
+
+| | |
+|---|---|
+| Rows / grounded | 5,395 / 4,972 |
+| Games with a row | 1,851 (49 had no mistake worth a position row) |
+| Pass QC | 4,649 (86%): 282 placement, 103 `invented_defence`, 12 chat preamble, 4 castling, 3 eval sign, 1 role flags |
+| Clear-cut | 2,558 (55% of those passing) |
+| Duplicate rows | 0 |
+
+With the paired run's 132 clear-cut plain rows, there are **2,690 clear-cut v5 position rows**
+(projected: about 2,630).
+
+**Sweep datasets** (`training.sweep`, split seed 0 and order seed 0, 90/10 by game; chat
+format; the `.jsonl` files are git-ignored, and each set's `manifest.json` is committed):
+
+```
+python -m training.sweep --game data/distill/deepseek_qc.jsonl \
+    --position data/distill/deepseek_pos_v5_clear.jsonl \
+    --position data/distill/deepseek_pos_paired_plain_clear.jsonl \
+    --arm G:400,1000,1700 --arm M:400,1000,1700,2500,all \
+    --out-root training/datasets --prefix sweep-v5
+```
+
+| Set | Train rows (game + position) | Validation rows |
+|---|---|---|
+| G-400, G-1000, G-1700 | 400, 1,000, 1,700 game | 189 (game) |
+| M-400 | 133 + 267 | 449 |
+| M-1000 | 333 + 667 | 449 |
+| M-1700 | 566 + 1,134 | 449 |
+| M-2500 | 833 + 1,667 | 449 |
+| M-all | 1,215 + 2,430 = 3,645 | 449 |
+
+Every smaller set of an arm is a prefix of the larger ones, and no set has a game in both
+train and validation (checked). The game rows are the 28 Sep QC-passed rows
+(`deepseek_qc.jsonl`, kind `game` only). That file's older position rows are not used.
+
+## Confirmation samples before training (fixed 11 Oct 2026, before any row was judged)
+
+These are not a gate in the registration. They check the finished corpus before GPU money is
+spent.
+
+1. **Position rows:** 100 clear-cut QC-passed rows from batch-2 games, none judged before
+   (pool of 1,765 in `deepseek_pos_v5_batch2_clear.jsonl`), seed 20261015.
+2. **Game rows:** 100 more of the 1,928 QC-passed game rows (`deepseek_qc_game.jsonl`),
+   excluding the 50 judged on 7 Oct, seed 20261015.
+
+Both use the same judge and procedure as before: `claude-opus-4-8` with the rubric, a board
+check of every row at factual 3 or lower (real error or judge miss), borderline counted as
+an error, and Wilson 95% intervals.
+
+**Reading, fixed now.**
+- Position rows: up to 9 confirmed errors out of 100 is consistent with the pooled 6.25%
+  (4.3–9.1%), and training proceeds as registered. At 10 or more, training waits and the user
+  decides, since the corpus would then be worse than every earlier sample.
+- Game rows: the result is pooled with the 7 Oct 50 and reported. At 5 or more confirmed
+  errors in the 100, the same pause applies.
+
+A third, free measure reports phrasing variety per arm: how often each opening and stock
+phrase recurs across the train rows.
+
+### Interim result (11 Oct 2026): 179 of 200 judged
+
+The Anthropic balance ran out after 87 position rows and 92 game rows. The other 21 are
+judged with `--resume` after a top-up, and the counts below will be updated then.
+
+| | Judged | Factual mean | 2 / 3 / 4 / 5 | Rows at 3 or lower | Confirmed errors |
+|---|---|---|---|---|---|
+| Batch-2 position rows | 87 | 4.53 | 4 / 1 / 27 / 55 | 5 | 4 |
+| Game rows | 92 | 4.71 | 1 / 0 / 24 / 67 | 1 | 1 (borderline) |
+
+| Row | Factual | Verdict | What is wrong |
+|---|---|---|---|
+| #414 p3 | 2 | real | 3...Qe7 4.Qxe7+ Bxe7 is a queen trade; the row says "you've lost your queen for nothing — you're down a queen for a bishop" |
+| #843 p16 | 2 | real | Nxd6 cxd6 trades a knight for a bishop; the row says "you end up down a piece for a pawn" |
+| #980 p26 | 2 | real | blames ...Rg8 for taking a defender from the h5 bishop. The bishop keeps two defenders; the move loses because the queen on d5 hangs to Nxd5, which the row never mentions |
+| #907 p8 | 2 | judge miss | "down a full piece" matches the line's final material (−3) |
+| #761 p25 | 3 | real | "Your rook on f8 was hanging to the queen on e4": nothing attacks f8 (facts) |
+| #75 game | 2 | real (borderline) | Replayed from the PGN: 11.Qxd7+ took a bishop, and Nbxd7 took the queen. "Traded your active queen for a piece" is right, but the row opens "you win the queen, right?" and calls it a queen trade that wins the exchange |
+
+Both counts so far are within the reading fixed above (at most 9 for position rows; under 5
+for game rows).
+
+### Final result (11 Oct 2026): 200 of 200 judged
+
+After the top-up, `--resume` judged the other 21 rows (13 position, 8 game). One new row
+scored 3 or lower.
+
+| Row | Factual | Verdict | Why |
+|---|---|---|---|
+| #22 p22 | 2 | judge miss | "That cost you a full piece" is right. In the line, 23.Nxe5 is not recaptured, and material goes from 30–31 to 27–31. The judge assumed two defenders meant an even trade |
+
+| | Judged | Factual mean | 2 / 3 / 4 / 5 | Confirmed errors | 95% Wilson |
+|---|---|---|---|---|---|
+| Batch-2 position rows | 100 | 4.53 | 5 / 1 / 30 / 64 | **4** (2 judge misses) | 1.6–9.8% |
+| Game rows | 100 | 4.73 | 1 / 0 / 24 / 75 | **1** (borderline) | 0.2–5.4% |
+
+**Reading: both are within the bars fixed above (at most 9; under 5), so training proceeds as
+registered.**
+- The game rows pooled with the 7 Oct 50 give 1 of 150 (0.1–3.7%).
+- The no-tools position rows pooled across the five samples give 29 of 500
+  (4.1–8.2%).
+
+## Phrasing variety (11 Oct 2026)
+
+`scripts/phrasing.py`. Distinct n-gram ratios fall as a set grows, so the comparison uses
+five random 319-row subsamples of each set, the size of v2's train split.
+
+| | v2 (Opus rows) | G-1700 | M-1700 |
+|---|---|---|---|
+| Distinct 3-grams / 4-grams | 0.66 / 0.82 | 0.54 / 0.72 | 0.59 / 0.78 |
+| Most common first words | "Let's look at" 55% | "Let's talk about" 48%, "Let's start with" 28% | "Let's talk about" 16%, "Let's start with" 9% |
+| Stock phrase | "the reusable" 70% | "To work on:" 76% | "To work on:" 31%, "ask yourself" 47% |
+
+DeepSeek's game rows are more templated than v2's Opus rows: about 84% open with "Let's …"
+and 76% close with a "To work on:" list. Position rows open more directly ("You had a…",
+"You left your…"), so the mixed sets vary more. A student will learn these templates. This
+is stated as a limitation. It should not move factual scores, but it may move clarity, and
+the arms differ in variety, which matters when their clarity scores are compared.
