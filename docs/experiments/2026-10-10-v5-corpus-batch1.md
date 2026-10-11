@@ -95,3 +95,52 @@ rows would need a fresh set to measure it again.
   Either way, the registered 5,000-row point cannot be built, and a game-only arm stops at
   1,928 rows (about 1,735 in the train split). See
   `2026-10-10-game-only-vs-mixed-student.md`.
+
+## Batch 2 and the sweep datasets (10–11 Oct 2026)
+
+**Batch 2:** the remaining 1,300 games in seeded random order (seed 20261014,
+`data/games/corpus_batch2_rest.json`). That is the 946 games with no rows and the 354
+older-prompt sample games rewritten with v5, as registered. The command is the same as
+batch 1, with `--sources data/games/corpus_batch2_rest.json --max-teacher-calls 11000`.
+The run took about 46 minutes. One game (#385) failed on a dropped connection, and a rerun
+with `--resume` regenerated it. Batch 2 wrote 3,726 rows; 4,453 calls; 5.69M input + 1.28M
+output tokens. The user topped up DeepSeek during the run, and the balance afterwards was
+$2.75.
+
+**The full v5 corpus** (`raw_deepseek_pos_v5.jsonl`, 1,900 games; the other 100, `paired100`,
+are in the paired run's plain arm):
+
+| | |
+|---|---|
+| Rows / grounded | 5,395 / 4,972 |
+| Games with a row | 1,851 (49 had no mistake worth a position row) |
+| Pass QC | 4,649 (86%): 282 placement, 103 `invented_defence`, 12 chat preamble, 4 castling, 3 eval sign, 1 role flags |
+| Clear-cut | 2,558 (55% of those passing) |
+| Duplicate rows | 0 |
+
+With the paired run's 132 clear-cut plain rows, there are **2,690 clear-cut v5 position rows**
+(projected: about 2,630).
+
+**Sweep datasets** (`training.sweep`, split seed 0 and order seed 0, 90/10 by game; chat
+format; the `.jsonl` files are git-ignored, and each set's `manifest.json` is committed):
+
+```
+python -m training.sweep --game data/distill/deepseek_qc.jsonl \
+    --position data/distill/deepseek_pos_v5_clear.jsonl \
+    --position data/distill/deepseek_pos_paired_plain_clear.jsonl \
+    --arm G:400,1000,1700 --arm M:400,1000,1700,2500,all \
+    --out-root training/datasets --prefix sweep-v5
+```
+
+| Set | Train rows (game + position) | Validation rows |
+|---|---|---|
+| G-400, G-1000, G-1700 | 400, 1,000, 1,700 game | 189 (game) |
+| M-400 | 133 + 267 | 449 |
+| M-1000 | 333 + 667 | 449 |
+| M-1700 | 566 + 1,134 | 449 |
+| M-2500 | 833 + 1,667 | 449 |
+| M-all | 1,215 + 2,430 = 3,645 | 449 |
+
+Every smaller set of an arm is a prefix of the larger ones, and no set has a game in both
+train and validation (checked). The game rows are the 28 Sep QC-passed rows
+(`deepseek_qc.jsonl`, kind `game` only). That file's older position rows are not used.

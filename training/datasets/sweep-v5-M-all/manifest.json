@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "registration": "docs/experiments/2026-10-10-game-only-vs-mixed-student.md",
+  "arm": "M",
+  "size": "all",
+  "format": "chat",
+  "game_sources": [
+    "data/distill/deepseek_qc.jsonl"
+  ],
+  "position_sources": [
+    "data/distill/deepseek_pos_v5_clear.jsonl",
+    "data/distill/deepseek_pos_paired_plain_clear.jsonl"
+  ],
+  "ratios": {
+    "train": 0.9,
+    "val": 0.1,
+    "test": 0.0
+  },
+  "split_seed": 0,
+  "order_seed": 0,
+  "min_grounding": 1.0,
+  "counts": {
+    "train": 3645,
+    "val": 449
+  },
+  "train_kinds": {
+    "game": 1215,
+    "position": 2430
+  },
+  "train_games": 1670
+}
