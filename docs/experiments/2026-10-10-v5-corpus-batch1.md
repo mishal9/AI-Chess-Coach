@@ -168,3 +168,42 @@ an error, and Wilson 95% intervals.
 
 A third, free measure reports phrasing variety per arm: how often each opening and stock
 phrase recurs across the train rows.
+
+### Interim result (11 Oct 2026): 179 of 200 judged
+
+The Anthropic balance ran out after 87 position rows and 92 game rows. The other 21 are
+judged with `--resume` after a top-up, and the counts below will be updated then.
+
+| | Judged | Factual mean | 2 / 3 / 4 / 5 | Rows at 3 or lower | Confirmed errors |
+|---|---|---|---|---|---|
+| Batch-2 position rows | 87 | 4.53 | 4 / 1 / 27 / 55 | 5 | 4 |
+| Game rows | 92 | 4.71 | 1 / 0 / 24 / 67 | 1 | 1 (borderline) |
+
+| Row | Factual | Verdict | What is wrong |
+|---|---|---|---|
+| #414 p3 | 2 | real | 3...Qe7 4.Qxe7+ Bxe7 is a queen trade; the row says "you've lost your queen for nothing — you're down a queen for a bishop" |
+| #843 p16 | 2 | real | Nxd6 cxd6 trades a knight for a bishop; the row says "you end up down a piece for a pawn" |
+| #980 p26 | 2 | real | blames ...Rg8 for taking a defender from the h5 bishop. The bishop keeps two defenders; the move loses because the queen on d5 hangs to Nxd5, which the row never mentions |
+| #907 p8 | 2 | judge miss | "down a full piece" matches the line's final material (−3) |
+| #761 p25 | 3 | real | "Your rook on f8 was hanging to the queen on e4": nothing attacks f8 (facts) |
+| #75 game | 2 | real (borderline) | Replayed from the PGN: 11.Qxd7+ took a bishop, and Nbxd7 took the queen. "Traded your active queen for a piece" is right, but the row opens "you win the queen, right?" and calls it a queen trade that wins the exchange |
+
+Both counts so far are within the reading fixed above (at most 9 for position rows; under 5
+for game rows).
+
+## Phrasing variety (11 Oct 2026)
+
+`scripts/phrasing.py`. Distinct n-gram ratios fall as a set grows, so the comparison uses
+five random 319-row subsamples of each set, the size of v2's train split.
+
+| | v2 (Opus rows) | G-1700 | M-1700 |
+|---|---|---|---|
+| Distinct 3-grams / 4-grams | 0.66 / 0.82 | 0.54 / 0.72 | 0.59 / 0.78 |
+| Most common first words | "Let's look at" 55% | "Let's talk about" 48%, "Let's start with" 28% | "Let's talk about" 16%, "Let's start with" 9% |
+| Stock phrase | "the reusable" 70% | "To work on:" 76% | "To work on:" 31%, "ask yourself" 47% |
+
+DeepSeek's game rows are more templated than v2's Opus rows: about 84% open with "Let's …"
+and 76% close with a "To work on:" list. Position rows open more directly ("You had a…",
+"You left your…"), so the mixed sets vary more. A student will learn these templates. This
+is stated as a limitation. It should not move factual scores, but it may move clarity, and
+the arms differ in variety, which matters when their clarity scores are compared.
