@@ -120,3 +120,143 @@ Reported either way:
 The template-trained (no teacher) comparison arm registered in the protocol keeps its own
 sizes. The prompted-8B, template, v2 and DeepSeek-as-coach arms are scored once, together
 with these runs, on the same 91 games and judges.
+
+## Where to resume (state at 11 Oct 2026)
+
+Written so the next session can pick up from here. **This is the project's current resume
+point.** The "Where to resume" sections in earlier notes are superseded.
+
+### State
+
+Everything up to training is on `master` (`97f638a`; PRs #74–#77 merged; 633 tests pass):
+
+- the v5 position-row corpus;
+- the eight registered training sets;
+- the confirmation samples;
+- batch judging.
+
+No student has been trained, so the registration above still holds unchanged.
+
+### Decisions taken, in order
+
+| Date | Decision | Where recorded |
+|---|---|---|
+| 8 Oct | Keep position rows as a stated deviation from the 5% bar. This comparison decides whether they enter training. | `2026-10-08-explicit-defence-claims.md` |
+| 8 Oct | DeepSeek stays the teacher. Its terms allow distillation; Gemini's forbid developing competing models, and Gemini is a judge. | `2026-10-09-tool-augmented-teacher-pilot.md` |
+| 10 Oct | Fold the pending v5 judge into a paired tools vs no-tools run. | `2026-10-08-explicit-defence-claims.md` |
+| 10 Oct | Write the corpus with the plain v5 prompt, no tools: tools 8 vs no tools 7 confirmed errors in 100 paired rows. | `2026-10-10-tools-vs-no-tools-paired.md` |
+| 10 Oct | The defence-check negation fix; the held-out claim metric becomes v3. | `2026-10-09-tool-augmented-teacher-pilot.md` |
+| 10 Oct | Keep the checker v2 placement filter; split 90/10/0 by game. | `2026-10-07-deepseek-training-rows-and-placement-audit.md` |
+| 10 Oct | This registration: non-inferiority at δ = 0.30; every position row from v5; Gemini only at the decision point. | above |
+| 11 Oct | The confirmation samples pass (position 4 / 100, game 1 / 100), so training proceeds. | `2026-10-10-v5-corpus-batch1.md` |
+| 11 Oct | Judge with the Message Batches API (half price, same requests). Prompt caching cannot apply: the judge prefix is under Opus 4.8's 1,024-token minimum. | PR #77; `eval/backends.py` |
+
+### Numbers to carry
+
+- **Position rows, confirmed errors:**
+
+  | Sample | Errors |
+  |---|---|
+  | Old one-line facts | 5.3% |
+  | Board in the facts | 7.5% |
+  | v3 | 6.0% |
+  | Clear-cut filter | 6.0% |
+  | Named defenders | 6.0% |
+  | v5, paired | 7.0% |
+  | Batch-2 confirmation | 4.0% |
+
+  Pooled across the no-tools samples: 29 / 500 = 5.8% (95% Wilson 4.1–8.2%). This is a lower
+  bound: only rows the judge scored 3 or lower were board-checked.
+- **Game rows:** 1 / 150 confirmed (factual 4.71–4.78).
+- **v5 corpus:** 1,900 games, 5,395 rows, 4,649 passing QC, and 2,690 clear-cut position rows
+  (with `paired100`).
+- **Training sets:** G-400, G-1000, G-1700, M-400, M-1000, M-1700, M-2500, and M-all (3,645 rows).
+- **Templating:** DeepSeek's game rows are heavily templated (84% open with "Let's …"; 76% have
+  "To work on:"). This is a stated limitation.
+
+### Next steps, in order
+
+1. **Get the training notebook ready** (`training/qlora_8b_runpod.ipynb`). It hard-codes
+   `seed=0` and trains one set per pod.
+   - Make the seed a parameter next to `RUN_TAG` and `DATA_SUBDIR`, and name runs
+     `sweep-v5-<ARM>-<SIZE>-s<SEED>`.
+   - Keep the v2 recipe as registered: Qwen3-8B QLoRA, 3 epochs, lr 1e-4, effective batch
+     16. Larger sets therefore train for more steps.
+   - Commit this on its own branch before any run.
+2. **Confirm GPU cost with the user, then train the 24 runs** (8 sets × seeds 0, 1, 2).
+   - Check Runpod availability and price first. A 24 GB card (RTX A5000) is enough.
+   - Upload each set's `train.jsonl` and `val.jsonl` to `/workspace/data/<set>/` on the
+     network volume.
+   - The notebook writes `qwen-coach-8b-<RUN_TAG>-q4_k_m.gguf` and terminates its own pod.
+   - Estimate: about $1–2 a run on v2's 319 rows, more on the larger sets. Measure the first
+     run and re-quote before the rest.
+3. **Register each GGUF in Ollama** with a Modelfile copied from
+   `models/Modelfile.qwen-coach-8b-v2` (ChatML template, `num_ctx 4096`).
+4. **Coach the 91 held-out games and score the free metrics** for every run:
+   `python -m eval.run --coach-model <ollama name> --no-judge --out
+   eval/reports/sweep-v5-<ARM>-<SIZE>-s<SEED>.json`.
+   - This writes grounding and claims (`METRIC_VERSION` 3, including the defence sensor).
+   - It runs locally, and 24 runs × 91 games of 8B coaching take hours. Run them in the
+     background with `--resume`.
+5. **Judge as registered.**
+   - **Opus**, 16 runs: `python -m eval.rejudge <report> --judge anthropic --batch --out
+     <report stem>__opus.json`. That is about $16. A rerun with the same `--out` resumes the
+     same batch.
+   - **Gemini**, the 6 runs at 1,700: `--judge gemini`.
+
+   **Settle the Gemini model first.** The registration says Gemini 3.1 Pro, but
+   `eval/backends.py` defaults to `gemini-3.6-flash` (3.1 Pro is paid-only; the August
+   `__gemini31pro` reports used it). Either set `GEMINI_MODEL` with a paid key, or record the
+   substitution as a deviation **before** judging.
+6. **Run the decision test.** `eval.equivalence` compares one report with another, axis by
+   axis. The registered test averages each game's Opus factual score over the 3 seeds of each
+   arm at 1,700, then pairs M − G over 91 games: a two-sided 90% t-interval with lower bound
+   above −0.30, and Gemini's point estimate not below −0.30.
+   - Write that as a small script with tests, reusing `eval.equivalence` where it fits.
+   - Report everything the registration lists.
+7. **Score the comparison arms in the same pass** (prompted 8B, template coach, v2, DeepSeek
+   as coach) on the same 91 games with the same judges. The August 29-game reports are not
+   comparable.
+
+### Balances and accounts (11 Oct)
+
+- **DeepSeek:** $2.75. Corpus generation is finished; no more teacher calls are planned.
+- **Anthropic:** topped up 11 Oct. About $0.30 has gone on judging since (21 rows and the
+  3-row batch check). Check the balance before step 5.
+- **Gemini:** free tier, daily quota. `eval.rejudge` stops cleanly on it, and a rerun
+  continues.
+
+### Still open
+
+- **The human rating round** (0 of 29): the largest credibility gap. It is needed before the
+  paper, not before training.
+- **The template-trained (no teacher) arm** in `paper-protocol.md` keeps its own sizes. It
+  has not been scheduled.
+- **`eval.recheck` cannot backfill reports scored with grounding v2.** Its alignment check
+  uses the v1 move extractor. This matters only if old reports need claims v3; the new runs
+  get v3 directly.
+
+### Things that went wrong once and how they were handled
+
+- **Out of Anthropic credit mid-run:** `training.judge_rows` and `eval.rejudge` keep what was
+  judged; top up and rerun with `--resume` (or the same `--out`).
+- **A DeepSeek connection dropped** (`ChunkedEncodingError`): the game is left out of the
+  ledger; rerun the same distill command with `--resume`.
+- **A balance watchdog that greps for "Error"** stops on per-game failures that the run
+  survives. Match `Traceback` or the final `Wrote` line instead.
+
+### Code and data
+
+- **Code:** `training/sweep.py` builds the training sets. Batch judging is
+  `eval/backends.py` (`anthropic_params`, `anthropic_batch`). Phrasing variety is
+  `scripts/phrasing.py`. The defence claim measures are `scripts/claim_subjects.py` and
+  `scripts/claim_support.py`.
+- **Rows (git-ignored):**
+  - in `data/distill/`: `raw_deepseek_pos_v5.jsonl` and its `_qc` and `_clear` files;
+    `deepseek_pos_paired_plain_clear.jsonl`; and the game rows in `deepseek_qc.jsonl`
+    (kind `game`);
+  - in `training/datasets/sweep-v5-*/`: `train.jsonl` and `val.jsonl`. The manifests are
+    tracked.
+- **Game samples (git-ignored, `data/games/`):** `spotcheck146`, `pilot10`, `clearcut100`,
+  `named100`, `explicit100` (holds `tools_pilot20`), `paired100`, `corpus_batch1_500`, and
+  `corpus_batch2_rest`.

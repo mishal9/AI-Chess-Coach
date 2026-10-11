@@ -54,7 +54,19 @@ Your data: 53 `mshah509` games (25 Jun – 6 Sep 2026). Tagged mistakes so far: 
 - App: you can read about a game, but you can't see the board. Coaching covers one game at a
   time, never your habits across games, and nothing makes you practise.
 
-## Checkpoint 26 Sep (start here next session)
+## Current resume point (11 Oct 2026)
+
+**Start next session from "Where to resume" at the end of
+`docs/experiments/2026-10-10-game-only-vs-mixed-student.md`.** It covers:
+- decisions taken since 8 Oct;
+- error rates;
+- the finished v5 corpus and the eight training sets;
+- the ordered steps from notebook prep through training and judging to the decision test;
+- balances and open items.
+
+The checkpoint below is history.
+
+## Checkpoint 26 Sep (historical)
 
 Branch `feat/analysis-depth-18` (pushed, not merged; no PR yet). PR #71 (DeepSeek teacher,
 91-game held-out set) is merged into `master`.
