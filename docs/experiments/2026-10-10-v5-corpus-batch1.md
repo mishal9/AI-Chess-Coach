@@ -191,6 +191,26 @@ judged with `--resume` after a top-up, and the counts below will be updated then
 Both counts so far are within the reading fixed above (at most 9 for position rows; under 5
 for game rows).
 
+### Final result (11 Oct 2026): 200 of 200 judged
+
+After the top-up, `--resume` judged the other 21 rows (13 position, 8 game). One new row
+scored 3 or lower.
+
+| Row | Factual | Verdict | Why |
+|---|---|---|---|
+| #22 p22 | 2 | judge miss | "That cost you a full piece" is right. In the line, 23.Nxe5 is not recaptured, and material goes from 30–31 to 27–31. The judge assumed two defenders meant an even trade |
+
+| | Judged | Factual mean | 2 / 3 / 4 / 5 | Confirmed errors | 95% Wilson |
+|---|---|---|---|---|---|
+| Batch-2 position rows | 100 | 4.53 | 5 / 1 / 30 / 64 | **4** (2 judge misses) | 1.6–9.8% |
+| Game rows | 100 | 4.73 | 1 / 0 / 24 / 75 | **1** (borderline) | 0.2–5.4% |
+
+**Reading: both are within the bars fixed above (at most 9; under 5), so training proceeds as
+registered.**
+- The game rows pooled with the 7 Oct 50 give 1 of 150 (0.1–3.7%).
+- The no-tools position rows pooled across the five samples give 29 of 500
+  (4.1–8.2%).
+
 ## Phrasing variety (11 Oct 2026)
 
 `scripts/phrasing.py`. Distinct n-gram ratios fall as a set grows, so the comparison uses
