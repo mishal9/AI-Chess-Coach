@@ -3,8 +3,8 @@
 **Date:** 2026-08-14 · **Status:** complete · **Cost:** 29 judge calls (~25 min wall clock, one local GPU-free run)
 
 Every comparison in this project until now measured an 8B fine-tune against a prompted
-**3B** — confounding the size jump with the fine-tune, and unable to answer the only
-question that decides whether the pipeline earns its place:
+**3B**, which confounds the size jump with the fine-tune and cannot answer the
+question that decides whether the pipeline is worth keeping:
 
 > Does fine-tuning `qwen3:8b` on distilled coaching beat simply prompting `qwen3:8b`?
 
@@ -67,8 +67,8 @@ two.
 
 ## 3 · What this means
 
-**Against the gate proposed in [#47](./2026-08-13-gates-re-derived.md) — factual ≥ control
-+ 0.30 — v2 misses by the entire margin.** Its improvement over its own un-fine-tuned base
+**Against the gate proposed in [#47](./2026-08-13-gates-re-derived.md) (factual ≥ control
++ 0.30), v2 misses by the entire margin.** Its improvement over its own un-fine-tuned base
 is exactly zero.
 
 Three iterations of dataset work (v1 → v2 → the shape-vs-volume ablation) moved grounding,
@@ -80,14 +80,14 @@ The defensible claim the pipeline still supports is narrower than the one the pr
 been assuming:
 
 > Distillation reproduces the base model's judged coaching quality while improving citation
-> discipline — 0.923 → 0.965 grounding, 79% → 86% fully grounded games.
+> discipline: 0.923 → 0.965 grounding, 79% → 86% fully grounded games.
 
-That is real, and `clean_draw` +0.50 factual shows the confabulation-on-clean-games failure
-that started Phase 3 was genuinely fixed. But it is not "the fine-tune is a better coach."
+That claim holds, and `clean_draw` +0.50 factual shows the confabulation-on-clean-games failure
+that started Phase 3 was fixed. It does not support "the fine-tune is a better coach."
 
 **The likely ceiling is the facts block, not the student.** If Opus-written coaching, distilled
 into an 8B, lands exactly where that 8B already lands when prompted, the constraint is
-plausibly the information available to either — moves, qualities, centipawn losses, win
+plausibly the information available to either: moves, qualities, centipawn losses, win
 probabilities, and nothing about plans, structures or piece activity. That is a testable
 hypothesis (§6), and it should be tested before another dataset is built.
 
@@ -124,10 +124,10 @@ assembled by hand for this reason.
 code that defines their semantics; `eval.run` stamps both into every report, and
 `eval.rescore` / `eval.recheck` re-stamp what they repair. `eval.compare` checks
 comparability before differencing anything and **refuses** a cross-version diff, naming the
-command that repairs it. Reports predating the stamp are read as the pre-#41 semantics —
-which is what they are, not an unknown. Judged metrics are refused across different judge
-models for the same reason: a rubric score means nothing apart from the ruler that produced
-it.
+command that repairs it. Reports predating the stamp are read as the pre-#41 semantics,
+which is what they are, rather than as unknown. Judged metrics are refused across different
+judge models for the same reason: a rubric score is only comparable under the judge that
+produced it.
 
 Running the exact comparison above now fails closed:
 
@@ -139,7 +139,7 @@ Refusing to compare — these reports are not on the same footing:
       python -m eval.rescore <report> --out <rescored>
 ```
 
-and following that advice yields **grounding +0.04, grounded +6.9pp** — the true figures,
+and following that advice yields **grounding +0.04, grounded +6.9pp**, the true figures,
 in place of the −0.02 / −17.2pp the tool used to print.
 
 ## 6 · What to do next
@@ -154,8 +154,8 @@ Not build v3. In priority order:
 3. **Test whether prompting alone buys the citation discipline.** If a constrained prompt
    gets the base model to 0.96 grounding, the fine-tune's remaining advantage is
    obtainable without it.
-4. **If richer facts are the answer**, that is an `engine/` change — piece activity, pawn
-   structure, king safety, plans — not a training change.
+4. **If richer facts are the answer**, that is an `engine/` change (piece activity, pawn
+   structure, king safety, plans), not a training change.
 
 ## 7 · Reproduction
 
@@ -170,6 +170,6 @@ python -m eval.rescore eval/reports/8b_v2_2026-08-10.json
 python -m eval.recheck eval/reports/8b_v2_2026-08-10.json
 ```
 
-Run `eval.run` detached (`nohup … & disown`) — a harness-managed background run was killed
+Run `eval.run` detached (`nohup … & disown`): a harness-managed background run was killed
 mid-flight once, losing its judge calls. `--resume` plus the incremental sidecar means a
 restart does not re-pay for finished games.

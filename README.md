@@ -1,4 +1,4 @@
-# Chess Analyzer — AI Chess Coach
+# Chess Analyzer: AI Chess Coach
 
 Syncs your chess.com games, finds the mistakes you keep making, and coaches you on them.
 Stockfish decides what is true; a local LLM explains it; a SQLite memory of your past games
@@ -6,8 +6,8 @@ lets the coach say "this is the fourth time" and mean it.
 
 The project has two outputs, planned in [`PLAN.md`](./PLAN.md):
 
-1. **The app** — a personal coach over your own game history (`engine/`, `coach/`, `memory/`, `api/`).
-2. **The research** — a fine-tuning and evaluation study of grounded coaching (`eval/`, `training/`,
+1. **The app:** a personal coach over your own game history (`engine/`, `coach/`, `memory/`, `api/`).
+2. **The research:** a fine-tuning and evaluation study of grounded coaching (`eval/`, `training/`,
    write-ups in [`docs/experiments/`](./docs/experiments/)).
 
 **Research status (11 Oct 2026):** the DeepSeek-V4 Pro teacher passed its gate on the 91-game

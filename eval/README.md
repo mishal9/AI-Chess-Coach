@@ -10,7 +10,7 @@ what each piece is.
 | Module | Measures | Cost |
 |---|---|---|
 | `grounding.py` | fraction of moves cited in the coaching that appear in the facts block the model was given | free, deterministic |
-| `claims.py` | role inversion ("you played" the engine's move), invented castling, and piece placement the game never had — by replaying the PGN | free, deterministic |
+| `claims.py` | role inversion ("you played" the engine's move), invented castling, and piece placement the game never had (by replaying the PGN) | free, deterministic |
 | `rubric.py` + `judge.py` | 1–5 LLM-judge scores: factual correctness, clarity, actionability, identifies key mistake | ~$0.40 per 29-game run |
 | `backends.py` | pluggable judge/teacher: Ollama, Anthropic, Gemini (keys from a gitignored `.env`) | — |
 
@@ -44,5 +44,5 @@ Headline results (29 games, `claude-opus-4-8` judge), from
 | teacher (`claude-opus-4-8`, corpus games) | — | 4.97 | 4.85 |
 
 Fine-tuning bought citation hygiene, not judged quality. The grounding metric itself was audited
-and found wrong in both directions — see
+and found wrong in both directions; see
 [`2026-08-11-grounding-metric-audit.md`](../docs/experiments/2026-08-11-grounding-metric-audit.md).

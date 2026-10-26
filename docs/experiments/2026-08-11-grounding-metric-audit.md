@@ -1,9 +1,9 @@
 # Audit: what the grounding metric cannot see, and what it wrongly sees
 
-**Date:** 2026-08-11 · **Status:** steps 1–2 done (#41 §9, #43 §10); step 3 = board-state checker (§3c) · **Cost:** $0 — offline re-analysis and re-scoring of stored reports, no engine, model or judge
+**Date:** 2026-08-11 · **Status:** steps 1–2 done (#41 §9, #43 §10); step 3 = board-state checker (§3c) · **Cost:** $0 (offline re-analysis and re-scoring of stored reports, no engine, model or judge)
 
 For two fine-tune iterations, `eval/grounding.py` has been the cheap, deterministic instrument
-steering this project — it gates the training data, it justified the v2 dataset design, and it
+steering this project: it gates the training data, it justified the v2 dataset design, and it
 is one of the two release gates. This audit reads it against the paid judge on the same 29
 games and finds **it is wrong in both directions at once**: it is blind to the dominant factual
 failure mode, and ~90% of what it does flag is a parser false positive.
@@ -17,11 +17,11 @@ judge's per-game rationales, which had been stored in every report since PR #9 a
 
 The v2 result was internally strange: **grounding 0.91 (gate 0.85 ✅) but factual 3.72 (gate
 4.0 ✗)**. The recorded interpretation was that the remaining gap was *concentrated* in two
-buckets — `one_blunder` (factual 3.20) and `inaccuracies` (3.40) — so iteration 3 was scoped
+buckets, `one_blunder` (factual 3.20) and `inaccuracies` (3.40), so iteration 3 was scoped
 to buy more teacher-written position rows for those two profiles.
 
 Before spending, I read the `rationale` field the judge writes for every game. That field
-explains *why* a score was given. It had never been inspected — only the numeric scores were
+explains *why* a score was given. It had never been inspected; only the numeric scores were
 aggregated.
 
 The rationales do not support the plan they were used to justify.
@@ -40,10 +40,10 @@ Across the 29 held-out games of the v2 run:
 
 Two games score **grounding 1.00 and factual 2**. The metric that gates the dataset and one of
 the two release gates explains about a seventh of the variance in the quality it is proxying,
-and 62% of games now sit at its ceiling — it has almost no headroom left to discriminate. That
+and 62% of games now sit at its ceiling, so it has almost no headroom left to discriminate. That
 is the mechanical reason grounding cleared its gate while factual stalled: **it saturated.**
 
-## 3 · Blind spot — grounding checks vocabulary, not claims
+## 3 · Blind spot: grounding checks vocabulary, not claims
 
 `score_grounding` extracts the set of moves a coaching text mentions and checks membership
 against the facts block. It never checks *what is asserted about* those moves. Every failure
@@ -52,7 +52,7 @@ below uses only legitimate, in-facts moves, so grounding sees nothing wrong.
 Seven games scored factual ≤ 3. Their rationales fall into three classes, all invisible to
 grounding.
 
-### 3a · Role inversion — played move ↔ engine-preferred move swapped
+### 3a · Role inversion: played move ↔ engine-preferred move swapped
 
 | bucket | factual | grounding | judge's finding |
 |---|---|---|---|
@@ -61,11 +61,11 @@ grounding.
 | inaccuracies | 2 | 0.71 | *"says the player 'chose a passive rook move (Rc8)'"* — player played Bc6; **Rc8 was the engine's** |
 | multi_blunder | 2 | **1.00** | *"the 12.Bc4 vs Bxc6 advice is inverted: Bxc6 was preferred"* |
 
-The facts block gives the model two moves per flagged mistake — what you played, what the
-engine wanted — and it loses track of which is which. Grounding scores this 1.00 because both
+The facts block gives the model two moves per flagged mistake (what you played, what the
+engine wanted), and it loses track of which is which. Grounding scores this 1.00 because both
 moves are on the sheet.
 
-### 3b · Move-type misreading — the model misreads what a move *is*
+### 3b · Move-type misreading: the model misreads what a move *is*
 
 | bucket | factual | grounding | judge's finding |
 |---|---|---|---|
@@ -85,9 +85,9 @@ or g-file and pattern-matches it to castling, because in its pretraining text th
 
 The facts block contains moves, qualities, centipawn losses and win probabilities. It contains
 no piece placement, no plans, no motivations, and the model invents them. It also contradicted
-the game **result** — a field it was given.
+the game **result**, a field it was given.
 
-## 4 · Over-fire — the bare-square false positive
+## 4 · Over-fire: the bare-square false positive
 
 Chess notation names a move as piece letter + destination (`Nf3`), **except pawn moves, which
 are the bare square** (`e4`). So `_SAN_RE` must accept a bare square as a move candidate:
@@ -96,7 +96,7 @@ are the bare square** (`e4`). So `_SAN_RE` must accept a bare square as a move c
 r"|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?)"   # piece letter optional
 ```
 
-Consequently ordinary English — *"your rook on b7"*, *"control of the e5 square"* — parses as a
+Consequently ordinary English (*"your rook on b7"*, *"control of the e5 square"*) parses as a
 claimed pawn move and, being absent from the facts, is scored as a hallucination.
 
 | report | flagged "hallucinations" | of which bare squares |
@@ -111,7 +111,7 @@ The same parser gates the training data, where it is costlier:
 > (56 position rows, 8 whole-game rows). Not one was dropped for inventing a move.
 
 Those are paid Claude Opus generations, discarded for using the word "b7". It also plausibly
-explains the gate-rate gap by move type — positional coaching names squares more often:
+explains the gate-rate gap by move type, since positional coaching names squares more often:
 
 | position row type | gate pass rate |
 |---|---|
@@ -129,12 +129,12 @@ From the v2 coaching on the game flagged for `b7`/`b8`:
 The model wrote correct notation (`Rb8`) and then restated it in plain English for the reader.
 Parsing that sentence:
 
-- **`Rb8`** — correct, on the facts sheet. Counted correctly.
-- **`b8`** — the destination, restated in prose. Counted a **second time** as a phantom *pawn*
+- **`Rb8`**: correct, on the facts sheet. Counted correctly.
+- **`b8`**: the destination, restated in prose. Counted a **second time** as a phantom *pawn*
   move to b8, absent from the facts → flagged. `Rb8` and `b8` are different moves in notation,
   so the checker cannot know they are one event. **Pure false positive.**
-- **`b7`** — flagged as a phantom pawn move. Also a false positive *as notation* — but the
-  claim itself is genuinely ungrounded. The facts say *"you played Rb8"*; they never say where
+- **`b7`**: flagged as a phantom pawn move. Also a false positive *as notation*, but the
+  claim itself is ungrounded. The facts say *"you played Rb8"*; they never say where
   the rook stood beforehand. The model invented it, and the judge caught it independently:
   *"invents piece placement (rook from b7 to b8) not given in facts."*
 
@@ -146,19 +146,19 @@ accidentally catching.
 ## 6 · What this revises
 
 **The "concentrated weakness" reading was noise.** The 7 low-factual games are spread across
-**five of six buckets** — one_blunder (2), inaccuracies (2), multi_blunder (1), two_mistakes
-(1), slow_loss (1) — not the two the bucket means implied. With n=5 per bucket and an integer
+**five of six buckets**, not the two the bucket means implied: one_blunder (2), inaccuracies (2),
+multi_blunder (1), two_mistakes (1), slow_loss (1). With n=5 per bucket and an integer
 1–5 scale, **a single factual=2 game moves a bucket mean by 0.4**, which is the entire apparent
 spread between "failing" and "passing" buckets. The per-bucket table was under-powered and
 should not have been read as a targeting signal.
 
-**The recorded iteration-3 direction was therefore wrong twice** — wrong mechanism (buying
+**The recorded iteration-3 direction was therefore wrong twice**: wrong mechanism (buying
 coverage cannot fix role-binding) and wrong targeting (the buckets were not actually distinct).
 It would have spent ~$4 of the binding constraint on the wrong thing.
 
 **Part of the v1→v2 grounding gain is metric artifact.** Bare-square flags fell 46 → 16 between
-v1 and v2. Some of the 0.79 → 0.91 improvement is the model learning to *stop naming squares* —
-a stylistic suppression of the penalized token pattern — rather than improved citation
+v1 and v2. Some of the 0.79 → 0.91 improvement is the model learning to *stop naming squares*
+(a stylistic suppression of the penalized token pattern) rather than improved citation
 discipline. Direction of the gain is not in doubt; magnitude is. (§9 measures it: the corrected
 v1→v2 gain is +0.075, against +0.120 under the biased parser.)
 
@@ -333,7 +333,7 @@ enough to check the work later.
 
 1. **A cheap proxy metric earns trust only where it has been checked against the expensive one.**
    Grounding was never validated against the judge on a per-game basis; it was assumed to be a
-   conservative lower bound on quality. It was neither conservative nor a bound — *r* = 0.39.
+   conservative lower bound on quality. It was neither conservative nor a bound: *r* = 0.39.
 2. **Set-membership is not entailment.** Checking that the tokens are real is a much weaker
    claim than checking that the sentences are true, and the gap between them is exactly where a
    model trained against the metric will settle.
@@ -345,12 +345,12 @@ enough to check the work later.
 5. **The qualitative field was in the artifact the whole time.** Every rationale had been
    written, stored and committed since PR #9. Two iterations of aggregate-only reading missed a
    metric bug that a single afternoon of reading the free-text found.
-6. **Free diagnostic work should precede paid corrective work** — and here the free work may
+6. **Free diagnostic work should precede paid corrective work.** Here the free work may
    turn out to have been the whole fix.
 
 ## 12 · Reproduction
 
-All offline — no engine, no model, no judge. Requires only the committed reports and
+All offline: no engine, no model, no judge. Requires only the committed reports and
 `data/distill/raw_v2.jsonl`.
 
 ```bash
