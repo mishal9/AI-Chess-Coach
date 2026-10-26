@@ -202,12 +202,13 @@ No student has been trained, so the registration above still holds unchanged.
    - **Opus**, 16 runs: `python -m eval.rejudge <report> --judge anthropic --batch --out
      <report stem>__opus.json`. That is about $16. A rerun with the same `--out` resumes the
      same batch.
-   - **Gemini**, the 6 runs at 1,700: `--judge gemini`.
+   - **Gemini**, the 6 runs at 1,700: `--judge gemini --judge-model gemini-3.1-pro-preview
+     --out <report stem>__gemini31pro.json`.
 
-   **Settle the Gemini model first.** The registration says Gemini 3.1 Pro, but
-   `eval/backends.py` defaults to `gemini-3.6-flash` (3.1 Pro is paid-only; the August
-   `__gemini31pro` reports used it). Either set `GEMINI_MODEL` with a paid key, or record the
-   substitution as a deviation **before** judging.
+   **Gemini model settled (25 Oct 2026): Gemini 3.1 Pro, as registered.** No deviation.
+   `eval/backends.py` still defaults to `gemini-3.6-flash`, so pass `--judge-model` (or set
+   `GEMINI_MODEL=gemini-3.1-pro-preview`). The paid key is `GOOGLE_API_KEY` in the shell
+   environment, not `.env`; one test call to `gemini-3.1-pro-preview` succeeded on 25 Oct.
 6. **Run the decision test.** `eval.equivalence` compares one report with another, axis by
    axis. The registered test averages each game's Opus factual score over the 3 seeds of each
    arm at 1,700, then pairs M − G over 91 games: a two-sided 90% t-interval with lower bound
