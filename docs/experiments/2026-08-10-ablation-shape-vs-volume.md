@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-10 · **Status:** complete · **Cost:** ~$1.20 GPU, **zero teacher calls**, zero judge calls
 
-The [v2 fine-tune](./2026-08-10-qwen3-8b-qlora-v2.md) changed two things at once — 3.9× more
-training rows *and* a new row shape (per-critical-position rows alongside whole-game rows) —
+The [v2 fine-tune](./2026-08-10-qwen3-8b-qlora-v2.md) changed two things at once, 3.9× more
+training rows *and* a new row shape (per-critical-position rows alongside whole-game rows),
 so its +0.12 grounding gain could not be attributed. Retraining on `kind`-filtered subsets of
 the same dataset separates them for the price of GPU time.
 
@@ -94,7 +94,7 @@ Position rows help in five of six buckets — a broad effect, not one bucket car
   holding factual down (`one_blunder` 3.20, `inaccuracies` 3.40). Whole-game rows are already
   at the point of diminishing returns for grounding.
 - **Keep the mixture.** Do not drop whole-game rows; they contribute beyond format retention.
-- **Stop reporting worst-move % as a model-quality signal** — it has not moved across four
+- **Stop reporting worst-move % as a model-quality signal**: it has not moved across four
   models and one prompted baseline.
 
 ## 5 · Reproduction
@@ -112,5 +112,5 @@ python -m eval.run --coach-model qwen-coach-8b-abl-pos  --no-judge \
 ```
 
 Both arms trained on one RunPod RTX 4090 in a single session (~$1.20 total). Running two arms
-in one kernel surfaced a latent notebook leak — the fp16 merge was never freed after saving,
+in one kernel surfaced a latent notebook leak: the fp16 merge was never freed after saving,
 starving the second arm's 4-bit load (fixed in PR #37).

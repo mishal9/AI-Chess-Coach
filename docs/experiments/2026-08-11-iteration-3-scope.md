@@ -1,4 +1,4 @@
-# Iteration 3 — scope
+# Iteration 3: scope
 
 **Date:** 2026-08-11
 **Status:** scoped, not started
@@ -16,7 +16,7 @@ rationales for those buckets says that would buy very little.
 > six buckets**, in three classes, and that the per-bucket concentration was under-powered
 > noise. The step sequencing below is unchanged; the targeting rationale is corrected there.
 
-### Finding 1 — the factual gap is role confusion, not missing coverage
+### Finding 1: the factual gap is role confusion, not missing coverage
 
 The four low-factual games in the two lagging buckets fail the same way: the coaching cites
 moves that **are** in the facts block, but swaps **who played what**.
@@ -29,14 +29,14 @@ moves that **are** in the facts block, but swaps **who played what**.
 | inaccuracies | 3 | 0.67 | *"worked well enough to get the result"* — White **lost** 0-1 |
 
 Two of these score grounding **1.00 / 0.86**. The grounding metric is a set-membership check
-over cited moves, so it is structurally blind to a played↔preferred role swap. That is exactly
+over cited moves, so it is structurally blind to a played↔preferred role swap. That is
 why grounding cleared its gate while factual stalled.
 
 **Consequence:** more position rows of the same shape do not address this. The model has
 plenty of them (178 position rows already exist across 65 corpus games in these two profiles).
 It has a role-binding problem, not a coverage problem.
 
-### Finding 2 — the grounding metric has a false-positive class, and it is expensive
+### Finding 2: the grounding metric has a false-positive class, and it is expensive
 
 `_SAN_RE` in `eval/grounding.py` makes the piece letter optional, so a bare square in prose
 ("the rook from b7 to b8", "the e5 square") parses as a pawn move and, if absent from the
@@ -51,9 +51,9 @@ facts, scores as a **hallucination**.
 And on the training side: **64 of 64 rows dropped by the v2 distillation gate failed on bare
 squares alone** (56 position, 8 game). Those are already-paid Opus rows discarded for naming
 squares, not for inventing moves. It also plausibly explains why inaccuracy positions had the
-lowest teacher gate rate (80% vs 91% blunder) — positional coaching names squares more.
+lowest teacher gate rate (80% vs 91% blunder): positional coaching names squares more.
 
-Note the nuance: a bare square *can* be a genuine invented pawn move, so the fix is
+A bare square *can* be a genuine invented pawn move, so the fix is
 context-sensitive extraction, not dropping bare squares.
 
 ## Scope
@@ -61,21 +61,21 @@ context-sensitive extraction, not dropping bare squares.
 Sequenced cheapest-and-most-informative first. The teacher spend moves to **last**, gated on
 evidence.
 
-### Step 1 — fix the metric, re-score everything (free, no API)
+### Step 1: fix the metric, re-score everything (free, no API)
 
 - Context-aware bare-square handling in `extract_moves` (require a move-ish context: move
   number prefix, `!`/`?` annotation, or presence in the facts' move list; exclude
   `on/at/to/from/the <sq>` and `<sq> square/pawn/file/outpost`).
-- Re-score the three stored reports offline — the coaching text is saved, so this needs no
+- Re-score the three stored reports offline. The coaching text is saved, so this needs no
   model and no judge.
 - Re-run the gate over `raw_v2.jsonl` → **recover ~64 already-paid rows** → v3 dataset
   ≈ 467 rows vs v2's 403, for **zero teacher calls**.
 
-Deliverable: honest grounding for baseline/v1/v2, plus a bigger dataset for free.
+Deliverable: corrected grounding for baseline/v1/v2, plus a bigger dataset for free.
 Caveat to state in the write-up: part of the v1→v2 grounding gain (0.79→0.91) was the model
 learning to stop naming squares, which the corrected metric will re-attribute.
 
-### Step 2 — measure the real failure (free, no API)
+### Step 2: measure the real failure (free, no API)
 
 Add a deterministic **role-confusion check** to `eval/`: for each cited move, compare the role
 the coaching assigns it (player played it / engine preferred it) against the facts. A coarse
@@ -83,19 +83,19 @@ version catches all four swaps in the table above.
 
 Two payoffs:
 - Turns the invisible failure into a number tracked per-bucket alongside grounding.
-- Drop it into the distillation gate so role-swapped **teacher** rows get retried — the teacher
+- Drop it into the distillation gate so role-swapped **teacher** rows get retried; the teacher
   is nondeterministic and `--retries` already works (86% recovery rate observed).
 
-### Step 3 — retrain on v3 (~$0.40 GPU, no teacher calls)
+### Step 3: retrain on v3 (~$0.40 GPU, no teacher calls)
 
 Reuse `training/qlora_8b_runpod.ipynb`, tag `qwen-coach-8b-v3`. Evaluate grounding-only first
-(`eval.run --no-judge`) — free and deterministic — then the judged rubric (~29 Claude calls).
+(`eval.run --no-judge`), which is free and deterministic, then the judged rubric (~29 Claude calls).
 
 **Decision point:** if factual is still < 4.0 *and* the new role-confusion metric is still bad,
-the data genuinely lacks role-contrast examples → proceed to step 4. If role confusion is fixed
+the data lacks role-contrast examples → proceed to step 4. If role confusion is fixed
 but factual lags for other reasons, re-scope from the new rationales rather than buying rows.
 
-### Step 4 — targeted distill run (only if step 3 says so; ~$1.50–4 teacher)
+### Step 4: targeted distill run (only if step 3 says so; ~$1.50–4 teacher)
 
 ```bash
 python -m training.corpus            # re-assemble; keeps held-out disjoint
@@ -110,7 +110,7 @@ python -m training.distill \
 
 Note `--positions-per-game` is **not** the binding constraint today: only 42 of 127 games hit
 the cap of 4 (28 games have 1 position, 37 have 2). Raising it to 8 yields perhaps +50–80 rows.
-Real volume requires **more corpus games of the target profiles** — `training/corpus.py` fetches
+Real volume requires **more corpus games of the target profiles**. `training/corpus.py` fetches
 CC0 games free; bucket them with `eval.expand_heldout.classify()`, which is already a pure
 function of the analyzed report.
 

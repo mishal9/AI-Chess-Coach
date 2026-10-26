@@ -1,4 +1,4 @@
-# Paper outline — draft v1 (2026-08-30)
+# Paper outline, draft v1 (2026-08-30)
 
 Companion to `2026-08-30-literature-gap-analysis.md` and `paper-protocol.md`.
 Status: outline + evidence map. Gates 1 and 2 cleared (below); gate 3 open.
@@ -18,7 +18,7 @@ one no one else has done. The negative result is the second act, not the headlin
 ## Venue
 
 Workshop-first, preprint alongside. Natural fits: evaluation//meta-evaluation workshops
-(NeurIPS/ICML/COLM), or an NLP-for-education venue. **Not** a chess-AI venue — the
+(NeurIPS/ICML/COLM), or an NLP-for-education venue. **Not** a chess-AI venue: the
 audience that cares is the "how do we know our automatic metric measures anything"
 audience, which is much larger than the chess audience.
 
@@ -30,8 +30,8 @@ audience, which is much larger than the chess audience.
 > and then trusted. We report a validity audit of one such metric in a setting where the
 > ground truth is unusually accessible: natural-language chess coaching, where every
 > factual claim can in principle be checked against a replayable board. We built a
-> deterministic grounding metric — the fraction of moves cited in generated coaching
-> that appear in the engine-derived facts the model was given — used it as both an
+> deterministic grounding metric (the fraction of moves cited in generated coaching
+> that appear in the engine-derived facts the model was given), used it as both an
 > evaluation gate and a training-data filter, and found it wrong in both directions. It
 > was *saturated* (18/29 held-out games at the ceiling), *blind* to the errors that
 > mattered (two games a judge scored 1–2/5 for factual accuracy scored a perfect 1.00),
@@ -39,12 +39,12 @@ audience, which is much larger than the chess audience.
 > such as "your rook on b7"; 64 of 64 distillation rows discarded by the metric's gate
 > failed on this pattern alone). Correcting it recovered 52 of 64 discarded rows at zero
 > cost and reversed two of our own published conclusions. We then replace the broken
-> component with claim-level checkers that replay the game — role binding, move type,
-> and piece placement — and validate them at 0/467 false positives on teacher-written
+> component with claim-level checkers that replay the game (role binding, move type,
+> and piece placement) and validate them at 0/467 false positives on teacher-written
 > coaching, with 5 of 72 flagged held-out games all independently judged 2/5. Finally,
 > using a same-base prompted control, we report that QLoRA distillation from a frontier
 > teacher **reproduces** the base model's judged factual quality (3.72 vs 3.72; 90% CI
-> on the paired difference [-0.37, +0.37]) while improving citation hygiene — it does
+> on the paired difference [-0.37, +0.37]) while improving citation hygiene; it does
 > not exceed it. We argue this is expected: unlike puzzle-solving, coaching admits no
 > verifiable reward to bootstrap from.
 
@@ -58,9 +58,9 @@ Frame: the field is shipping *grounded explanation* claims validated by *accurac
   accuracy only; §3.1 states accuracy "serves as a proxy for the quality of its internal
   reasoning." No faithfulness measurement appears in the paper.
 - Kim et al. (NAACL 2025) evaluate generated commentary with an LLM judge (GCC-Eval)
-  and honestly report human correlations of Pearson **0.40–0.56** / Kendall **0.23–0.39**.
-- ChessQA (Wen et al., 2025) evaluates commentary *recognition* — 4-way multiple choice,
-  exact match — not generation.
+  and report human correlations of Pearson **0.40–0.56** / Kendall **0.23–0.39**.
+- ChessQA (Wen et al., 2025) evaluates commentary *recognition* (4-way multiple choice,
+  exact match), not generation.
 
 So: the one paper that measures generated-commentary quality against humans finds only
 moderate agreement, and the papers claiming grounding do not measure it. That is the
@@ -100,7 +100,7 @@ own automatic grounding metric.*
 - Judge: `claude-opus-4-8`, 4-axis rubric (factual correctness, clarity, actionability,
   identifies key mistake), 1–5.
 - Models: prompted `qwen3:8b` control; `qwen-coach-8b-v2` = QLoRA on 319 distilled rows.
-- **Metric versioning** — reports stamp `metric_versions`; `eval.compare` refuses
+- **Metric versioning:** reports stamp `metric_versions`; `eval.compare` refuses
   cross-version and cross-judge diffs. (This is itself a small methods point; see §5.)
 
 ## 4. The grounding metric and its audit ← **primary contribution**
@@ -108,23 +108,23 @@ own automatic grounding metric.*
 4.1 The metric. Cited-move set membership against the facts block. Cheap, deterministic,
     no API cost. Used as an eval gate *and* a distillation filter.
 
-4.2 How the failure was found. By reading the judge's stored `rationale` field — present
-    since the first judged run, never read, only scores aggregated. Worth stating; it is
-    the transferable lesson.
+4.2 How the failure was found. By reading the judge's stored `rationale` field, present
+    since the first judged run but never read; only scores were aggregated. State it; it
+    is the transferable lesson.
 
 4.3 Three failure modes, with numbers:
-    - **Saturated** — 18/29 at the 1.00 ceiling; `r(grounding, factual) = +0.39`,
+    - **Saturated:** 18/29 at the 1.00 ceiling; `r(grounding, factual) = +0.39`,
       ρ = 0.45, ~15% of variance. Passed its gate while judged factual stalled.
-    - **Blind** — cannot see role inversion (played ↔ engine-preferred swapped),
+    - **Blind:** cannot see role inversion (played ↔ engine-preferred swapped),
       move-type errors ("castling" for `Kh1`), or invented board state. Two games judged
       factual = 2 scored grounding **1.00**.
-    - **Over-firing** — the SAN regex made the piece letter optional, so "your rook on
+    - **Over-firing:** the SAN regex made the piece letter optional, so "your rook on
       b7" parsed as a pawn move. 84–94% of all flagged hallucinations were bare squares;
       **64/64** rows dropped by the distillation gate failed on bare squares alone.
 
 4.4 The fix and what it reversed. Context-aware bare-square resolution (a move unless
     adjacent words prove it a location); a cue-verb allowlist was tried **first and
-    rejected** — it dropped 47 genuine citations. Facts-side extraction provably
+    rejected**: it dropped 47 genuine citations. Facts-side extraction provably
     unchanged (0/1367 tokens), so re-scores are exact, not approximate.
 
     | Model | grounding (old) | grounding (corrected) |
@@ -134,17 +134,17 @@ own automatic grounding metric.*
     | 8B v2 | 0.907 | **0.965** |
 
     Two conclusions reversed: v1 never regressed grounding (the old metric put it below
-    baseline — an artifact), and the 0.85 gate had already been met by the baseline, so
+    baseline, an artifact), and the 0.85 gate had already been met by the baseline, so
     the gate was never a gate. Distillation gate recovered 52/64 rows at zero teacher cost.
 
 ## 5. Claim-level checkers over free-form prose ← **secondary contribution**
 
-The honest framing: a *precise partial* instrument, not a judge replacement.
+Frame it as a *precise partial* instrument, not a judge replacement.
 
 - Role inversion + invented castling. **Precision took three drafts, each killed by real
-  data** — worth reporting as a negative-design result:
+  data**, worth reporting as a negative-design result:
   1. immediate adjacency missed "you chose a passive rook move (Rc8)";
-  2. nearest-cue-in-window flagged 8.4% of the *teacher's own* rows — all false
+  2. nearest-cue-in-window flagged 8.4% of the *teacher's own* rows, all false
      positives on recommendations ("the engine wanted you **to play** Bxc3") and
      negations ("by **not playing** f5");
   3. shipped rule: agent named beside the cue, past tense only, no clause crossing, stop
@@ -155,7 +155,7 @@ The honest framing: a *precise partial* instrument, not a judge replacement.
 - **Key quantity:** teacher makes placement claims 0.04/row; students 0.49/game (~12×),
   and 14% of the students' are false. Students *reach for* board narrative the facts
   never gave them.
-- **Stated honestly:** recall is low. The judge faults 7 games; this flags 1–5. And
+- **State it:** recall is low. The judge faults 7 games; this flags 1–5. And
   claims *discriminates less* than grounding (v1→v2: +0.008 claims vs +0.075 grounding;
   v1 and v2 tie at 27/29 clean). Neither deterministic metric can serve as the progress
   gate. Report it; do not hide it.
@@ -164,7 +164,7 @@ The honest framing: a *precise partial* instrument, not a judge replacement.
 
 6.1 The control that was missing. Every earlier comparison was fine-tuned **8B** vs
     prompted **3B**, confounding model size with fine-tuning. Same base, same prompt,
-    same 29 games, same judge, depth 15 / temp 0 — only the LoRA differs.
+    same 29 games, same judge, depth 15 / temp 0; only the LoRA differs.
 
 6.2 Result. Judged factual **identical at 3.72**. Fine-tune wins grounding
     (0.923 → 0.965) and *loses* claims (1 violation → 2).
@@ -180,22 +180,22 @@ The honest framing: a *precise partial* instrument, not a judge replacement.
     | identifies key mistake | -0.034 | [-0.192, +0.123] | p = 0.004 — equivalent |
     | rubric overall | -0.034 | [-0.234, +0.165] | p = 0.016 — equivalent |
 
-    **This must be reported precisely, because it is not a clean win.** Overall quality,
+    **Report this precisely, because it is not a clean win.** Overall quality,
     clarity, and key-mistake identification are statistically equivalent at the
-    pre-registered δ = 0.30. **The factual axis — the headline — is not.** We can exclude
+    pre-registered δ = 0.30. **The factual axis, the headline, is not.** We can exclude
     an effect larger than ±0.37 rubric points, but we cannot exclude the 0.30 effect we
     pre-registered as meaningful. sd(paired diff) = 1.165; MDE at 80% power = 0.63;
     detecting δ = 0.30 would need **~120 games**.
 
-    Saying this plainly is stronger than claiming a tie. The defensible sentence is:
+    Stating this plainly is stronger than claiming a tie. The defensible sentence is:
     *"fine-tuning does not produce a large factual improvement (|Δ| < 0.37 with 90%
     confidence), and produces no detectable improvement at all in overall quality; a
     moderate factual effect of the size we pre-registered cannot be ruled out at n = 29."*
 
 6.4 Why reproduction rather than improvement is the expected outcome. Teacher ceiling
-    measured at **4.97/5** factual (29/30 at 5, sd 0.18) — so the facts block *does*
+    measured at **4.97/5** factual (29/30 at 5, sd 0.18), so the facts block *does*
     support 5/5 coaching, and the ~1.25 gap is headroom neither prompting nor SFT
-    captures. Contrast with C1, whose student beat its teacher — but with full
+    captures. Contrast with C1, whose student beat its teacher, but with full
     fine-tuning + RLVR on a binary verifiable reward, 39k samples, 4×H100, and a teacher
     at only 40.8%. Coaching has no verifiable outcome. Chess-R1 (Hwang et al.) reaches a
     compatible conclusion from the RL side.
@@ -210,27 +210,27 @@ The honest framing: a *precise partial* instrument, not a judge replacement.
   the teacher scoring 4.97/5 on the judge's own rubric is what that setup would produce
   either way. No human validation yet. *(Gate 3.)*
 - **n = 29**, and §6.3 quantifies exactly what that does and does not buy.
-- **Teacher ceiling measured on a different distribution** — corpus games, not held-out;
+- **Teacher ceiling measured on a different distribution:** corpus games, not held-out;
   of the classifiable ones, zero clean_draw and zero multi_blunder.
 - **Claim checkers have low recall** by construction.
 - **A `worst-move` metric we dropped**: 72.4% for all four models *and* the prompted
-  baseline — it tracked the facts block, not model quality. Reporting the metric we
+  baseline; it tracked the facts block, not model quality. Reporting the metric we
   retired is part of the argument.
 
 ## 8. Discussion
 
-The generalizable claims, stated at the right altitude:
+The generalizable claims:
 1. A deterministic grounding metric can pass its gate while the quantity it proxies does
    not move. Saturation is the tell; check the ceiling rate before trusting a mean.
-2. Set-membership metrics are blind to *role* — cite the right token, invert the claim,
-   score perfectly. Verifying *which* entity did *what* needs replay, not matching.
+2. Set-membership metrics are blind to *role*: cite the right token, invert the claim,
+   and still score perfectly. Verifying *which* entity did *what* needs replay, not matching.
 3. Recurring root cause, hit four times in this project: **the artifact did not record
    enough to know whether the work could be checked or compared** (missing cited/allowed;
    missing game index; a resume key that silently skipped games; unversioned metrics
    producing a cross-version comparison that reversed a sign). Versioning and provenance
    stamps are cheap; discovering you cannot compare two numbers is not.
 4. Evaluation sets are purpose-bound: motif tagging scored 0/8 on the held-out set and
-   the tagger was *correct* — those are super-GM games where a blunder is positional.
+   the tagger was *correct*: those are super-GM games where a blunder is positional.
 
 ## 9. Limitations and future work
 
@@ -270,22 +270,22 @@ Everything except F1 comes from data already collected. No new compute, no API s
 
 ## Gate status
 
-- **Gate 1 — read the missing papers: CLEARED.** Kim et al. 2025 (arXiv:2410.20811,
+- **Gate 1, read the missing papers: CLEARED.** Kim et al. 2025 (arXiv:2410.20811,
   NAACL), ChessQA (arXiv:2510.23948), Chess-R1 (arXiv:2507.00726), Jhamtani et al. 2018,
   Maia line. Verdict: **the niche survives and is sharper.** Nobody deterministically
   verifies free-form generated chess prose against board state; ChessQA's Semantic
   category is MCQ recognition; GCC-Eval is an LLM judge with no deterministic component
   and only moderate human agreement. Kim et al.'s own limitations section explicitly asks
-  for evaluation with *novice* players — our population.
-- **Gate 2 — equivalence framing: CLEARED**, and it changed the claim. See §6.3. The
-  overall null is a genuine equivalence result; the factual null is underpowered and must
+  for evaluation with *novice* players, our population.
+- **Gate 2, equivalence framing: CLEARED**, and it changed the claim. See §6.3. The
+  overall null is an equivalence result; the factual null is underpowered and must
   be stated as a bound, not a tie.
-  Script: `scratchpad/equivalence.py` — **should land as `eval/equivalence.py` with tests
+  Script: `scratchpad/equivalence.py`; it **should land as `eval/equivalence.py` with tests
   in the paper PR**, per the project's own "record enough to be checked" lesson.
-- **Gate 3 — independent judge: BLOCKED on a key.** `eval/backends.py` already has
+- **Gate 3, independent judge: BLOCKED on a key.** `eval/backends.py` already has
   `gemini_backend` (default `gemini-2.5-pro`); `.env` has `GEMINI_API_KEY` commented out.
   Free key at https://aistudio.google.com/apikey. Then:
   `python -m eval.run --coach-model qwen-coach-8b-v2 --judge gemini` and the same for the
   prompted control, and report cross-judge agreement. This is the single highest-value
   remaining action.
-- **Gate 4 (new) — test the class-C hypothesis** from stored outputs. Free.
+- **Gate 4 (new), test the class-C hypothesis** from stored outputs. Free.

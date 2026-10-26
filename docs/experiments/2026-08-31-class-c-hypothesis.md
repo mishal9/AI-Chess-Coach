@@ -1,6 +1,6 @@
-# Gate 4 — the class-C hypothesis, tested. It does not hold.
+# Gate 4: the class-C hypothesis, tested. It does not hold.
 
-Date: 2026-08-31. Cost: zero — Stockfish over the held-out set, no model, no API.
+Date: 2026-08-31. Cost: zero (Stockfish over the held-out set, no model, no API).
 Closes the open item in `2026-08-30-paper-outline.md` §9.
 
 ## The hypothesis
@@ -40,14 +40,14 @@ Games in which any placement claim was made: 18/29 control, 23/29 fine-tune.
 
 ## Reading
 
-**The hypothesis is not supported.** Fine-tuning did not leave the rate unchanged — it more
+**The hypothesis is not supported.** Fine-tuning did not leave the rate unchanged: it more
 than doubled it, 1.03 → 2.31 claims per game. This is not pretrained behaviour surviving
 distillation; it is behaviour distillation *amplified*, and it did so despite the teacher
 making placement claims at only 0.04 per row. The student reaches for board narrative far
 more than the teacher it was trained on.
 
-The second column matters as much: **false claims stayed flat at one each.** So v2 makes
-roughly twice as many placement claims at the same absolute error count — more descriptive,
+**False claims, though, stayed flat at one each.** So v2 makes
+roughly twice as many placement claims at the same absolute error count: more descriptive,
 not less accurate. Earlier framing treated placement claims as a failure mode to suppress;
 on this evidence they are mostly a *style* the fine-tune acquired, and the error rate did not
 follow the volume.

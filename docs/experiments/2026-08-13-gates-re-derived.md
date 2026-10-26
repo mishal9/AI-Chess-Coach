@@ -8,10 +8,10 @@ Two things invalidated the existing gates at once.
 model above it. It no longer separates anything.
 
 **The reference model was wrong.** Every gate and every experiment record until now was
-anchored to the prompted **3B** (`qwen2.5:3b-instruct`) — so "factual ≥ 4.0" meant
+anchored to the prompted **3B** (`qwen2.5:3b-instruct`), so "factual ≥ 4.0" meant
 "meaningfully above 2.90". But the shipped coach is an 8B fine-tune, and comparing it to a
 prompted 3B confounds two changes: the size jump *and* the fine-tune. It cannot answer the
-only question that matters — **does fine-tuning beat simply prompting the same base
+question the project asks: **does fine-tuning beat simply prompting the same base
 model?** The 3B comparison is retired here and is not carried into iteration 3.
 
 The correct control is **prompted `qwen3:8b`**: same base weights, same prompt pipeline,
@@ -47,7 +47,7 @@ grounding, +0.27 factual, and no separation at all on claims** (0.008, tied at 2
 ## 2 · Neither deterministic metric can be the progress gate
 
 I expected the claim metric to replace grounding as the deterministic gate, since grounding
-had saturated. **The data says otherwise — claims discriminates less, not more.**
+had saturated. **The data says otherwise: claims discriminates less, not more.**
 
 | metric | v1 → v2 separation |
 |---|---|
@@ -106,9 +106,9 @@ another dataset is built.
 ## 4 · Why the backfilled numbers can be trusted
 
 Reports written before #43 record neither `claims` nor `game_index`, and a bucket file holds
-~5 games, so the name alone does not identify one. `eval.recheck` joins positionally —
-`eval.run` iterates the manifest in order, the same assumption `eval.compare` already pairs
-on — and then **verifies** it two independent ways per game:
+~5 games, so the name alone does not identify one. `eval.recheck` joins positionally
+(`eval.run` iterates the manifest in order, the same assumption `eval.compare` already pairs
+on) and then **verifies** it two independent ways per game:
 
 1. the record's `pgn` and `coached_side` must match its manifest entry;
 2. the record's stored grounding score **and** hallucinated set must be reproducible from
@@ -117,7 +117,7 @@ on — and then **verifies** it two independent ways per game:
 Both reports pass on 29/29. A report failing either check is refused rather than backfilled
 on a guess.
 
-An earlier join, on the grounding signature alone, matched only 24/29 — the `clean_draw`
+An earlier join, on the grounding signature alone, matched only 24/29: the `clean_draw`
 and `slow_loss` games cite no moves at all, so their signature is identical across every
 candidate in the file and carries no information. That is what motivated the positional
 join plus verification rather than either method alone.
@@ -130,7 +130,7 @@ join plus verification rather than either method alone.
   facts block, the stored scores would not fall out of it.
 - **n=29, and violations are counted in single digits.** "2 violations vs 0" is a difference
   of two games. The regression gates are tripwires, not evidence of improvement.
-- **`claims` covers three failure classes only** — role inversion, invented castling,
+- **`claims` covers three failure classes only**: role inversion, invented castling,
   invented placement. Whatever the judge sees beyond those is uncovered, which is part of
   why factual stays the progress gate.
 - **The control is pending.** Every margin-based number here is a shape, not a value, until
