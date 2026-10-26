@@ -1,4 +1,4 @@
-# Chess Analyzer — Concept Mindmap
+# Chess Analyzer: Concept Mindmap
 
 A one-glance map of the system's layers and their key ideas, as built (updated 2026-10-08).
 Renders on GitHub and any Mermaid-aware viewer.

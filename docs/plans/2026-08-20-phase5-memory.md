@@ -1,4 +1,4 @@
-# Phase 5 — Memory layer (CLI milestone)
+# Phase 5: memory layer (CLI milestone)
 
 **Decided 2026-08-20.** Park the eval work; build the thing that makes this feel like a coach.
 
@@ -6,7 +6,7 @@
 
 `eval/` is 2221 LOC against `coach/`'s 417. The measurement apparatus outgrew the product.
 The prompted-8B control (2026-08-14) showed the fine-tune matches its own base model on judged
-quality — a real result, and a good place to stop rather than spend the remaining ~$3.73 on a v3
+quality. That is a result in itself, and a good place to stop rather than spend the remaining ~$3.73 on a v3
 that would likely land at factual 3.72 again.
 
 Nothing here is thrown away. `eval/` stays green and stays runnable. We return to it when there's
@@ -19,7 +19,7 @@ python -m coach.coach --user mishal9 --last 30
 ```
 
 Fetches the user's recent games, analyzes any not seen before, stores structured mistakes, and
-coaches the newest game **with reference to their actual recurring patterns** —
+coaches the newest game **with reference to their actual recurring patterns**:
 "this is the 4th time in 30 games you've hung a piece right after castling."
 
 No web UI, no API. CLI only. Phase 6 comes after.
@@ -37,15 +37,15 @@ The queries this product needs are aggregations, and vector similarity cannot se
 Embedding coaching prose would retrieve *textually* similar games, which correlates weakly with
 *chess-conceptually* similar ones. So: **SQLite + a motif taxonomy.**
 
-Vectors get added later for the one job they genuinely win — "find past positions that resemble
-this one" — which needs **position** embeddings, not text embeddings. That's a real problem worth
-doing properly, on its own merits, once the structured layer is carrying the product.
+Vectors get added later for the one job they do better ("find past positions that resemble
+this one"), which needs **position** embeddings, not text embeddings. That is a separate project,
+for after the structured layer is working.
 
-## PR1 — `memory/motifs.py`: motif tagging **on the engine's own analysis** — DONE
+## PR1: `memory/motifs.py`, motif tagging **on the engine's own analysis** (done)
 
 Original sketch had us hand-rolling static exchange evaluation to decide whether material was
 really lost. **Scrapped after review.** We run Stockfish at depth 15 on every position and were
-discarding its principal variation — `analyzer.py` kept only `pv[0]`. Re-deriving tactics in
+discarding its principal variation: `analyzer.py` kept only `pv[0]`. Re-deriving tactics in
 Python beside an engine that already computes them is the reinvention the project's own
 architecture ("Stockfish does objective analysis") was written to avoid.
 
@@ -53,27 +53,27 @@ So `analyzer.py` now stores the PV (`MAX_PV_PLIES = 8`, SAN, via `pv_to_san`), a
 reads the answer off it: replay the line, count material. ~90 lines of exchange simulation never
 shipped. What remains is bookkeeping.
 
-Taxonomy — deliberately small, biased to **false negatives over false positives**:
+The taxonomy is deliberately small and biased to **false negatives over false positives**:
 
-- `hangs_material` — the engine's refutation line opens with a capture and nets ≥ a minor piece.
+- `hangs_material`: the engine's refutation line opens with a capture and nets ≥ a minor piece.
   Corroborated by `cp_loss ≥ 200`, so a truncated PV can't invent a loss on its own.
-- `missed_capture` — the engine's own line opened with a material-winning capture the student passed.
-- `allows_fork` — best reply attacks 2+ targets that are undefended or outvalue the attacker.
-- `back_rank` — heavy piece lands on a back rank whose king has no flight square.
-- `phase` — opening/middlegame/endgame by material and ply (a dimension, not a motif).
+- `missed_capture`: the engine's own line opened with a material-winning capture the student passed.
+- `allows_fork`: best reply attacks 2+ targets that are undefended or outvalue the attacker.
+- `back_rank`: heavy piece lands on a back rank whose king has no flight square.
+- `phase`: opening/middlegame/endgame by material and ply (a dimension, not a motif).
 
 Every tag quotes the engine line that produced it, so a bad rule is visible rather than silently
 poisoning the profile.
 
-**Validation lesson worth keeping:** first run scored 0/8 on `eval/heldout/`, which looked like a
-broken tagger and was not. Those are DrNykterstein (Magnus) games — a "blunder" there is a
+**Validation lesson:** the first run scored 0/8 on `eval/heldout/`, which looked like a
+broken tagger and was not. Those are DrNykterstein (Magnus) games, where a "blunder" is a
 positional subtlety, not a hung piece. Re-run against the 1100–1900 Elo corpus and all four
 motifs fire correctly. **The held-out set is the wrong fixture for amateur-mistake tooling.**
 
-A promotion at the end of a PV inflated one hang to 1130cp (really 330 — a bishop);
+A promotion at the end of a PV inflated one hang to 1130cp (really 330, a bishop);
 `exchange_window()` now cuts the line before any promotion. 25 tests, 254 total.
 
-## PR2 — `memory/store.py` + `memory/profile.py` — DONE
+## PR2: `memory/store.py` + `memory/profile.py` (done)
 
 Stdlib `sqlite3`, no ORM, no migration tool, no pandas: three tables and `GROUP BY`.
 
@@ -88,7 +88,7 @@ Two corrections the build surfaced:
   occurrence* is what gets rendered.
 
 `training.corpus.movetext_hash()` extracted (it was inlined three times) and reused as the
-dedup key. Deliberately not `game_key()` — that prefers a Lichess id, so the same game
+dedup key. Deliberately not `game_key()`: that prefers a Lichess id, so the same game
 re-exported without the tag would count twice, and this is the number the coach says out loud.
 
 Verified on 14 real maia1 games: 33 mistakes, 11 motif tags, and a re-run stored 0 / skipped 14.
@@ -102,7 +102,7 @@ mistakes(id, game_id, ply, move_number, side, san, best_san, quality,
 motifs(mistake_id, motif)
 ```
 
-Ingest is **idempotent on `pgn_hash`** — re-running weekly must not double-count, or every
+Ingest is **idempotent on `pgn_hash`**: re-running weekly must not double-count, or every
 frequency number the coach cites becomes a lie.
 
 `profile.py` aggregates to:
@@ -111,7 +111,7 @@ frequency number the coach cites becomes a lie.
 - trend: motif rate over the window's first half vs second half
 - worst openings by ECO
 
-## PR3 — profile injection into the coach prompt — DONE
+## PR3: profile injection into the coach prompt (done)
 
 `--profile=None` produces a **byte-identical** facts block, so committed eval reports stay
 comparable; a test asserts it, and a second asserts that adding history does not widen the set
@@ -122,7 +122,7 @@ count itself. `--user` also resolves the coached side by player name via `resolv
 
 Verified live on `qwen-coach-8b-v2`, which produced: *"you left material hanging six times and
 walked into forks four times across past games. This isn't just one-off lapses; these are
-recurring patterns."* Every number in the output — 21.2 ACPL, `31.Bc1`, `Rb7`, 13%, 6, 4, 2.57 —
+recurring patterns."* Every number in the output (21.2 ACPL, `31.Bc1`, `Rb7`, 13%, 6, 4, 2.57)
 checks out against the facts block. No hallucination.
 
 ### Original design notes
@@ -131,13 +131,13 @@ checks out against the facts block. No hallucination.
 prompt gets a PROFILE section under the **same strict grounding discipline** as the move facts:
 only patterns the profile states, only the counts given.
 
-Putting the profile *inside* the facts block matters — `eval/grounding.py` rebuilds the facts to
+The profile goes *inside* the facts block because `eval/grounding.py` rebuilds the facts to
 decide what the model was allowed to cite, so the grounding metric keeps working unchanged.
 
 ## Known consequence, recorded now
 
 Profile-injected coaching is **a different prompt**, so the 2026-08-14 reports are not comparable
-to anything produced after PR3. That's the PR #49 lesson in a new costume. The metric-version
+to anything produced after PR3, the same problem PR #49 hit. The metric-version
 stamping already in `eval.run` handles it: when we come back to eval, re-baseline first and let
 `eval.compare` refuse the stale diff.
 

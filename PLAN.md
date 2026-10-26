@@ -1,4 +1,4 @@
-# Plan — one goal at a time
+# Plan: one goal at a time
 
 Rewritten 2026-09-13; status and next steps updated 2026-09-20. The original Phase 0–6 roadmap (Chroma, Qwen2.5-3B, a hosted public site)
 is in git history. It served its purpose, and most of it was either built or deliberately
@@ -27,7 +27,7 @@ Your data: 53 `mshah509` games (25 Jun – 6 Sep 2026). Tagged mistakes so far: 
 2. Claim checkers that replay the game: 0/467 false positives on teacher rows. Every flagged
    held-out game was judged factual 2/5. Recall is low.
 3. Distillation reproduced its base model's judged quality (factual 3.72 vs 3.72) and improved
-   citation hygiene. It did not exceed the base model. The teacher scores 4.97, so the headroom is real.
+   citation hygiene. It did not exceed the base model. The teacher scores 4.97, so there is room above the base.
 
 **Since 13 Sep** (all merged to `master`)
 
@@ -150,7 +150,7 @@ rater's strength, and compute human ↔ judge agreement.
 Arms depend on the teacher, so rate in two rounds. Otherwise ratings of a fine-tune that may not
 survive the licence answer are wasted.
 
-- **Round 1 (now): teacher-independent arms only** — prompted `qwen3:8b` and the template coach. The
+- **Round 1 (now): teacher-independent arms only:** prompted `qwen3:8b` and the template coach. The
   current sample (`eval/human/round1`) holds 15 v2 and 14 prompted-base items, so rebuild it to swap
   v2 out for the template report. Check how the arm-balanced stratification behaves with the new pair.
 - **Round 2 (after N1 and N2 settle which fine-tune is real):** the surviving fine-tune (v2 if
@@ -207,7 +207,7 @@ define the numbers in the paper. New app prompts go in new functions.
 
 ---
 
-## Goal 1 — Publish the research
+## Goal 1: Publish the research
 
 **Finish line:** arXiv preprint (cs.CL) and TMLR submission, with the repo tagged `paper-v1`.
 Target **Mon 12 Oct 2026**.
@@ -236,7 +236,7 @@ new arm (the template arm was 29 Opus calls, roughly $0.40); every earlier Opus 
 
 ---
 
-## Goal 2 — A coach you actually use
+## Goal 2: A coach you actually use
 
 **Finish line:** once a week you open the app. It pulls your new games, shows you the one habit
 costing you most with board positions from your own games, coaches you on it, and drills you on
