@@ -184,7 +184,9 @@ No student has been trained, so the registration above still holds unchanged.
      16. Larger sets therefore train for more steps.
    - Commit this on its own branch before any run.
 2. **Confirm GPU cost with the user, then train the 24 runs** (8 sets × seeds 0, 1, 2).
-   - Check Runpod availability and price first. A 24 GB card (RTX A5000) is enough.
+   - Check Runpod availability and price first. A 24 GB card is enough. On 26 Oct the RTX
+     A5000 was only in data centers without network volumes, so use an RTX 4090 in EU-RO-1
+     (fallback RTX PRO 4500, same data center).
    - Upload each set's `train.jsonl` and `val.jsonl` to `/workspace/data/<set>/` on the
      network volume.
    - The notebook writes `qwen-coach-8b-<RUN_TAG>-q4_k_m.gguf` and terminates its own pod.
@@ -224,8 +226,8 @@ No student has been trained, so the registration above still holds unchanged.
 - **DeepSeek:** $2.75. Corpus generation is finished; no more teacher calls are planned.
 - **Anthropic:** topped up 11 Oct. About $0.30 has gone on judging since (21 rows and the
   3-row batch check). Check the balance before step 5.
-- **Gemini:** free tier, daily quota. `eval.rejudge` stops cleanly on it, and a rerun
-  continues.
+- **Gemini:** paid key since 25 Oct (`GOOGLE_API_KEY`, see step 5). If a quota stops
+  `eval.rejudge`, a rerun continues.
 
 ### Still open
 
