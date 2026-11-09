@@ -24,6 +24,7 @@ from eval.human_rating import (  # noqa: E402
     load_many_ratings,
     load_ratings,
     mean_pairwise_r,
+    paired_sample,
     pairwise_agreement,
     render_sheet,
     stratified_sample,
@@ -266,3 +267,79 @@ def test_bucket_of_prefers_the_manifest_label_over_the_file_name():
     assert bucket_of(game) == "slow_loss"
     assert bucket_of(game, {("slow_loss.pgn", 4): "inaccuracies"}) == "inaccuracies"
     assert bucket_of({**game, "bucket": "two_mistakes"}) == "two_mistakes"
+
+
+class TestPairedSample:
+    """Round 2 compares arms on the same games, so every game must carry every arm."""
+
+    ARMS = ("base", "student", "teacher")
+
+    def three_arm_pool(self, games_per_bucket=3):
+        out = []
+        for source in self.ARMS:
+            for bucket in ("clean_draw", "one_blunder", "multi_blunder"):
+                for i in range(games_per_bucket):
+                    out.append(item(bucket=bucket, source=source, idx=i,
+                                    coaching=f"text {source} {bucket} {i}"))
+        return out
+
+    def test_each_picked_game_has_every_arm_once(self):
+        sample = paired_sample(self.three_arm_pool(), games=4, seed=3)
+        assert len(sample.items) == 12
+        per_game = Counter((i.pgn, i.game_index) for i in sample.items)
+        assert len(per_game) == 4 and set(per_game.values()) == {3}
+        for game in per_game:
+            arms = {i.source_report for i in sample.items if (i.pgn, i.game_index) == game}
+            assert arms == set(self.ARMS)
+
+    def test_games_spread_across_buckets(self):
+        sample = paired_sample(self.three_arm_pool(), games=6, seed=3)
+        games = {(i.pgn, i.game_index, i.bucket) for i in sample.items}
+        assert Counter(b for _, _, b in games) == {"clean_draw": 2, "one_blunder": 2,
+                                                    "multi_blunder": 2}
+
+    def test_a_game_missing_an_arm_is_never_picked(self):
+        items = [i for i in self.three_arm_pool()
+                 if not (i.bucket == "clean_draw" and i.source_report == "teacher")]
+        sample = paired_sample(items, games=9, seed=3)
+        assert "clean_draw" not in {i.bucket for i in sample.items}
+
+    def test_no_two_neighbours_share_a_game(self):
+        sample = paired_sample(self.three_arm_pool(), games=6, seed=5)
+        keys = [(i.pgn, i.game_index) for i in sample.items]
+        assert all(a != b for a, b in zip(keys, keys[1:]))
+
+    def test_ids_are_sequential_and_seed_is_reproducible(self):
+        a = paired_sample(self.three_arm_pool(), games=4, seed=9)
+        b = paired_sample(self.three_arm_pool(), games=4, seed=9)
+        assert [i.item_id for i in a.items] == [f"item-{n:02d}" for n in range(1, 13)]
+        assert [i.coaching for i in a.items] == [i.coaching for i in b.items]
+
+    def test_items_json_is_blinded(self, tmp_path):
+        sample = paired_sample(self.three_arm_pool(), games=2, seed=1)
+        paths = write_round(sample, tmp_path)
+        rows = json.loads(paths["items"].read_text())
+        assert [r["item_id"] for r in rows] == [i.item_id for i in sample.items]
+        assert all(set(r) == {"item_id", "game", "facts", "coaching"} for r in rows)
+        # The game id names the game, never the arm: one id per game, shared by its arms.
+        assert len({r["game"] for r in rows}) == 2
+
+
+def test_board_data_replays_the_game_and_flags_the_moves_the_facts_name(tmp_path):
+    from eval.human_rating import Sample, board_data
+
+    (tmp_path / "g.pgn").write_text(
+        '[Event "a"]\n\n1. e4 e5 2. Nf3 Nc6 *\n\n[Event "b"]\n\n1. d4 d5 2. c4 e6 11. *\n',
+        encoding="utf-8")
+    (tmp_path / "manifest.json").write_text(json.dumps(
+        [{"pgn": "g.pgn", "game_index": 1, "coached_side": "black"}]), encoding="utf-8")
+    it = RatingItem(item_id="item-01", coaching="x", source_report="r", pgn="g.pgn",
+                    game_index=1, bucket="b",
+                    facts="- 2.c4?! (inaccuracy): the engine preferred Nf3.\n- 12.c4 is not this game")
+    data = board_data(Sample(items=[it]), tmp_path / "manifest.json")
+    game = data["g01"]
+    assert game["orientation"] == "black"
+    assert [p["label"] for p in game["plies"]] == ["1.d4", "1...d5", "2.c4", "2...e6"]
+    assert [p["flag"] for p in game["plies"]] == [False, False, True, False]
+    assert game["plies"][0]["from"] == "d2" and game["plies"][0]["to"] == "d4"
+    assert game["plies"][-1]["fen"] == "rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR"
