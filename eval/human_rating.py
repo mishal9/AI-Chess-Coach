@@ -213,6 +213,56 @@ def stratified_sample(
     )
 
 
+def paired_sample(items: list[RatingItem], games: int, seed: int = DEFAULT_SEED) -> Sample:
+    """Take ``games`` games and every arm's coaching of each, so arms are compared on the
+    same games.
+
+    :func:`stratified_sample` draws a different game for each arm, which suits a pool of
+    many arms but leaves an arm-vs-arm difference confounded with which games each arm
+    happened to get. Here each picked game contributes one item per arm, so a human
+    before/after (base vs student vs teacher) is paired by game exactly as the judge
+    comparison is. Games are round-robined across buckets, as in the stratified sample,
+    and only games every arm coached are eligible.
+
+    Blinding is unchanged: ids are assigned after the shuffle, and the order is reshuffled
+    until no two items about the same game sit next to each other, so a rater does not
+    read one game's three versions back to back and score them against each other.
+    """
+    rng = random.Random(seed)
+    arms = sorted({i.source_report for i in items})
+    by_game: dict[tuple[str, int], dict[str, RatingItem]] = {}
+    for item in items:
+        by_game.setdefault((item.pgn, item.game_index), {})[item.source_report] = item
+    complete = {k: v for k, v in by_game.items() if len(v) == len(arms)}
+
+    by_bucket: dict[str, list[tuple[str, int]]] = {}
+    for key in sorted(complete):
+        by_bucket.setdefault(complete[key][arms[0]].bucket, []).append(key)
+    for keys in by_bucket.values():
+        rng.shuffle(keys)
+
+    picked_games: list[tuple[str, int]] = []
+    while len(picked_games) < games and any(by_bucket.values()):
+        for bucket in sorted(by_bucket):
+            if len(picked_games) >= games:
+                break
+            if by_bucket[bucket]:
+                picked_games.append(by_bucket[bucket].pop())
+
+    picked = [complete[key][arm] for key in picked_games for arm in arms]
+    for _ in range(1000):
+        rng.shuffle(picked)
+        if all((a.pgn, a.game_index) != (b.pgn, b.game_index)
+               for a, b in zip(picked, picked[1:])):
+            break
+    return Sample(
+        items=[
+            RatingItem(**{**vars(item), "item_id": f"item-{i + 1:02d}"})
+            for i, item in enumerate(picked)
+        ]
+    )
+
+
 def render_sheet(sample: Sample) -> str:
     """The rater-facing document. Markdown so it reads anywhere, prints, and diffs."""
     lines = [
@@ -267,7 +317,70 @@ def render_sheet(sample: Sample) -> str:
     return "\n".join(lines)
 
 
-def write_round(sample: Sample, out_dir: Path) -> dict[str, Path]:
+def game_ids(sample: Sample) -> dict[tuple[str, int], str]:
+    """A neutral id per game (``g01``...), in order of first appearance in the sample.
+
+    It names the game, never the arm, so it can sit beside a blinded item.
+    """
+    ids: dict[tuple[str, int], str] = {}
+    for item in sample.items:
+        ids.setdefault((item.pgn, item.game_index), f"g{len(ids) + 1:02d}")
+    return ids
+
+
+def _ply_flagged(label: str, facts: str) -> bool:
+    """Whether the facts block names this move, e.g. ``16.Qc5`` or ``23...Kh7``."""
+    import re
+
+    return re.search(rf"(?<![\d.]){re.escape(label)}(?![\w])", facts) is not None
+
+
+def board_data(sample: Sample, manifest_path: Path) -> dict[str, dict]:
+    """Every sampled game's moves as positions, for the rating page's board.
+
+    Raters who play chess want to see the position a piece of coaching talks about. Each
+    ply carries its SAN, the label the facts block uses (``16.Qc5`` / ``23...Kh7``), the
+    piece placement after it, its from/to squares, and whether the facts flag it. The
+    board is oriented to the coached side.
+    """
+    import chess
+    import chess.pgn
+
+    manifest = {
+        (e["pgn"], e.get("game_index", 0)): e
+        for e in json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+    }
+    facts_by_game = {(i.pgn, i.game_index): i.facts for i in sample.items}
+    out: dict[str, dict] = {}
+    for (pgn_name, game_index), gid in game_ids(sample).items():
+        entry = manifest.get((pgn_name, game_index), {})
+        with (Path(manifest_path).parent / pgn_name).open(encoding="utf-8") as handle:
+            for _ in range(game_index):
+                chess.pgn.skip_game(handle)
+            game = chess.pgn.read_game(handle)
+        board = game.board()
+        facts = facts_by_game.get((pgn_name, game_index), "")
+        plies = []
+        for move in game.mainline_moves():
+            number, white = board.fullmove_number, board.turn == chess.WHITE
+            san = board.san(move)
+            label = f"{number}.{san}" if white else f"{number}...{san}"
+            board.push(move)
+            plies.append({
+                "san": san, "label": label, "fen": board.board_fen(),
+                "from": chess.square_name(move.from_square),
+                "to": chess.square_name(move.to_square),
+                "flag": _ply_flagged(label, facts),
+            })
+        out[gid] = {
+            "orientation": entry.get("coached_side", "white"),
+            "start": game.board().board_fen(),
+            "plies": plies,
+        }
+    return out
+
+
+def write_round(sample: Sample, out_dir: Path, manifest_path: Path | None = None) -> dict[str, Path]:
     """Write the sheet, the blank score CSV, and the answer key.
 
     The key lives beside the sheet but is what makes the blinding auditable afterwards:
@@ -278,9 +391,20 @@ def write_round(sample: Sample, out_dir: Path) -> dict[str, Path]:
         "sheet": out_dir / "rating_sheet.md",
         "ratings": out_dir / "ratings.csv",
         "key": out_dir / "answer_key.csv",
+        "items": out_dir / "items.json",
     }
 
     paths["sheet"].write_text(render_sheet(sample), encoding="utf-8")
+    # The same blinded content for the web rating page: id, game, facts and coaching only.
+    gids = game_ids(sample)
+    paths["items"].write_text(json.dumps(
+        [{"item_id": i.item_id, "game": gids[(i.pgn, i.game_index)],
+          "facts": i.facts.strip(), "coaching": i.coaching.strip()}
+         for i in sample.items], indent=1) + "\n", encoding="utf-8")
+    if manifest_path is not None:
+        paths["games"] = out_dir / "games.json"
+        paths["games"].write_text(
+            json.dumps(board_data(sample, manifest_path)) + "\n", encoding="utf-8")
 
     with paths["ratings"].open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
@@ -323,6 +447,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="an eval report JSON (repeatable; both arms get pooled)")
     parser.add_argument("--out", type=Path, help="directory to write into")
     parser.add_argument("--size", type=int, default=DEFAULT_SAMPLE)
+    parser.add_argument("--paired-games", type=int, default=None, metavar="N",
+                        help="take N games and every report's coaching of each "
+                             "(paired by game) instead of --size mixed items")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--manifest", type=Path, default=None,
                         help="held-out manifest, for rebuilding the facts blocks")
@@ -426,8 +553,11 @@ def main(argv: list[str] | None = None) -> int:
         print("No coaching texts found in those reports.")
         return 1
 
-    sample = stratified_sample(items, args.size, args.seed)
-    paths = write_round(sample, args.out)
+    if args.paired_games:
+        sample = paired_sample(items, args.paired_games, args.seed)
+    else:
+        sample = stratified_sample(items, args.size, args.seed)
+    paths = write_round(sample, args.out, args.manifest or DEFAULT_MANIFEST)
 
     print(f"{len(sample.items)} items from {len(items)} candidates")
     print(f"buckets: {sample.buckets}")
