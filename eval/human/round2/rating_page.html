@@ -132,12 +132,25 @@ textarea { width: 100%; min-height: 64px; resize: vertical; border: 1px solid va
 .moves button { text-align: left; border: 0; background: transparent; padding: 2px 6px; border-radius: 4px; cursor: pointer; font: inherit; }
 .moves button.flag { color: var(--warn); font-weight: 600; }
 .moves button.cur { background: var(--accent); color: var(--accent-ink); }
+.mv { font: 600 0.9em var(--font-mono); color: var(--accent); background: var(--accent-soft); border: 0; border-radius: 4px; padding: 0 4px; margin: 0 1px; cursor: pointer; }
+.mv:hover { text-decoration: underline; }
+.mv.flag { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
+.mv.cur { box-shadow: 0 0 0 2px currentColor; }
+.facts pre .mv { font-size: inherit; }
+.caption .note { display: block; margin-top: 4px; color: var(--warn); }
+.axis { border-left: 3px solid transparent; padding-left: 10px; margin-left: -13px; }
+.axis.target { border-left-color: var(--accent); }
+.axis.target h3::after { content: "keys 1\2013 5"; margin-left: 8px; font: 500 10px var(--font-mono); color: var(--accent); border: 1px solid var(--accent); border-radius: 99px; padding: 0 6px; vertical-align: 2px; }
+.progress { flex: 0 1 220px; height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: var(--accent); }
+.nag { color: var(--warn); min-height: 1.4em; margin: 0; }
 @media (prefers-reduced-motion: no-preference) { .dot, .scale button, .btn { transition: background 120ms, border-color 120ms; } }
 </style>
 </head>
 <body>
 <header class="top">
   <h1>Chess Coaching Ratings</h1>
+  <div class="progress" aria-hidden="true"><i id="bar"></i></div>
   <span class="count" id="count">0 of 60 rated</span>
   <span class="save" id="save">Saving in this browser</span>
 </header>
@@ -147,7 +160,7 @@ textarea { width: 100%; min-height: 64px; resize: vertical; border: 1px solid va
   <section class="intro" id="intro">
     <div class="card">
       <h2>Score 60 pieces of chess coaching</h2>
-      <p>Each item is coaching written about one real game that a chess engine has already analysed. You get the game on a board and the engine's findings next to the coaching. Moves the engine flagged are marked in amber, and the board opens on the first of them. Treat the findings as ground truth and judge the coaching written from them. You don't need to be a strong player.</p>
+      <p>Each item is coaching written about one real game that a chess engine has already analysed. You get the game on a board and the engine's findings next to the coaching. Moves the engine flagged are marked in amber, and the board opens on the first of them. Any move named in the coaching or the findings can be clicked to show that position on the board. Treat the findings as ground truth and judge the coaching written from them. You don't need to be a strong player.</p>
       <p class="hint">About 2–3 minutes per item. Your scores save as you go, so you can stop and come back.</p>
     </div>
     <div class="card">
@@ -220,7 +233,8 @@ textarea { width: 100%; min-height: 64px; resize: vertical; border: 1px solid va
         <button class="btn" id="prev">Previous</button>
         <button class="btn primary" id="next">Next</button>
       </div>
-      <p class="hint">Keys: 1–5 scores the first unscored axis; ← → step through the game; N and P go to the next and previous item.</p>
+      <p class="hint nag" id="nag" aria-live="polite"></p>
+      <p class="hint">Keys: 1–5 scores the marked axis, then moves to the next one. Enter or N goes to the next item, P to the previous one, and ← → step through the game. Click a score to change it.</p>
     </aside>
   </section>
 
@@ -276,7 +290,12 @@ function renderBoard() {
   const cap = document.getElementById("caption");
   cap.innerHTML = "";
   if (!last) cap.textContent = "Starting position.";
-  else { const b = document.createElement("strong"); b.textContent = last.label; cap.append("After ", b, last.flag ? ", a move the engine flagged." : "."); }
+  else {
+    const b = document.createElement("strong"); b.textContent = last.label; cap.append("After ", b, last.flag ? ", a move the engine flagged." : ".");
+    const note = factNote(ITEMS[idx].facts, last.label);
+    if (note) { const n = document.createElement("span"); n.className = "note"; n.textContent = note; cap.appendChild(n); }
+  }
+  document.querySelectorAll(".mv").forEach(b => b.classList.toggle("cur", Number(b.dataset.ply) === ply));
   document.querySelectorAll("#moves button").forEach(b => b.classList.toggle("cur", Number(b.dataset.ply) === ply));
   const cur = document.querySelector("#moves button.cur"); if (cur) cur.scrollIntoView({ block: "nearest" });
   document.getElementById("mFlag").disabled = !g.plies.some(p => p.flag);
@@ -303,10 +322,67 @@ function nextFlag() {
   const first = g.plies.findIndex(p => p.flag);
   const j = after >= 0 ? after : first; if (j >= 0) setPly(j + 1);
 }
+/* Move references such as "14.Nf3" or "14...Nxe4" in the coaching and the findings become buttons
+   that show that position. Only references that match a move actually played in this game are linked. */
+const MOVE_RE = /(?<![\w.])(\d{1,3})\s*(\.\.\.|\.)\s*(O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?)/g;
+const plyIndex = {};
+function plyOf(game, label) {
+  if (!plyIndex[game]) { plyIndex[game] = {}; GAMES[game].plies.forEach((p, j) => { plyIndex[game][p.label] = j + 1; }); }
+  return plyIndex[game][label];
+}
+function linkMoves(html, game) {
+  return html.split(/(<[^>]*>)/).map(part => part.startsWith("<") ? part : part.replace(MOVE_RE, (m, num, dots, san) => {
+    const n = plyOf(game, num + (dots === "..." ? "..." : ".") + san);
+    if (!n) return m;
+    const flag = GAMES[game].plies[n - 1].flag;
+    return '<button type="button" class="mv' + (flag ? " flag" : "") + '" data-ply="' + n + '" title="Show the position after this move">' + m + "</button>";
+  })).join("");
+}
+function factNote(facts, label) {
+  if (!facts) return "";
+  const esc_ = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp("(^|[^\\d.])" + esc_ + "(?![\\w=])");
+  const line = facts.split("\n").find(l => /^\s*-\s/.test(l) && re.test(l));
+  return line ? "Engine: " + line.replace(/^\s*-\s*/, "") : "";
+}
+function setNag(text) { document.getElementById("nag").textContent = text; }
+let nagFor = null;
+function goNext() {
+  const id = ITEMS[idx].item_id;
+  if (isPart(id) && nagFor !== id) {
+    nagFor = id;
+    const miss = AXES.filter(a => !scoreOf(id)[a.key]).length;
+    setNag(miss + (miss === 1 ? " score is" : " scores are") + " still empty. Press Next again to leave this item for later.");
+    return;
+  }
+  nagFor = null;
+  if (idx === ITEMS.length - 1 || doneCount() === ITEMS.length) showFinish(); else show(idx + 1);
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest(".mv"); if (!b) return;
+  setPly(Number(b.dataset.ply));
+  const box = document.getElementById("board").getBoundingClientRect();
+  if (box.top < 60 || box.bottom > window.innerHeight) document.getElementById("board").scrollIntoView({ block: "center", behavior: "smooth" });
+});
 const AXIS_TITLES = { factual_correctness: "Factual correctness", clarity: "Clarity",
   actionability: "Actionability", identifies_key_mistake: "Identifies the key mistake" };
 const ROUND = "round2";
-const LS_KEY = "chess-coach-ratings-" + ROUND;
+/* Supabase backend, used by the GitHub Pages copy. Each rater gets a personal link ending in #t=<token>;
+   the token is the only credential, and the database's two functions accept nothing without a known one.
+   The key is the project's publishable key: public in the served page by design, but kept out of git. Inside a claude.ai artifact no
+   token reaches the page, so it uses the artifact's own database instead. */
+/* Filled in at deploy time by .github/workflows/rating-page.yml from the SUPABASE_URL variable and the
+   SUPABASE_PUBLISHABLE_KEY secret; left as placeholders in git, where they mean "no Supabase". */
+const SUPABASE = { url: "__SUPABASE_URL__", key: "__SUPABASE_PUBLISHABLE_KEY__" };
+if (SUPABASE.url.startsWith("__") || SUPABASE.key.startsWith("__")) { SUPABASE.url = ""; SUPABASE.key = ""; }
+function tokenFromHash() { const m = location.hash.match(/(?:^#|&)t=([0-9a-f-]{36})(?:&|$)/i); return m ? m[1].toLowerCase() : null; }
+const SB_TOKEN = (() => {
+  if (!SUPABASE.url) return null;
+  let t = tokenFromHash();
+  try { if (t) localStorage.setItem("chess-coach-token", t); else t = localStorage.getItem("chess-coach-token"); } catch (e) {}
+  return t;
+})();
+const LS_KEY = "chess-coach-ratings-" + ROUND + (SB_TOKEN ? "-" + SB_TOKEN.slice(0, 8) : "");
 
 let state = { tag: "", level: "", started: "", updated: "", scores: {} };
 let idx = 0;
@@ -353,15 +429,19 @@ function renderStrip() {
     b.addEventListener("click", () => { if (!state.started) return; show(i); });
     strip.appendChild(b);
   });
-  document.getElementById("count").textContent = doneCount() + " of " + ITEMS.length + " rated";
+  const done = doneCount(), left = (ITEMS.length - done) * 2.5;
+  document.getElementById("count").textContent = done + " of " + ITEMS.length + " rated" +
+    (done && left ? " · about " + (left < 60 ? Math.ceil(left / 5) * 5 + " min" : (left / 60).toFixed(1) + " h") + " left" : "");
+  document.getElementById("bar").style.width = (100 * done / ITEMS.length) + "%";
 }
 function deskHidden() { return document.getElementById("desk").classList.contains("hidden"); }
 
 function renderAxes() {
   const it = ITEMS[idx], s = scoreOf(it.item_id), box = document.getElementById("axes");
   box.innerHTML = "";
+  const target = AXES.find(x => !s[x.key]);
   AXES.forEach(a => {
-    const wrap = document.createElement("div"); wrap.className = "axis"; wrap.style.marginBottom = "14px";
+    const wrap = document.createElement("div"); wrap.className = "axis" + (a === target ? " target" : ""); wrap.style.marginBottom = "14px";
     const h = document.createElement("h3"); h.id = "ax-" + a.key; h.textContent = AXIS_TITLES[a.key] || a.key;
     const p = document.createElement("p"); p.textContent = a.question;
     const scale = document.createElement("div"); scale.className = "scale"; scale.setAttribute("role", "group"); scale.setAttribute("aria-labelledby", h.id);
@@ -384,8 +464,9 @@ function show(i) {
   document.getElementById("finish").classList.add("hidden");
   document.getElementById("desk").classList.remove("hidden");
   document.getElementById("itemLabel").textContent = "The coaching · item " + (idx + 1) + " of " + ITEMS.length;
-  document.getElementById("facts").textContent = it.facts || "(not recorded)";
-  document.getElementById("coaching").innerHTML = renderMarkdown(it.coaching);
+  document.getElementById("facts").innerHTML = it.facts ? linkMoves(esc(it.facts), it.game) : "(not recorded)";
+  document.getElementById("coaching").innerHTML = linkMoves(renderMarkdown(it.coaching), it.game);
+  setNag("");
   const g = GAMES[it.game]; const firstFlag = g.plies.findIndex(p => p.flag);
   ply = firstFlag >= 0 ? firstFlag + 1 : g.plies.length;
   renderMoves(); renderBoard();
@@ -401,6 +482,8 @@ function setScore(axis, v) {
   const id = ITEMS[idx].item_id;
   state.scores[id] = Object.assign({}, scoreOf(id), { [axis]: v });
   touch(); renderAxes();
+  if (nagFor === id && isDone(id)) { nagFor = null; setNag(""); }
+  if (doneCount() === ITEMS.length) { setNag("All " + ITEMS.length + " items are scored. Press Next to finish."); document.getElementById("next").textContent = "Finish"; }
 }
 
 function showFinish() {
@@ -409,7 +492,7 @@ function showFinish() {
   document.getElementById("finish").classList.remove("hidden");
   const missing = ITEMS.length - doneCount();
   document.querySelector("#finish h2").textContent = missing ? missing + " items still need scores" : "All 60 rated. Thank you.";
-  document.getElementById("finishSave").textContent = db && docRef
+  document.getElementById("finishSave").textContent = docRef
     ? "Your scores are saved to the study. Downloading a copy is optional."
     : "Your scores are saved only in this browser. Download or copy the CSV and send it back to the study organiser.";
   document.getElementById("csvOut").value = toCsv();
@@ -428,23 +511,60 @@ function setSaveChip(kind, text) { const c = document.getElementById("save"); c.
 function queueCloud() { if (!docRef) return; clearTimeout(saveTimer); saveTimer = setTimeout(writeCloud, 800); }
 async function writeCloud() {
   if (!docRef) return;
+  saveTimer = null;
   if (writing) { pending = true; return; }
   writing = true;
   try {
-    await docRef.set({ tag: state.tag, level: state.level, round: ROUND, started: state.started, updated: state.updated, scores: state.scores });
+    await docRef.set(snapshot());
     setSaveChip("cloud", "Saved to the study");
   } catch (e) {
-    docRef = null;
-    setSaveChip("local", "Saving in this browser only");
+    if (docRef && docRef.retry) {
+      setSaveChip("local", "Not saved to the study yet. Retrying…");
+      clearTimeout(saveTimer); saveTimer = setTimeout(writeCloud, 5000);
+    } else {
+      docRef = null;
+      setSaveChip("local", "Saving in this browser only");
+    }
   } finally {
     writing = false;
     if (pending) { pending = false; writeCloud(); }
   }
 }
+function snapshot() { return { tag: state.tag, level: state.level, round: ROUND, started: state.started, updated: state.updated, scores: state.scores }; }
+function adoptRemote(remote) {
+  if (remote && remote.scores && (!state.updated || (remote.updated && remote.updated > state.updated))) {
+    state = Object.assign({ tag: "", level: "", started: "", updated: "", scores: {} }, remote);
+    saveLocal(); syncIntro(); renderStrip(); if (!deskHidden()) show(idx);
+  }
+}
+function rpc(name, body, keepalive) {
+  return fetch(SUPABASE.url + "/rest/v1/rpc/" + name, {
+    method: "POST", keepalive: !!keepalive, body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json", apikey: SUPABASE.key },
+  }).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+}
+async function connectSupabase() {
+  try {
+    const res = await rpc("chess_load", { p_token: SB_TOKEN, p_round: ROUND });
+    if (!res || !res.known) { setSaveChip("local", "This personal link isn't recognised. Saving in this browser only."); return; }
+    adoptRemote(res.state);
+    docRef = { retry: true, set: st => rpc("chess_save", { p_token: SB_TOKEN, p_round: ROUND, p_state: st }).then(ok => { if (ok !== true) throw new Error("rejected"); }) };
+    setSaveChip("cloud", "Saving to the study");
+    if (state.updated) writeCloud();
+  } catch (e) {
+    setSaveChip("local", "Can't reach the study right now. Saving in this browser and retrying.");
+    setTimeout(connectSupabase, 15000);
+  }
+}
+window.addEventListener("pagehide", () => {
+  if (SB_TOKEN && docRef && saveTimer) { clearTimeout(saveTimer); saveTimer = null; rpc("chess_save", { p_token: SB_TOKEN, p_round: ROUND, p_state: snapshot() }, true).catch(() => {}); }
+});
 async function connectCloud() {
+  if (SB_TOKEN) return connectSupabase();
+  const localOnly = SUPABASE.url ? "Saving in this browser only. Open your personal link to save to the study." : "Saving in this browser only";
   try {
     for (let t = 0; t < 30 && !(window.claude && window.claude.use); t++) await new Promise(r => setTimeout(r, 100));
-    if (!window.claude || !window.claude.use) { setSaveChip("local", "Saving in this browser only"); return; }
+    if (!window.claude || !window.claude.use) { setSaveChip("local", localOnly); return; }
     const [d, u] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
     if (!d || !u) { setSaveChip("local", "Saving in this browser only"); return; }
     const uid = await u.id();
@@ -454,10 +574,7 @@ async function connectCloud() {
     const snap = await ref.get();
     clearTimeout(timer);
     const remote = snap && (typeof snap.data === "function" ? snap.data() : snap);
-    if (remote && remote.scores && (!state.updated || (remote.updated && remote.updated > state.updated))) {
-      state = Object.assign({ tag: "", level: "", started: "", updated: "", scores: {} }, remote);
-      saveLocal(); syncIntro(); renderStrip(); if (!deskHidden()) show(idx);
-    }
+    adoptRemote(remote);
     docRef = ref;
     setSaveChip("cloud", "Saving to the study");
     if (state.updated) writeCloud();
@@ -499,7 +616,7 @@ document.getElementById("mPrev").addEventListener("click", () => setPly(ply - 1)
 document.getElementById("mNext").addEventListener("click", () => setPly(ply + 1));
 document.getElementById("mEnd").addEventListener("click", () => setPly(1e9));
 document.getElementById("mFlag").addEventListener("click", nextFlag);
-document.getElementById("next").addEventListener("click", () => { if (idx === ITEMS.length - 1) showFinish(); else show(idx + 1); });
+document.getElementById("next").addEventListener("click", goNext);
 document.getElementById("back").addEventListener("click", () => { const f = ITEMS.findIndex(it => !isDone(it.item_id)); show(f < 0 ? 0 : f); });
 document.getElementById("comment").addEventListener("input", e => {
   const id = ITEMS[idx].item_id; state.scores[id] = Object.assign({}, scoreOf(id), { comment: e.target.value }); touch();
@@ -513,16 +630,25 @@ document.getElementById("download").addEventListener("click", async () => {
   const msg = document.getElementById("exportMsg");
   try {
     const dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
-    if (!dl) { msg.textContent = "Downloads aren't available here. Use Copy instead."; return; }
-    await dl.save({ filename: "ratings_" + (state.tag || "rater").replace(/[^A-Za-z0-9_-]/g, "") + "_" + ROUND + ".csv", data: toCsv() });
+    const filename = "ratings_" + (state.tag || "rater").replace(/[^A-Za-z0-9_-]/g, "") + "_" + ROUND + ".csv";
+    if (!dl) {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([toCsv()], { type: "text/csv" })); a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      msg.textContent = "Saved. Send the file to the study organiser."; return;
+    }
+    await dl.save({ filename, data: toCsv() });
     msg.textContent = "Saved. Send the file to the study organiser.";
   } catch (e) { msg.textContent = "The download was cancelled or blocked. Use Copy instead."; }
 });
 document.addEventListener("keydown", e => {
-  if (deskHidden() || e.target.matches("textarea, input, select")) return;
+  if (deskHidden() || e.target.matches("textarea, input, select") || e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key === "ArrowRight") { e.preventDefault(); setPly(ply + 1); }
   else if (e.key === "ArrowLeft") { e.preventDefault(); setPly(ply - 1); }
-  else if (e.key === "n" || e.key === "N") { if (idx === ITEMS.length - 1) showFinish(); else show(idx + 1); }
+  else if (e.key === "n" || e.key === "N") goNext();
+  else if (e.key === "Enter") {
+    if (e.target.matches("button") && !e.target.closest(".scale")) return;
+    e.preventDefault(); goNext();
+  }
   else if (e.key === "p" || e.key === "P") show(idx - 1);
   else if (/^[1-5]$/.test(e.key)) {
     const s = scoreOf(ITEMS[idx].item_id); const a = AXES.find(x => !s[x.key]);
