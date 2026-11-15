@@ -343,3 +343,30 @@ def test_board_data_replays_the_game_and_flags_the_moves_the_facts_name(tmp_path
     assert [p["flag"] for p in game["plies"]] == [False, False, True, False]
     assert game["plies"][0]["from"] == "d2" and game["plies"][0]["to"] == "d4"
     assert game["plies"][-1]["fen"] == "rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR"
+
+
+def test_load_ratings_skips_the_rater_line_the_page_writes(tmp_path):
+    path = tmp_path / "ratings_a.csv"
+    path.write_text(
+        "# rater=A level=club round=round2\n"
+        "item_id," + ",".join(RUBRIC_AXES) + ",comment\n"
+        "item-01," + ",".join("4" for _ in RUBRIC_AXES) + ",\"fine, mostly\"\n"
+        "item-02,,,,,\n",
+        encoding="utf-8",
+    )
+    assert load_ratings(path) == {"item-01": {a: 4 for a in RUBRIC_AXES}}
+
+
+def test_rating_sessions_round_trip_through_load_ratings(tmp_path):
+    from eval.rating_sessions import main as export
+
+    full = {a: 5 for a in RUBRIC_AXES}
+    sessions = [
+        {"label": "link 1", "state": {"tag": "A b", "level": "club", "scores": {"item-01": {**full, "comment": "ok"}}}},
+        {"data": {"tag": "A b", "level": "strong", "scores": {"item-02": {"clarity": 2}}}},
+    ]
+    src = tmp_path / "sessions.json"
+    src.write_text(json.dumps(sessions), encoding="utf-8")
+    assert export([str(src), "--out", str(tmp_path / "out")]) == 0
+    assert load_ratings(tmp_path / "out" / "ratings_Ab.csv") == {"item-01": full}
+    assert load_ratings(tmp_path / "out" / "ratings_Ab2.csv") == {"item-02": {"clarity": 2}}

@@ -367,7 +367,19 @@ document.addEventListener("click", e => {
 const AXIS_TITLES = { factual_correctness: "Factual correctness", clarity: "Clarity",
   actionability: "Actionability", identifies_key_mistake: "Identifies the key mistake" };
 const ROUND = "round2";
-const LS_KEY = "chess-coach-ratings-" + ROUND;
+/* Supabase backend, used by the GitHub Pages copy. Each rater gets a personal link ending in #t=<token>;
+   the token is the only credential, and the database's two functions accept nothing without a known one.
+   The key is the project's publishable key, which is meant to be public. Inside a claude.ai artifact no
+   token reaches the page, so it uses the artifact's own database instead. */
+const SUPABASE = { url: "", key: "" };
+function tokenFromHash() { const m = location.hash.match(/(?:^#|&)t=([0-9a-f-]{36})(?:&|$)/i); return m ? m[1].toLowerCase() : null; }
+const SB_TOKEN = (() => {
+  if (!SUPABASE.url) return null;
+  let t = tokenFromHash();
+  try { if (t) localStorage.setItem("chess-coach-token", t); else t = localStorage.getItem("chess-coach-token"); } catch (e) {}
+  return t;
+})();
+const LS_KEY = "chess-coach-ratings-" + ROUND + (SB_TOKEN ? "-" + SB_TOKEN.slice(0, 8) : "");
 
 let state = { tag: "", level: "", started: "", updated: "", scores: {} };
 let idx = 0;
@@ -477,7 +489,7 @@ function showFinish() {
   document.getElementById("finish").classList.remove("hidden");
   const missing = ITEMS.length - doneCount();
   document.querySelector("#finish h2").textContent = missing ? missing + " items still need scores" : "All 60 rated. Thank you.";
-  document.getElementById("finishSave").textContent = db && docRef
+  document.getElementById("finishSave").textContent = docRef
     ? "Your scores are saved to the study. Downloading a copy is optional."
     : "Your scores are saved only in this browser. Download or copy the CSV and send it back to the study organiser.";
   document.getElementById("csvOut").value = toCsv();
@@ -496,23 +508,60 @@ function setSaveChip(kind, text) { const c = document.getElementById("save"); c.
 function queueCloud() { if (!docRef) return; clearTimeout(saveTimer); saveTimer = setTimeout(writeCloud, 800); }
 async function writeCloud() {
   if (!docRef) return;
+  saveTimer = null;
   if (writing) { pending = true; return; }
   writing = true;
   try {
-    await docRef.set({ tag: state.tag, level: state.level, round: ROUND, started: state.started, updated: state.updated, scores: state.scores });
+    await docRef.set(snapshot());
     setSaveChip("cloud", "Saved to the study");
   } catch (e) {
-    docRef = null;
-    setSaveChip("local", "Saving in this browser only");
+    if (docRef && docRef.retry) {
+      setSaveChip("local", "Not saved to the study yet. Retrying…");
+      clearTimeout(saveTimer); saveTimer = setTimeout(writeCloud, 5000);
+    } else {
+      docRef = null;
+      setSaveChip("local", "Saving in this browser only");
+    }
   } finally {
     writing = false;
     if (pending) { pending = false; writeCloud(); }
   }
 }
+function snapshot() { return { tag: state.tag, level: state.level, round: ROUND, started: state.started, updated: state.updated, scores: state.scores }; }
+function adoptRemote(remote) {
+  if (remote && remote.scores && (!state.updated || (remote.updated && remote.updated > state.updated))) {
+    state = Object.assign({ tag: "", level: "", started: "", updated: "", scores: {} }, remote);
+    saveLocal(); syncIntro(); renderStrip(); if (!deskHidden()) show(idx);
+  }
+}
+function rpc(name, body, keepalive) {
+  return fetch(SUPABASE.url + "/rest/v1/rpc/" + name, {
+    method: "POST", keepalive: !!keepalive, body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json", apikey: SUPABASE.key },
+  }).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+}
+async function connectSupabase() {
+  try {
+    const res = await rpc("chess_load", { p_token: SB_TOKEN, p_round: ROUND });
+    if (!res || !res.known) { setSaveChip("local", "This personal link isn't recognised. Saving in this browser only."); return; }
+    adoptRemote(res.state);
+    docRef = { retry: true, set: st => rpc("chess_save", { p_token: SB_TOKEN, p_round: ROUND, p_state: st }).then(ok => { if (ok !== true) throw new Error("rejected"); }) };
+    setSaveChip("cloud", "Saving to the study");
+    if (state.updated) writeCloud();
+  } catch (e) {
+    setSaveChip("local", "Can't reach the study right now. Saving in this browser and retrying.");
+    setTimeout(connectSupabase, 15000);
+  }
+}
+window.addEventListener("pagehide", () => {
+  if (SB_TOKEN && docRef && saveTimer) { clearTimeout(saveTimer); saveTimer = null; rpc("chess_save", { p_token: SB_TOKEN, p_round: ROUND, p_state: snapshot() }, true).catch(() => {}); }
+});
 async function connectCloud() {
+  if (SB_TOKEN) return connectSupabase();
+  const localOnly = SUPABASE.url ? "Saving in this browser only. Open your personal link to save to the study." : "Saving in this browser only";
   try {
     for (let t = 0; t < 30 && !(window.claude && window.claude.use); t++) await new Promise(r => setTimeout(r, 100));
-    if (!window.claude || !window.claude.use) { setSaveChip("local", "Saving in this browser only"); return; }
+    if (!window.claude || !window.claude.use) { setSaveChip("local", localOnly); return; }
     const [d, u] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
     if (!d || !u) { setSaveChip("local", "Saving in this browser only"); return; }
     const uid = await u.id();
@@ -522,10 +571,7 @@ async function connectCloud() {
     const snap = await ref.get();
     clearTimeout(timer);
     const remote = snap && (typeof snap.data === "function" ? snap.data() : snap);
-    if (remote && remote.scores && (!state.updated || (remote.updated && remote.updated > state.updated))) {
-      state = Object.assign({ tag: "", level: "", started: "", updated: "", scores: {} }, remote);
-      saveLocal(); syncIntro(); renderStrip(); if (!deskHidden()) show(idx);
-    }
+    adoptRemote(remote);
     docRef = ref;
     setSaveChip("cloud", "Saving to the study");
     if (state.updated) writeCloud();
@@ -581,8 +627,13 @@ document.getElementById("download").addEventListener("click", async () => {
   const msg = document.getElementById("exportMsg");
   try {
     const dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
-    if (!dl) { msg.textContent = "Downloads aren't available here. Use Copy instead."; return; }
-    await dl.save({ filename: "ratings_" + (state.tag || "rater").replace(/[^A-Za-z0-9_-]/g, "") + "_" + ROUND + ".csv", data: toCsv() });
+    const filename = "ratings_" + (state.tag || "rater").replace(/[^A-Za-z0-9_-]/g, "") + "_" + ROUND + ".csv";
+    if (!dl) {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([toCsv()], { type: "text/csv" })); a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      msg.textContent = "Saved. Send the file to the study organiser."; return;
+    }
+    await dl.save({ filename, data: toCsv() });
     msg.textContent = "Saved. Send the file to the study organiser.";
   } catch (e) { msg.textContent = "The download was cancelled or blocked. Use Copy instead."; }
 });

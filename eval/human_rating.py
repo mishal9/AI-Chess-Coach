@@ -427,7 +427,9 @@ def load_ratings(path: Path) -> dict[str, dict[str, int]]:
     """Read a returned ratings CSV as ``{item_id: {axis: score}}``, skipping blanks."""
     out: dict[str, dict[str, int]] = {}
     with Path(path).open(newline="", encoding="utf-8") as handle:
-        for row in csv.DictReader(handle):
+        # The rating page writes a "# rater=... level=... round=..." line above the header.
+        lines = (line for line in handle if not line.startswith("#"))
+        for row in csv.DictReader(lines):
             scores = {}
             for axis in RUBRIC_AXES:
                 value = (row.get(axis) or "").strip()
