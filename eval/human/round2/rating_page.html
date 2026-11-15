@@ -369,9 +369,12 @@ const AXIS_TITLES = { factual_correctness: "Factual correctness", clarity: "Clar
 const ROUND = "round2";
 /* Supabase backend, used by the GitHub Pages copy. Each rater gets a personal link ending in #t=<token>;
    the token is the only credential, and the database's two functions accept nothing without a known one.
-   The key is the project's publishable key, which is meant to be public. Inside a claude.ai artifact no
+   The key is the project's publishable key: public in the served page by design, but kept out of git. Inside a claude.ai artifact no
    token reaches the page, so it uses the artifact's own database instead. */
-const SUPABASE = { url: "", key: "" };
+/* Filled in at deploy time by .github/workflows/rating-page.yml from the SUPABASE_URL variable and the
+   SUPABASE_PUBLISHABLE_KEY secret; left as placeholders in git, where they mean "no Supabase". */
+const SUPABASE = { url: "__SUPABASE_URL__", key: "__SUPABASE_PUBLISHABLE_KEY__" };
+if (SUPABASE.url.startsWith("__") || SUPABASE.key.startsWith("__")) { SUPABASE.url = ""; SUPABASE.key = ""; }
 function tokenFromHash() { const m = location.hash.match(/(?:^#|&)t=([0-9a-f-]{36})(?:&|$)/i); return m ? m[1].toLowerCase() : null; }
 const SB_TOKEN = (() => {
   if (!SUPABASE.url) return null;
